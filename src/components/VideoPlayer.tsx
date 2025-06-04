@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DrawingCanvas } from "./DrawingCanvas";
@@ -676,7 +675,7 @@ export const VideoPlayer = ({
           
           {/* Time Display */}
           <div className="text-white text-sm font-mono">
-            {formatTimeSimple(currentTime)}:{formatTimeSimple(duration)}
+            {formatTime(currentTime)} / {formatTime(duration)}
           </div>
           
           <div className="flex items-center space-x-3">
