@@ -552,7 +552,7 @@ export const VideoPlayer = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent 
-                className="w-64 bg-gray-800 border-gray-600 text-white shadow-xl z-50"
+                className="w-72 bg-gray-800 border-gray-600 text-white shadow-xl z-50"
                 align="end"
                 sideOffset={5}
               >
@@ -563,7 +563,7 @@ export const VideoPlayer = ({
                       <Play size={16} className="text-gray-300" />
                       <span className="text-white">Quality</span>
                     </div>
-                    <div className="flex items-center space-x-8">
+                    <div className="flex items-center space-x-12">
                       <div className="flex items-center space-x-2">
                         <span className="text-sm text-gray-300">{quality}</span>
                         <span className="text-xs bg-blue-600 px-2 py-1 rounded text-white font-medium">
@@ -581,7 +581,7 @@ export const VideoPlayer = ({
                         onClick={() => handleQualityChange(qual)}
                       >
                         <span className="text-white">{qual}</span>
-                        <div className="flex items-center space-x-8">
+                        <div className="flex items-center space-x-12">
                           <span className="text-xs bg-blue-600 px-2 py-1 rounded text-white font-medium">
                             {getQualityLabel(qual)}
                           </span>
@@ -599,7 +599,7 @@ export const VideoPlayer = ({
                       <div className="w-4 h-4 border border-gray-300 rounded" />
                       <span className="text-white">Guides</span>
                     </div>
-                    <div className="flex items-center space-x-8">
+                    <div className="flex items-center space-x-12">
                       <span className="text-sm text-gray-300">{guides.enabled ? guides.ratio : 'Off'}</span>
                       <ChevronRight size={16} className="text-gray-400" />
                     </div>
@@ -664,7 +664,7 @@ export const VideoPlayer = ({
                       <ZoomIn size={16} className="text-gray-300" />
                       <span className="text-white">Zoom</span>
                     </div>
-                    <div className="flex items-center space-x-8">
+                    <div className="flex items-center space-x-12">
                       <span className="text-sm text-gray-300">{zoom}</span>
                       <ChevronRight size={16} className="text-gray-400" />
                     </div>
@@ -678,7 +678,7 @@ export const VideoPlayer = ({
                         <Shrink size={16} className="text-gray-300" />
                         <span className="text-white">Fit</span>
                       </div>
-                      <div className="flex items-center space-x-8">
+                      <div className="flex items-center space-x-12">
                         <span className="text-xs text-gray-400">T</span>
                         {zoom === 'Fit' && <Check size={16} className="text-white" />}
                       </div>
@@ -691,7 +691,7 @@ export const VideoPlayer = ({
                         <Maximize2 size={16} className="text-gray-300" />
                         <span className="text-white">Fill</span>
                       </div>
-                      <div className="flex items-center space-x-8">
+                      <div className="flex items-center space-x-12">
                         <span className="text-xs text-gray-400">Y</span>
                         {zoom === 'Fill' && <Check size={16} className="text-white" />}
                       </div>
@@ -724,7 +724,7 @@ export const VideoPlayer = ({
                         <ZoomIn size={16} className="text-gray-300" />
                         <span className="text-white">Zoom to 100%</span>
                       </div>
-                      <div className="flex items-center space-x-8">
+                      <div className="flex items-center space-x-12">
                         <span className="text-xs text-gray-400">⌘0</span>
                         {zoom === '100%' && <Check size={16} className="text-white" />}
                       </div>
