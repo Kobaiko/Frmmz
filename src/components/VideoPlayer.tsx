@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DrawingCanvas } from "./DrawingCanvas";
@@ -265,11 +264,13 @@ export const VideoPlayer = ({
         const newZoomIn = Math.min(zoomLevel * 1.2, 3);
         setZoomLevel(newZoomIn);
         video.style.transform = `scale(${newZoomIn})`;
+        video.style.transformOrigin = 'center center';
         break;
       case 'Zoom Out':
         const newZoomOut = Math.max(zoomLevel * 0.8, 0.5);
         setZoomLevel(newZoomOut);
         video.style.transform = `scale(${newZoomOut})`;
+        video.style.transformOrigin = 'center center';
         break;
       case '100%':
         setZoomLevel(1);
@@ -381,11 +382,16 @@ export const VideoPlayer = ({
 
   return (
     <div className="bg-black rounded-lg overflow-hidden shadow-2xl relative">
-      <div className="relative" ref={containerRef}>
+      <div className="relative overflow-hidden" ref={containerRef}>
         <video
           ref={videoRef}
           className="w-full h-auto transition-transform duration-200"
           onClick={togglePlayPause}
+          style={{ 
+            display: 'block',
+            maxWidth: '100%',
+            maxHeight: '100%'
+          }}
         />
         
         {/* Guide lines overlay */}
@@ -410,7 +416,7 @@ export const VideoPlayer = ({
       </div>
       
       {/* Custom Control Bar */}
-      <div className="bg-black p-4">
+      <div className="bg-black p-4 relative z-10">
         {/* Timeline */}
         <div className="mb-4">
           <div
