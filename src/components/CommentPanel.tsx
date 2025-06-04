@@ -2,8 +2,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Clock, MessageSquare, Reply, Trash2, Paperclip } from "lucide-react";
+import { Clock, MessageSquare, Reply, Trash2, Paperclip, Smile, Send, X } from "lucide-react";
 import { CommentInput } from "@/components/CommentInput";
+import { Textarea } from "@/components/ui/textarea";
 import type { Comment } from "@/pages/Index";
 
 interface CommentPanelProps {
@@ -24,6 +25,7 @@ export const CommentPanel = ({
   onAddComment,
 }: CommentPanelProps) => {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -48,8 +50,16 @@ export const CommentPanel = ({
     return comments.filter(comment => comment.parentId === parentId);
   };
 
-  const handleReply = (parentId: string, text: string, attachments?: string[]) => {
-    onReplyComment(parentId, text, attachments);
+  const handleReply = (parentId: string) => {
+    if (replyText.trim()) {
+      onReplyComment(parentId, replyText.trim());
+      setReplyText("");
+      setReplyingTo(null);
+    }
+  };
+
+  const handleCancel = () => {
+    setReplyText("");
     setReplyingTo(null);
   };
 
@@ -136,21 +146,69 @@ export const CommentPanel = ({
                       onClick={() => setReplyingTo(comment.id)}
                       className="text-gray-400 hover:text-blue-400 text-xs"
                     >
-                      <Reply size={12} />
-                      <span>Reply</span>
+                      Reply
                     </Button>
                   </div>
                 </div>
 
                 {replyingTo === comment.id && (
-                  <div className="ml-6 bg-gray-750 rounded-lg border border-gray-600">
-                    <CommentInput
-                      currentTime={currentTime}
-                      onAddComment={(text, attachments) => handleReply(comment.id, text, attachments)}
-                      parentId={comment.id}
-                      onCancel={() => setReplyingTo(null)}
-                      placeholder="Write a reply..."
+                  <div className="ml-6 bg-gray-700 rounded-lg border border-gray-600 p-4">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                        <span className="text-xs text-white font-medium">U</span>
+                      </div>
+                      <span className="text-sm text-gray-300">Yair Kivaiko</span>
+                      <span className="text-xs text-gray-500">9m</span>
+                      <div className="ml-auto flex items-center space-x-2 bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full text-xs font-medium">
+                        <Clock size={10} />
+                        <span>{formatTime(currentTime)}</span>
+                      </div>
+                    </div>
+                    
+                    <Textarea
+                      placeholder="Leave your reply here..."
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      className="bg-gray-800 border-gray-600 text-white placeholder-gray-400 resize-none min-h-[80px] mb-3"
                     />
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-gray-400 hover:text-white p-2"
+                        >
+                          <Paperclip size={16} />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-gray-400 hover:text-white p-2"
+                        >
+                          <Smile size={16} />
+                        </Button>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleCancel}
+                          className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleReply(comment.id)}
+                          disabled={!replyText.trim()}
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          <Send size={14} />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 )}
 

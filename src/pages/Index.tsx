@@ -4,7 +4,6 @@ import { VideoPlayer } from "@/components/VideoPlayer";
 import { CommentPanel } from "@/components/CommentPanel";
 import { VideoUpload } from "@/components/VideoUpload";
 import { ProjectHeader } from "@/components/ProjectHeader";
-import { Timeline } from "@/components/Timeline";
 
 export interface Comment {
   id: string;
@@ -73,23 +72,15 @@ const Index = () => {
     <div className="min-h-screen bg-gray-900 flex flex-col">
       <ProjectHeader projectId={projectId} />
       <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 p-6">
-            <VideoPlayer
-              src={videoUrl}
-              currentTime={currentTime}
-              onTimeUpdate={setCurrentTime}
-              onDurationChange={setDuration}
-            />
-          </div>
-          {duration > 0 && (
-            <Timeline
-              comments={comments}
-              currentTime={currentTime}
-              duration={duration}
-              onTimeClick={handleCommentClick}
-            />
-          )}
+        <div className="flex-1 p-6">
+          <VideoPlayer
+            src={videoUrl}
+            currentTime={currentTime}
+            onTimeUpdate={setCurrentTime}
+            onDurationChange={setDuration}
+            comments={comments}
+            onTimeClick={handleCommentClick}
+          />
         </div>
         <div className="w-96 border-l border-gray-700 flex flex-col">
           <CommentPanel
