@@ -564,7 +564,7 @@ export const VideoPlayer = ({
                       <span className="text-white">Quality</span>
                     </div>
                     <div className="flex items-center space-x-4">
-                      <span className="text-sm text-gray-300">{quality}</span>
+                      <span className="text-sm text-gray-300 ml-auto">{quality}</span>
                       <span className="text-xs bg-blue-600 px-2 py-1 rounded text-white font-medium">
                         {getQualityLabel(quality)}
                       </span>
@@ -596,7 +596,7 @@ export const VideoPlayer = ({
                       <div className="w-4 h-4 border border-gray-300 rounded" />
                       <span className="text-white">Guides</span>
                     </div>
-                    <span className="text-sm text-gray-300">{guides.enabled ? guides.ratio : 'Off'}</span>
+                    <span className="text-sm text-gray-300 ml-auto">{guides.enabled ? guides.ratio : 'Off'}</span>
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent className="bg-gray-800 border-gray-600 text-white shadow-xl z-50">
                     <DropdownMenuItem
