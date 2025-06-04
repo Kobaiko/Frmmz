@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DrawingCanvas } from "./DrawingCanvas";
@@ -181,6 +182,15 @@ export const VideoPlayer = ({
   }, []);
 
   const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    const milliseconds = Math.floor((seconds % 1) * 10);
+    
+    return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${milliseconds}`;
+  };
+
+  const formatTimeSimple = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
@@ -564,7 +574,30 @@ export const VideoPlayer = ({
       {/* Custom Control Bar */}
       <div className="bg-black p-4 relative z-10">
         {/* Timeline */}
-        <div className="mb-4">
+        <div className="mb-4 relative">
+          {/* Hover time indicator with frame preview - positioned above timeline */}
+          {isHovering && (
+            <div
+              className="absolute -top-32 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg shadow-xl border border-gray-600 z-20"
+              style={{ left: `${duration > 0 ? (hoverTime / duration) * 100 : 0}%` }}
+            >
+              {/* Frame preview */}
+              {previewFrame && (
+                <div className="mb-1">
+                  <img 
+                    src={previewFrame} 
+                    alt="Frame preview"
+                    className="rounded-t-lg w-40 h-auto border-b border-gray-600"
+                  />
+                </div>
+              )}
+              {/* Time display with full format */}
+              <div className="px-3 py-2 text-center">
+                {formatTime(hoverTime)}
+              </div>
+            </div>
+          )}
+          
           <div
             ref={timelineRef}
             className="relative h-1 bg-gray-600 rounded cursor-pointer"
@@ -594,29 +627,6 @@ export const VideoPlayer = ({
                 </Avatar>
               </div>
             ))}
-            
-            {/* Hover time indicator with frame preview */}
-            {isHovering && (
-              <div
-                className="absolute -top-20 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded shadow-lg border border-gray-600"
-                style={{ left: `${duration > 0 ? (hoverTime / duration) * 100 : 0}%` }}
-              >
-                {/* Frame preview */}
-                {previewFrame && (
-                  <div className="mb-1">
-                    <img 
-                      src={previewFrame} 
-                      alt="Frame preview"
-                      className="rounded-t w-40 h-auto border-b border-gray-600"
-                    />
-                  </div>
-                )}
-                {/* Time display */}
-                <div className="px-2 py-1">
-                  {formatTime(hoverTime)}
-                </div>
-              </div>
-            )}
           </div>
         </div>
         
@@ -666,7 +676,7 @@ export const VideoPlayer = ({
           
           {/* Time Display */}
           <div className="text-white text-sm font-mono">
-            {formatTime(currentTime)}:{formatTime(duration)}
+            {formatTimeSimple(currentTime)}:{formatTimeSimple(duration)}
           </div>
           
           <div className="flex items-center space-x-3">
