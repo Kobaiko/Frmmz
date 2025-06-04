@@ -267,9 +267,11 @@ export const VideoPlayer = ({
     if (volume > 0) {
       setVolume(0);
       video.volume = 0;
+      video.muted = true;
     } else {
       setVolume(1);
       video.volume = 1;
+      video.muted = false;
     }
   };
 
@@ -278,6 +280,7 @@ export const VideoPlayer = ({
     setVolume(volumeValue);
     if (videoRef.current) {
       videoRef.current.volume = volumeValue;
+      videoRef.current.muted = volumeValue === 0;
     }
   };
 
@@ -745,21 +748,22 @@ export const VideoPlayer = ({
                   </TooltipContent>
                 </Tooltip>
                 <PopoverContent 
-                  className="w-auto p-3 bg-gray-800 border-gray-600" 
+                  className="w-auto p-3 bg-gray-800 border-gray-600 text-white rounded-lg" 
                   side="right"
                   align="center"
                   onMouseEnter={() => setIsVolumeHovered(true)}
                   onMouseLeave={() => setIsVolumeHovered(false)}
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="text-white text-xs">{Math.round(volume * 100)}%</div>
+                    <span className="text-white text-sm font-medium">Mute</span>
+                    <span className="bg-gray-600 text-white px-1.5 py-0.5 rounded text-xs font-mono">M</span>
                     <Slider
                       value={[volume]}
                       onValueChange={handleVolumeChange}
                       max={1}
-                      step={0.1}
+                      step={0.01}
                       orientation="horizontal"
-                      className="w-20"
+                      className="w-24 [&_[role=slider]]:bg-white [&_[role=slider]]:border-white"
                     />
                   </div>
                 </PopoverContent>
