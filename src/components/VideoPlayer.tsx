@@ -64,7 +64,8 @@ export const VideoPlayer = ({
   const [maxQuality, setMaxQuality] = useState('1080p');
   const [guides, setGuides] = useState({
     enabled: false,
-    ratio: '4:3'
+    ratio: '4:3',
+    mask: false
   });
   const [zoom, setZoom] = useState('Fit');
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -278,6 +279,11 @@ export const VideoPlayer = ({
     console.log(`Guides ratio changed to: ${ratio}`);
   };
 
+  const handleGuidesMaskToggle = () => {
+    setGuides(prev => ({ ...prev, mask: !prev.mask }));
+    console.log(`Guides mask ${!guides.mask ? 'enabled' : 'disabled'}`);
+  };
+
   const handleZoomChange = (newZoom: string) => {
     setZoom(newZoom);
     const video = videoRef.current;
@@ -397,16 +403,80 @@ export const VideoPlayer = ({
     const top = (videoHeight - guideHeight) / 2;
 
     return (
-      <div
-        className="absolute border-2 border-yellow-400 border-dashed pointer-events-none"
-        style={{
-          left: `${left}px`,
-          top: `${top}px`,
-          width: `${guideWidth}px`,
-          height: `${guideHeight}px`,
-          zIndex: 5
-        }}
-      />
+      <>
+        {/* Guide lines */}
+        <div
+          className="absolute border-2 border-yellow-400 border-dashed pointer-events-none"
+          style={{
+            left: `${left}px`,
+            top: `${top}px`,
+            width: `${guideWidth}px`,
+            height: `${guideHeight}px`,
+            zIndex: 5
+          }}
+        />
+        
+        {/* Mask overlay */}
+        {guides.mask && (
+          <>
+            {/* Top mask */}
+            {top > 0 && (
+              <div
+                className="absolute bg-black bg-opacity-70 pointer-events-none"
+                style={{
+                  left: 0,
+                  top: 0,
+                  width: `${videoWidth}px`,
+                  height: `${top}px`,
+                  zIndex: 4
+                }}
+              />
+            )}
+            
+            {/* Bottom mask */}
+            {top + guideHeight < videoHeight && (
+              <div
+                className="absolute bg-black bg-opacity-70 pointer-events-none"
+                style={{
+                  left: 0,
+                  top: `${top + guideHeight}px`,
+                  width: `${videoWidth}px`,
+                  height: `${videoHeight - (top + guideHeight)}px`,
+                  zIndex: 4
+                }}
+              />
+            )}
+            
+            {/* Left mask */}
+            {left > 0 && (
+              <div
+                className="absolute bg-black bg-opacity-70 pointer-events-none"
+                style={{
+                  left: 0,
+                  top: `${top}px`,
+                  width: `${left}px`,
+                  height: `${guideHeight}px`,
+                  zIndex: 4
+                }}
+              />
+            )}
+            
+            {/* Right mask */}
+            {left + guideWidth < videoWidth && (
+              <div
+                className="absolute bg-black bg-opacity-70 pointer-events-none"
+                style={{
+                  left: `${left + guideWidth}px`,
+                  top: `${top}px`,
+                  width: `${videoWidth - (left + guideWidth)}px`,
+                  height: `${guideHeight}px`,
+                  zIndex: 4
+                }}
+              />
+            )}
+          </>
+        )}
+      </>
     );
   };
 
@@ -641,6 +711,19 @@ export const VideoPlayer = ({
                       <span className="text-white">1:1</span>
                       {guides.ratio === '1:1' && guides.enabled && <Check size={16} className="text-white" />}
                     </DropdownMenuItem>
+                    
+                    {/* Mask toggle */}
+                    <DropdownMenuItem className="hover:bg-gray-700 focus:bg-gray-700 data-[highlighted]:bg-gray-700 cursor-pointer p-0">
+                      <div className="flex items-center justify-between w-full px-4 py-3">
+                        <span className="text-white">Mask</span>
+                        <Switch
+                          checked={guides.mask}
+                          onCheckedChange={handleGuidesMaskToggle}
+                          className="data-[state=checked]:bg-blue-600 scale-75"
+                        />
+                      </div>
+                    </DropdownMenuItem>
+                    
                     <DropdownMenuItem
                       className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 data-[highlighted]:bg-gray-700 px-4 py-3 cursor-pointer text-white"
                       onClick={handleGuidesToggle}
