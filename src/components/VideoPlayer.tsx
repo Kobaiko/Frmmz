@@ -1,6 +1,8 @@
+
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DrawingCanvas } from "./DrawingCanvas";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { 
   Play, 
   Pause, 
@@ -10,14 +12,21 @@ import {
   MessageSquare,
   Settings,
   Maximize,
-  ChevronRight
+  ChevronRight,
+  Check,
+  Plus,
+  Minus
 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
 import type { Comment } from "@/pages/Index";
 
 interface VideoPlayerProps {
@@ -47,8 +56,15 @@ export const VideoPlayer = ({
   const [isHovering, setIsHovering] = useState(false);
   const [hoverTime, setHoverTime] = useState(0);
   const [quality, setQuality] = useState('1080p');
-  const [showGuides, setShowGuides] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState('Fit');
+  const [availableQualities, setAvailableQualities] = useState<string[]>(['1080p', '720p', '540p', '360p']);
+  const [maxQuality, setMaxQuality] = useState('1080p');
+  const [guides, setGuides] = useState({
+    enabled: false,
+    ratio: '4:3'
+  });
+  const [zoom, setZoom] = useState('Fit');
+  const [anchoredComments, setAnchoredComments] = useState(false);
+  const [annotations, setAnnotations] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -57,6 +73,30 @@ export const VideoPlayer = ({
     const handleLoadedMetadata = () => {
       const videoDuration = video.duration;
       setDuration(videoDuration);
+      
+      // Determine max quality based on video resolution
+      const videoHeight = video.videoHeight;
+      let maxQual = '360p';
+      let availableQuals = ['360p'];
+      
+      if (videoHeight >= 2160) {
+        maxQual = '2160p';
+        availableQuals = ['2160p', '1080p', '720p', '540p', '360p'];
+      } else if (videoHeight >= 1080) {
+        maxQual = '1080p';
+        availableQuals = ['1080p', '720p', '540p', '360p'];
+      } else if (videoHeight >= 720) {
+        maxQual = '720p';
+        availableQuals = ['720p', '540p', '360p'];
+      } else if (videoHeight >= 540) {
+        maxQual = '540p';
+        availableQuals = ['540p', '360p'];
+      }
+      
+      setMaxQuality(maxQual);
+      setQuality(maxQual);
+      setAvailableQualities(availableQuals);
+      
       if (onDurationChange) {
         onDurationChange(videoDuration);
       }
@@ -184,33 +224,45 @@ export const VideoPlayer = ({
 
   const handleQualityChange = (newQuality: string) => {
     setQuality(newQuality);
-    // In a real implementation, this would change the video source
     console.log(`Quality changed to: ${newQuality}`);
   };
 
   const handleGuidesToggle = () => {
-    setShowGuides(!showGuides);
-    console.log(`Guides ${!showGuides ? 'enabled' : 'disabled'}`);
+    setGuides(prev => ({ ...prev, enabled: !prev.enabled }));
+    console.log(`Guides ${!guides.enabled ? 'enabled' : 'disabled'}`);
+  };
+
+  const handleGuidesRatioChange = (ratio: string) => {
+    setGuides(prev => ({ ...prev, ratio }));
+    console.log(`Guides ratio changed to: ${ratio}`);
   };
 
   const handleZoomChange = (newZoom: string) => {
-    setZoomLevel(newZoom);
+    setZoom(newZoom);
     console.log(`Zoom changed to: ${newZoom}`);
   };
 
   const handleViewOnAsset = () => {
     console.log('View on Asset clicked');
-    // Implementation for viewing on asset platform
   };
 
   const handleSetFrameAsThumb = () => {
     console.log('Set Frame as Thumb clicked');
-    // Implementation for setting current frame as thumbnail
   };
 
   const handleDownloadStill = () => {
     console.log('Download Still clicked');
-    // Implementation for downloading current frame as image
+  };
+
+  const getQualityLabel = (qual: string) => {
+    const labels: { [key: string]: string } = {
+      '2160p': '4K',
+      '1080p': 'HD',
+      '720p': 'HD',
+      '540p': 'SD',
+      '360p': 'SD'
+    };
+    return labels[qual] || '';
   };
 
   return (
@@ -258,14 +310,19 @@ export const VideoPlayer = ({
               style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
             />
             
-            {/* Comment markers */}
+            {/* Comment markers with user avatars */}
             {getCommentMarkers().map((comment) => (
               <div
                 key={comment.id}
                 className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2"
                 style={{ left: `${comment.position}%` }}
               >
-                <div className="w-3 h-3 bg-white rounded-full border-2 border-black" />
+                <Avatar className="w-6 h-6 border-2 border-white shadow-lg cursor-pointer hover:scale-110 transition-transform">
+                  <AvatarImage src="" />
+                  <AvatarFallback className="bg-blue-600 text-white text-xs font-medium">
+                    {comment.author.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
               </div>
             ))}
             
@@ -346,49 +403,185 @@ export const VideoPlayer = ({
                 className="w-56 bg-gray-900 border-gray-700 text-white"
                 align="end"
               >
-                <DropdownMenuItem 
-                  className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
-                  onClick={() => handleQualityChange(quality === '1080p' ? '720p' : '1080p')}
-                >
-                  <div className="flex items-center space-x-2">
-                    <span>🎬</span>
-                    <span>Quality</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <span className="text-sm">{quality}</span>
-                    <span className="text-xs bg-blue-600 px-1 rounded">HD</span>
-                    <ChevronRight size={16} />
-                  </div>
-                </DropdownMenuItem>
+                {/* Quality Sub-menu */}
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="flex items-center justify-between hover:bg-gray-800 cursor-pointer">
+                    <div className="flex items-center space-x-2">
+                      <span>🎬</span>
+                      <span>Quality</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <span className="text-sm">{quality}</span>
+                      <span className="text-xs bg-blue-600 px-1 rounded">{getQualityLabel(quality)}</span>
+                      <ChevronRight size={16} />
+                    </div>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="bg-gray-900 border-gray-700 text-white">
+                    {availableQualities.map((qual) => (
+                      <DropdownMenuItem
+                        key={qual}
+                        className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
+                        onClick={() => handleQualityChange(qual)}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <span>{qual}</span>
+                          <span className="text-xs bg-blue-600 px-1 rounded">{getQualityLabel(qual)}</span>
+                        </div>
+                        {quality === qual && <Check size={16} />}
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuItem className="flex items-center justify-between hover:bg-gray-800 cursor-pointer">
+                      <span>Auto</span>
+                      {quality === 'Auto' && <Check size={16} />}
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 
-                <DropdownMenuItem 
-                  className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
-                  onClick={handleGuidesToggle}
-                >
-                  <div className="flex items-center space-x-2">
-                    <span>📐</span>
-                    <span>Guides</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <span className="text-sm">{showGuides ? 'On' : 'Off'}</span>
-                    <ChevronRight size={16} />
-                  </div>
-                </DropdownMenuItem>
+                {/* Guides Sub-menu */}
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="flex items-center justify-between hover:bg-gray-800 cursor-pointer">
+                    <div className="flex items-center space-x-2">
+                      <span>📐</span>
+                      <span>Guides</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <span className="text-sm">{guides.enabled ? guides.ratio : 'Off'}</span>
+                      <ChevronRight size={16} />
+                    </div>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="bg-gray-900 border-gray-700 text-white">
+                    <DropdownMenuItem
+                      className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
+                      onClick={() => handleGuidesRatioChange('2.35')}
+                    >
+                      <span>2.35</span>
+                      {guides.ratio === '2.35' && guides.enabled && <Check size={16} />}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
+                      onClick={() => handleGuidesRatioChange('1.85')}
+                    >
+                      <span>1.85</span>
+                      {guides.ratio === '1.85' && guides.enabled && <Check size={16} />}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
+                      onClick={() => handleGuidesRatioChange('16:9')}
+                    >
+                      <span>16:9</span>
+                      {guides.ratio === '16:9' && guides.enabled && <Check size={16} />}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
+                      onClick={() => handleGuidesRatioChange('9:16')}
+                    >
+                      <span>9:16</span>
+                      {guides.ratio === '9:16' && guides.enabled && <Check size={16} />}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
+                      onClick={() => handleGuidesRatioChange('4:3')}
+                    >
+                      <span>4:3</span>
+                      {guides.ratio === '4:3' && guides.enabled && <Check size={16} />}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
+                      onClick={() => handleGuidesRatioChange('1:1')}
+                    >
+                      <span>1:1</span>
+                      {guides.ratio === '1:1' && guides.enabled && <Check size={16} />}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
+                      onClick={handleGuidesToggle}
+                    >
+                      <span>Off</span>
+                      {!guides.enabled && <Check size={16} />}
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 
-                <DropdownMenuItem 
-                  className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
-                  onClick={() => handleZoomChange(zoomLevel === 'Fit' ? '100%' : 'Fit')}
-                >
-                  <div className="flex items-center space-x-2">
-                    <span>🔍</span>
-                    <span>Zoom</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <span className="text-sm">{zoomLevel}</span>
-                    <ChevronRight size={16} />
-                  </div>
-                </DropdownMenuItem>
+                {/* Zoom Sub-menu */}
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="flex items-center justify-between hover:bg-gray-800 cursor-pointer">
+                    <div className="flex items-center space-x-2">
+                      <span>🔍</span>
+                      <span>Zoom</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <span className="text-sm">{zoom}</span>
+                      <ChevronRight size={16} />
+                    </div>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="bg-gray-900 border-gray-700 text-white">
+                    <DropdownMenuItem
+                      className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
+                      onClick={() => handleZoomChange('Fit')}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <span>📱</span>
+                        <span>Fit</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <span className="text-sm">T</span>
+                        {zoom === 'Fit' && <Check size={16} />}
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
+                      onClick={() => handleZoomChange('Fill')}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <span>📱</span>
+                        <span>Fill</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <span className="text-sm">Y</span>
+                        {zoom === 'Fill' && <Check size={16} />}
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
+                      onClick={() => handleZoomChange('Zoom In')}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <span>🔍</span>
+                        <span>Zoom In</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <span className="text-sm">+</span>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
+                      onClick={() => handleZoomChange('Zoom Out')}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <span>🔍</span>
+                        <span>Zoom Out</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <span className="text-sm">-</span>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
+                      onClick={() => handleZoomChange('100%')}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <span>🔍</span>
+                        <span>Zoom to 100%</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <span className="text-sm">⌘0</span>
+                        {zoom === '100%' && <Check size={16} />}
+                      </div>
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 
+                {/* View on Asset */}
                 <DropdownMenuItem 
                   className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
                   onClick={handleViewOnAsset}
@@ -400,6 +593,7 @@ export const VideoPlayer = ({
                   <ChevronRight size={16} />
                 </DropdownMenuItem>
                 
+                {/* Set Frame as Thumb */}
                 <DropdownMenuItem 
                   className="flex items-center hover:bg-gray-800 cursor-pointer"
                   onClick={handleSetFrameAsThumb}
@@ -410,6 +604,7 @@ export const VideoPlayer = ({
                   </div>
                 </DropdownMenuItem>
                 
+                {/* Download Still */}
                 <DropdownMenuItem 
                   className="flex items-center hover:bg-gray-800 cursor-pointer"
                   onClick={handleDownloadStill}
@@ -417,6 +612,36 @@ export const VideoPlayer = ({
                   <div className="flex items-center space-x-2">
                     <span>💾</span>
                     <span>Download Still</span>
+                  </div>
+                </DropdownMenuItem>
+
+                {/* Anchored Comments */}
+                <DropdownMenuItem className="flex items-center justify-between hover:bg-gray-800 cursor-pointer p-0">
+                  <div className="flex items-center justify-between w-full px-2 py-1.5">
+                    <div className="flex items-center space-x-2">
+                      <span>💬</span>
+                      <span>Anchored Comments</span>
+                    </div>
+                    <Switch
+                      checked={anchoredComments}
+                      onCheckedChange={setAnchoredComments}
+                      className="data-[state=checked]:bg-blue-600"
+                    />
+                  </div>
+                </DropdownMenuItem>
+
+                {/* Annotations */}
+                <DropdownMenuItem className="flex items-center justify-between hover:bg-gray-800 cursor-pointer p-0">
+                  <div className="flex items-center justify-between w-full px-2 py-1.5">
+                    <div className="flex items-center space-x-2">
+                      <span>✏️</span>
+                      <span>Annotations</span>
+                    </div>
+                    <Switch
+                      checked={annotations}
+                      onCheckedChange={setAnnotations}
+                      className="data-[state=checked]:bg-blue-600"
+                    />
                   </div>
                 </DropdownMenuItem>
               </DropdownMenuContent>
