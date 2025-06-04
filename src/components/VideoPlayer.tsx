@@ -563,7 +563,7 @@ export const VideoPlayer = ({
   };
 
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={0}>
       <div className="bg-black rounded-lg overflow-hidden shadow-2xl relative">
         <div className="relative overflow-hidden" ref={containerRef}>
           <video
@@ -617,7 +617,7 @@ export const VideoPlayer = ({
             {/* Hover time indicator with frame preview - positioned above timeline */}
             {isHovering && (
               <div
-                className="absolute -top-32 transform -translate-x-1/2 bg-white text-black text-xs rounded-lg shadow-xl border border-gray-300 z-20"
+                className="absolute -top-32 transform -translate-x-1/2 bg-gray-200 text-black text-xs rounded-lg shadow-xl border border-gray-300 z-20"
                 style={{ left: `${duration > 0 ? (hoverTime / duration) * 100 : 0}%` }}
               >
                 {/* Frame preview */}
@@ -742,7 +742,7 @@ export const VideoPlayer = ({
                 </Tooltip>
                 <PopoverContent 
                   className="w-auto p-3 bg-gray-800 border-gray-600" 
-                  side="top"
+                  side="right"
                   align="center"
                 >
                   <div className="flex flex-col items-center space-y-2">
