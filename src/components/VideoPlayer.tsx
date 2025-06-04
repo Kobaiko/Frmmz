@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DrawingCanvas } from "./DrawingCanvas";
@@ -17,7 +18,7 @@ import {
   ZoomOut,
   Image,
   Download,
-  Shrink2,
+  Shrink,
   Maximize2
 } from "lucide-react";
 import {
@@ -666,7 +667,7 @@ export const VideoPlayer = ({
                       onClick={() => handleZoomChange('Fit')}
                     >
                       <div className="flex items-center space-x-3">
-                        <Shrink2 size={16} className="text-gray-300" />
+                        <Shrink size={16} className="text-gray-300" />
                         <span>Fit</span>
                       </div>
                       <div className="flex items-center space-x-2">
