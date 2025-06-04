@@ -748,22 +748,22 @@ export const VideoPlayer = ({
                   </TooltipContent>
                 </Tooltip>
                 <PopoverContent 
-                  className="w-auto p-3 bg-gray-800 border-gray-600 text-white rounded-lg" 
+                  className="w-auto p-2 bg-gray-900 border-gray-600 text-white rounded-lg" 
                   side="right"
                   align="center"
                   onMouseEnter={() => setIsVolumeHovered(true)}
                   onMouseLeave={() => setIsVolumeHovered(false)}
                 >
-                  <div className="flex items-center space-x-3">
-                    <span className="text-white text-sm font-medium">Mute</span>
-                    <span className="bg-gray-600 text-white px-1.5 py-0.5 rounded text-xs font-mono">M</span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-white text-xs font-medium">Mute</span>
+                    <span className="bg-gray-700 text-white px-1 py-0.5 rounded text-xs font-mono">M</span>
                     <Slider
                       value={[volume]}
                       onValueChange={handleVolumeChange}
                       max={1}
                       step={0.01}
                       orientation="horizontal"
-                      className="w-24 [&_[role=slider]]:bg-white [&_[role=slider]]:border-white"
+                      className="w-20 [&_[role=slider]]:bg-white [&_[role=slider]]:border-white [&_.relative]:bg-gray-600 [&_.bg-primary]:bg-blue-500"
                     />
                   </div>
                 </PopoverContent>
