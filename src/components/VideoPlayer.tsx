@@ -21,8 +21,7 @@ import {
   Download,
   Shrink,
   Maximize2,
-  Repeat,
-  RepeatOff
+  Repeat
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -700,9 +699,9 @@ export const VideoPlayer = ({
                     size="sm"
                     variant="ghost"
                     onClick={toggleLoop}
-                    className={`text-white hover:text-white p-2 ${isLooping ? 'text-blue-400' : ''}`}
+                    className={`text-white hover:text-white p-2 ${isLooping ? 'text-blue-400' : 'text-gray-400'}`}
                   >
-                    {isLooping ? <Repeat size={16} /> : <RepeatOff size={16} />}
+                    <Repeat size={16} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent className="bg-gray-800 text-white border-gray-600">
