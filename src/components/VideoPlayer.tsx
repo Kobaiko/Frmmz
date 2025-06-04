@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DrawingCanvas } from "./DrawingCanvas";
@@ -564,7 +563,7 @@ export const VideoPlayer = ({
                       <Play size={16} className="text-gray-300" />
                       <span className="text-white">Quality</span>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-4">
                       <span className="text-sm text-gray-300">{quality}</span>
                       <span className="text-xs bg-blue-600 px-2 py-1 rounded text-white font-medium">
                         {getQualityLabel(quality)}
@@ -580,7 +579,7 @@ export const VideoPlayer = ({
                         onClick={() => handleQualityChange(qual)}
                       >
                         <span className="text-white">{qual}</span>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-4">
                           <span className="text-xs bg-blue-600 px-2 py-1 rounded text-white font-medium">
                             {getQualityLabel(qual)}
                           </span>
@@ -598,7 +597,7 @@ export const VideoPlayer = ({
                       <div className="w-4 h-4 border border-gray-300 rounded" />
                       <span className="text-white">Guides</span>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-4">
                       <span className="text-sm text-gray-300">{guides.enabled ? guides.ratio : 'Off'}</span>
                       <ChevronRight size={16} className="text-gray-400" />
                     </div>
@@ -663,7 +662,7 @@ export const VideoPlayer = ({
                       <ZoomIn size={16} className="text-gray-300" />
                       <span className="text-white">Zoom</span>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-4">
                       <span className="text-sm text-gray-300">{zoom}</span>
                       <ChevronRight size={16} className="text-gray-400" />
                     </div>
@@ -677,7 +676,7 @@ export const VideoPlayer = ({
                         <Shrink size={16} className="text-gray-300" />
                         <span className="text-white">Fit</span>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-4">
                         <span className="text-xs text-gray-400">T</span>
                         {zoom === 'Fit' && <Check size={16} className="text-white" />}
                       </div>
@@ -690,7 +689,7 @@ export const VideoPlayer = ({
                         <Maximize2 size={16} className="text-gray-300" />
                         <span className="text-white">Fill</span>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-4">
                         <span className="text-xs text-gray-400">Y</span>
                         {zoom === 'Fill' && <Check size={16} className="text-white" />}
                       </div>
@@ -723,7 +722,7 @@ export const VideoPlayer = ({
                         <ZoomIn size={16} className="text-gray-300" />
                         <span className="text-white">Zoom to 100%</span>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-4">
                         <span className="text-xs text-gray-400">⌘0</span>
                         {zoom === '100%' && <Check size={16} className="text-white" />}
                       </div>
