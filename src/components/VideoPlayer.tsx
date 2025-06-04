@@ -577,7 +577,7 @@ export const VideoPlayer = ({
           {/* Hover time indicator with frame preview - positioned above timeline */}
           {isHovering && (
             <div
-              className="absolute -top-32 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg shadow-xl border border-gray-600 z-20"
+              className="absolute -top-32 transform -translate-x-1/2 bg-white text-black text-xs rounded-lg shadow-xl border border-gray-300 z-20"
               style={{ left: `${duration > 0 ? (hoverTime / duration) * 100 : 0}%` }}
             >
               {/* Frame preview */}
@@ -586,12 +586,12 @@ export const VideoPlayer = ({
                   <img 
                     src={previewFrame} 
                     alt="Frame preview"
-                    className="rounded-t-lg w-40 h-auto border-b border-gray-600"
+                    className="rounded-t-lg w-40 h-auto border-b border-gray-300"
                   />
                 </div>
               )}
               {/* Time display with full format */}
-              <div className="px-3 py-2 text-center">
+              <div className="px-3 py-2 text-center font-mono">
                 {formatTime(hoverTime)}
               </div>
             </div>
