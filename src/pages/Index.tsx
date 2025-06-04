@@ -4,7 +4,7 @@ import { VideoPlayer } from "@/components/VideoPlayer";
 import { CommentPanel } from "@/components/CommentPanel";
 import { VideoUpload } from "@/components/VideoUpload";
 import { ProjectHeader } from "@/components/ProjectHeader";
-import { CommentInput } from "@/components/CommentInput";
+import { Timeline } from "@/components/Timeline";
 
 export interface Comment {
   id: string;
@@ -20,6 +20,7 @@ const Index = () => {
   const [videoUrl, setVideoUrl] = useState<string>("");
   const [comments, setComments] = useState<Comment[]>([]);
   const [currentTime, setCurrentTime] = useState<number>(0);
+  const [duration, setDuration] = useState<number>(0);
   const [projectId] = useState<string>(() => 
     window.location.hash.slice(1) || Math.random().toString(36).substr(2, 9)
   );
@@ -72,12 +73,23 @@ const Index = () => {
     <div className="min-h-screen bg-gray-900 flex flex-col">
       <ProjectHeader projectId={projectId} />
       <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 p-6">
-          <VideoPlayer
-            src={videoUrl}
-            currentTime={currentTime}
-            onTimeUpdate={setCurrentTime}
-          />
+        <div className="flex-1 flex flex-col">
+          <div className="flex-1 p-6">
+            <VideoPlayer
+              src={videoUrl}
+              currentTime={currentTime}
+              onTimeUpdate={setCurrentTime}
+              onDurationChange={setDuration}
+            />
+          </div>
+          {duration > 0 && (
+            <Timeline
+              comments={comments}
+              currentTime={currentTime}
+              duration={duration}
+              onTimeClick={handleCommentClick}
+            />
+          )}
         </div>
         <div className="w-96 border-l border-gray-700 flex flex-col">
           <CommentPanel
@@ -88,14 +100,9 @@ const Index = () => {
             onReplyComment={(parentId, text, attachments) => 
               handleAddComment(text, currentTime, parentId, attachments)
             }
+            onAddComment={(text, attachments) => handleAddComment(text, currentTime, undefined, attachments)}
           />
         </div>
-      </div>
-      <div className="border-t border-gray-700 bg-gray-800">
-        <CommentInput
-          currentTime={currentTime}
-          onAddComment={(text, attachments) => handleAddComment(text, currentTime, undefined, attachments)}
-        />
       </div>
     </div>
   );

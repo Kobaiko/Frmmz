@@ -12,6 +12,7 @@ interface CommentPanelProps {
   onCommentClick: (timestamp: number) => void;
   onDeleteComment: (commentId: string) => void;
   onReplyComment: (parentId: string, text: string, attachments?: string[]) => void;
+  onAddComment: (text: string, attachments?: string[]) => void;
 }
 
 export const CommentPanel = ({
@@ -20,6 +21,7 @@ export const CommentPanel = ({
   onCommentClick,
   onDeleteComment,
   onReplyComment,
+  onAddComment,
 }: CommentPanelProps) => {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
 
@@ -203,6 +205,15 @@ export const CommentPanel = ({
           )}
         </div>
       </ScrollArea>
+      
+      {/* Comment input at the bottom */}
+      <div className="border-t border-gray-700">
+        <CommentInput
+          currentTime={currentTime}
+          onAddComment={onAddComment}
+          placeholder="Leave your comment..."
+        />
+      </div>
     </div>
   );
 };

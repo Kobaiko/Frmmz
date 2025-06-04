@@ -10,9 +10,10 @@ interface VideoPlayerProps {
   src: string;
   currentTime: number;
   onTimeUpdate: (time: number) => void;
+  onDurationChange?: (duration: number) => void;
 }
 
-export const VideoPlayer = ({ src, currentTime, onTimeUpdate }: VideoPlayerProps) => {
+export const VideoPlayer = ({ src, currentTime, onTimeUpdate, onDurationChange }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<any>(null);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
@@ -32,6 +33,12 @@ export const VideoPlayer = ({ src, currentTime, onTimeUpdate }: VideoPlayerProps
       playerRef.current.on('timeupdate', () => {
         onTimeUpdate(playerRef.current.currentTime());
       });
+
+      playerRef.current.on('loadedmetadata', () => {
+        if (onDurationChange) {
+          onDurationChange(playerRef.current.duration());
+        }
+      });
     }
 
     return () => {
@@ -40,7 +47,7 @@ export const VideoPlayer = ({ src, currentTime, onTimeUpdate }: VideoPlayerProps
         playerRef.current = null;
       }
     };
-  }, [src, onTimeUpdate]);
+  }, [src, onTimeUpdate, onDurationChange]);
 
   useEffect(() => {
     if (playerRef.current && Math.abs(playerRef.current.currentTime() - currentTime) > 0.5) {
