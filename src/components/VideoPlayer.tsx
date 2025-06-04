@@ -50,6 +50,7 @@ export const VideoPlayer = ({
   onTimeClick 
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -76,11 +77,18 @@ export const VideoPlayer = ({
 
   useEffect(() => {
     const video = videoRef.current;
+    const previewVideo = previewVideoRef.current;
     if (!video) return;
 
     const handleLoadedMetadata = () => {
       const videoDuration = video.duration;
       setDuration(videoDuration);
+      
+      // Set up preview video
+      if (previewVideo) {
+        previewVideo.src = src;
+        previewVideo.muted = true;
+      }
       
       // Determine max quality based on video resolution
       const videoHeight = video.videoHeight;
@@ -484,28 +492,26 @@ export const VideoPlayer = ({
   };
 
   const updatePreviewFrame = (time: number) => {
-    const video = videoRef.current;
+    const previewVideo = previewVideoRef.current;
     const canvas = previewCanvasRef.current;
-    if (!video || !canvas) return;
+    if (!previewVideo || !canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Temporarily set video time to capture frame
-    const originalTime = video.currentTime;
-    video.currentTime = time;
+    // Use the preview video element (doesn't affect main playback)
+    previewVideo.currentTime = time;
     
     // Wait for seeked event to ensure frame is loaded
     const handleSeeked = () => {
       canvas.width = 160;
       canvas.height = 90;
-      ctx.drawImage(video, 0, 0, 160, 90);
+      ctx.drawImage(previewVideo, 0, 0, 160, 90);
       setPreviewFrame(canvas.toDataURL());
-      video.removeEventListener('seeked', handleSeeked);
-      video.currentTime = originalTime;
+      previewVideo.removeEventListener('seeked', handleSeeked);
     };
 
-    video.addEventListener('seeked', handleSeeked);
+    previewVideo.addEventListener('seeked', handleSeeked);
   };
 
   return (
@@ -520,6 +526,13 @@ export const VideoPlayer = ({
             maxWidth: '100%',
             maxHeight: '100%'
           }}
+        />
+        
+        {/* Hidden preview video for thumbnails */}
+        <video
+          ref={previewVideoRef}
+          style={{ display: 'none' }}
+          muted
         />
         
         {/* Hidden canvas for frame preview */}
