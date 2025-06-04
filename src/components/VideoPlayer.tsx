@@ -422,7 +422,7 @@ export const VideoPlayer = ({
             {/* Top mask */}
             {top > 0 && (
               <div
-                className="absolute bg-black bg-opacity-70 pointer-events-none"
+                className="absolute bg-black pointer-events-none"
                 style={{
                   left: 0,
                   top: 0,
@@ -436,7 +436,7 @@ export const VideoPlayer = ({
             {/* Bottom mask */}
             {top + guideHeight < videoHeight && (
               <div
-                className="absolute bg-black bg-opacity-70 pointer-events-none"
+                className="absolute bg-black pointer-events-none"
                 style={{
                   left: 0,
                   top: `${top + guideHeight}px`,
@@ -450,7 +450,7 @@ export const VideoPlayer = ({
             {/* Left mask */}
             {left > 0 && (
               <div
-                className="absolute bg-black bg-opacity-70 pointer-events-none"
+                className="absolute bg-black pointer-events-none"
                 style={{
                   left: 0,
                   top: `${top}px`,
@@ -464,7 +464,7 @@ export const VideoPlayer = ({
             {/* Right mask */}
             {left + guideWidth < videoWidth && (
               <div
-                className="absolute bg-black bg-opacity-70 pointer-events-none"
+                className="absolute bg-black pointer-events-none"
                 style={{
                   left: `${left + guideWidth}px`,
                   top: `${top}px`,
