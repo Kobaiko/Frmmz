@@ -17,8 +17,8 @@ import {
   ZoomOut,
   Image,
   Download,
-  Expand,
-  Shrink
+  Shrink2,
+  Maximize2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -563,7 +563,7 @@ export const VideoPlayer = ({
                       <Play size={16} className="text-gray-300" />
                       <span className="text-white">Quality</span>
                     </div>
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-4">
                       <span className="text-sm text-gray-300">{quality}</span>
                       <span className="text-xs bg-blue-600 px-2 py-1 rounded text-white font-medium">
                         {getQualityLabel(quality)}
@@ -577,7 +577,7 @@ export const VideoPlayer = ({
                         className="flex items-center justify-between hover:bg-gray-600 focus:bg-gray-600 data-[highlighted]:bg-gray-600 px-4 py-3 cursor-pointer"
                         onClick={() => handleQualityChange(qual)}
                       >
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-4">
                           <span>{qual}</span>
                           <span className="text-xs bg-blue-600 px-2 py-1 rounded text-white font-medium">
                             {getQualityLabel(qual)}
@@ -596,7 +596,7 @@ export const VideoPlayer = ({
                       <div className="w-4 h-4 border border-gray-300 rounded" />
                       <span className="text-white">Guides</span>
                     </div>
-                    <span className="text-sm text-gray-300">{guides.enabled ? guides.ratio : 'Off'}</span>
+                    <span className="text-sm text-gray-300 ml-auto">{guides.enabled ? guides.ratio : 'Off'}</span>
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent className="bg-gray-800 border-gray-600 text-white shadow-xl z-50">
                     <DropdownMenuItem
@@ -658,7 +658,7 @@ export const VideoPlayer = ({
                       <ZoomIn size={16} className="text-gray-300" />
                       <span className="text-white">Zoom</span>
                     </div>
-                    <span className="text-sm text-gray-300">{zoom}</span>
+                    <span className="text-sm text-gray-300 ml-auto">{zoom}</span>
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent className="bg-gray-800 border-gray-600 text-white shadow-xl z-50">
                     <DropdownMenuItem
@@ -666,7 +666,7 @@ export const VideoPlayer = ({
                       onClick={() => handleZoomChange('Fit')}
                     >
                       <div className="flex items-center space-x-3">
-                        <Shrink size={16} className="text-gray-300" />
+                        <Shrink2 size={16} className="text-gray-300" />
                         <span>Fit</span>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -679,7 +679,7 @@ export const VideoPlayer = ({
                       onClick={() => handleZoomChange('Fill')}
                     >
                       <div className="flex items-center space-x-3">
-                        <Expand size={16} className="text-gray-300" />
+                        <Maximize2 size={16} className="text-gray-300" />
                         <span>Fill</span>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -745,7 +745,7 @@ export const VideoPlayer = ({
                             setEncodeComments(checked);
                             console.log(`Encode Comments ${checked ? 'enabled' : 'disabled'}`);
                           }}
-                          className="data-[state=checked]:bg-blue-600"
+                          className="data-[state=checked]:bg-blue-600 scale-75"
                         />
                       </div>
                     </DropdownMenuItem>
@@ -763,7 +763,7 @@ export const VideoPlayer = ({
                             setAnnotations(checked);
                             console.log(`Annotations ${checked ? 'enabled' : 'disabled'}`);
                           }}
-                          className="data-[state=checked]:bg-blue-600"
+                          className="data-[state=checked]:bg-blue-600 scale-75"
                         />
                       </div>
                     </DropdownMenuItem>
