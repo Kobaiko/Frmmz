@@ -1,6 +1,6 @@
 
 import { useEffect, useRef } from "react";
-import { Canvas as FabricCanvas, PencilBrush } from "fabric";
+import { Canvas as FabricCanvas } from "fabric";
 
 export const DrawingCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -14,10 +14,9 @@ export const DrawingCanvas = () => {
         height: canvasRef.current.parentElement?.clientHeight || 450,
       });
 
-      const brush = new PencilBrush(fabricCanvasRef.current);
-      brush.color = "#ff0000";
-      brush.width = 3;
-      fabricCanvasRef.current.freeDrawingBrush = brush;
+      // Initialize the freeDrawingBrush right after canvas creation
+      fabricCanvasRef.current.freeDrawingBrush.color = "#ff0000";
+      fabricCanvasRef.current.freeDrawingBrush.width = 3;
     }
 
     return () => {
