@@ -48,6 +48,7 @@ export const VideoPlayer = ({
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [duration, setDuration] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -63,7 +64,8 @@ export const VideoPlayer = ({
     ratio: '4:3'
   });
   const [zoom, setZoom] = useState('Fit');
-  const [anchoredComments, setAnchoredComments] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [encodeComments, setEncodeComments] = useState(false);
   const [annotations, setAnnotations] = useState(false);
 
   useEffect(() => {
@@ -224,7 +226,13 @@ export const VideoPlayer = ({
 
   const handleQualityChange = (newQuality: string) => {
     setQuality(newQuality);
-    console.log(`Quality changed to: ${newQuality}`);
+    if (videoRef.current) {
+      const currentTime = videoRef.current.currentTime;
+      // In a real implementation, you would switch video sources here
+      console.log(`Quality changed to: ${newQuality}`);
+      // Simulate quality change by adjusting video element
+      videoRef.current.currentTime = currentTime;
+    }
   };
 
   const handleGuidesToggle = () => {
@@ -233,12 +241,42 @@ export const VideoPlayer = ({
   };
 
   const handleGuidesRatioChange = (ratio: string) => {
-    setGuides(prev => ({ ...prev, ratio }));
+    setGuides(prev => ({ ...prev, ratio, enabled: true }));
     console.log(`Guides ratio changed to: ${ratio}`);
   };
 
   const handleZoomChange = (newZoom: string) => {
     setZoom(newZoom);
+    const video = videoRef.current;
+    if (!video) return;
+
+    switch (newZoom) {
+      case 'Fit':
+        setZoomLevel(1);
+        video.style.transform = 'scale(1)';
+        video.style.objectFit = 'contain';
+        break;
+      case 'Fill':
+        setZoomLevel(1);
+        video.style.transform = 'scale(1)';
+        video.style.objectFit = 'cover';
+        break;
+      case 'Zoom In':
+        const newZoomIn = Math.min(zoomLevel * 1.2, 3);
+        setZoomLevel(newZoomIn);
+        video.style.transform = `scale(${newZoomIn})`;
+        break;
+      case 'Zoom Out':
+        const newZoomOut = Math.max(zoomLevel * 0.8, 0.5);
+        setZoomLevel(newZoomOut);
+        video.style.transform = `scale(${newZoomOut})`;
+        break;
+      case '100%':
+        setZoomLevel(1);
+        video.style.transform = 'scale(1)';
+        video.style.objectFit = 'none';
+        break;
+    }
     console.log(`Zoom changed to: ${newZoom}`);
   };
 
@@ -247,11 +285,33 @@ export const VideoPlayer = ({
   };
 
   const handleSetFrameAsThumb = () => {
-    console.log('Set Frame as Thumb clicked');
+    if (videoRef.current) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        ctx.drawImage(videoRef.current, 0, 0);
+        console.log('Frame set as thumbnail');
+      }
+    }
   };
 
   const handleDownloadStill = () => {
-    console.log('Download Still clicked');
+    if (videoRef.current) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        ctx.drawImage(videoRef.current, 0, 0);
+        const link = document.createElement('a');
+        link.download = `video-still-${formatTime(currentTime)}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+        console.log('Still image downloaded');
+      }
+    }
   };
 
   const getQualityLabel = (qual: string) => {
@@ -265,14 +325,71 @@ export const VideoPlayer = ({
     return labels[qual] || '';
   };
 
+  const getGuideLines = () => {
+    if (!guides.enabled || !videoRef.current) return null;
+
+    const video = videoRef.current;
+    const videoRect = video.getBoundingClientRect();
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    
+    if (!containerRect) return null;
+
+    const videoWidth = videoRect.width;
+    const videoHeight = videoRect.height;
+    
+    let aspectRatio = 1;
+    switch (guides.ratio) {
+      case '2.35':
+        aspectRatio = 2.35;
+        break;
+      case '1.85':
+        aspectRatio = 1.85;
+        break;
+      case '16:9':
+        aspectRatio = 16/9;
+        break;
+      case '9:16':
+        aspectRatio = 9/16;
+        break;
+      case '4:3':
+        aspectRatio = 4/3;
+        break;
+      case '1:1':
+        aspectRatio = 1;
+        break;
+    }
+
+    const guideWidth = aspectRatio > 1 ? videoWidth : videoHeight * aspectRatio;
+    const guideHeight = aspectRatio > 1 ? videoWidth / aspectRatio : videoHeight;
+    
+    const left = (videoWidth - guideWidth) / 2;
+    const top = (videoHeight - guideHeight) / 2;
+
+    return (
+      <div
+        className="absolute border-2 border-yellow-400 border-dashed pointer-events-none"
+        style={{
+          left: `${left}px`,
+          top: `${top}px`,
+          width: `${guideWidth}px`,
+          height: `${guideHeight}px`,
+          zIndex: 5
+        }}
+      />
+    );
+  };
+
   return (
     <div className="bg-black rounded-lg overflow-hidden shadow-2xl relative">
-      <div className="relative">
+      <div className="relative" ref={containerRef}>
         <video
           ref={videoRef}
-          className="w-full h-auto"
+          className="w-full h-auto transition-transform duration-200"
           onClick={togglePlayPause}
         />
+        
+        {/* Guide lines overlay */}
+        {guides.enabled && getGuideLines()}
         
         {isDrawingMode && (
           <div className="absolute inset-0 pointer-events-none">
@@ -430,7 +547,10 @@ export const VideoPlayer = ({
                         {quality === qual && <Check size={16} />}
                       </DropdownMenuItem>
                     ))}
-                    <DropdownMenuItem className="flex items-center justify-between hover:bg-gray-800 cursor-pointer">
+                    <DropdownMenuItem 
+                      className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
+                      onClick={() => handleQualityChange('Auto')}
+                    >
                       <span>Auto</span>
                       {quality === 'Auto' && <Check size={16} />}
                     </DropdownMenuItem>
@@ -581,17 +701,53 @@ export const VideoPlayer = ({
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
                 
-                {/* View on Asset */}
-                <DropdownMenuItem 
-                  className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
-                  onClick={handleViewOnAsset}
-                >
-                  <div className="flex items-center space-x-2">
-                    <span>📱</span>
-                    <span>View on Asset</span>
-                  </div>
-                  <ChevronRight size={16} />
-                </DropdownMenuItem>
+                {/* View on Asset Sub-menu */}
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="flex items-center justify-between hover:bg-gray-800 cursor-pointer">
+                    <div className="flex items-center space-x-2">
+                      <span>📱</span>
+                      <span>View on Asset</span>
+                    </div>
+                    <ChevronRight size={16} />
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="bg-gray-900 border-gray-700 text-white">
+                    {/* Encode Comments */}
+                    <DropdownMenuItem className="flex items-center justify-between hover:bg-gray-800 cursor-pointer p-0">
+                      <div className="flex items-center justify-between w-full px-2 py-1.5">
+                        <div className="flex items-center space-x-2">
+                          <span>💬</span>
+                          <span>Encode Comments</span>
+                        </div>
+                        <Switch
+                          checked={encodeComments}
+                          onCheckedChange={(checked) => {
+                            setEncodeComments(checked);
+                            console.log(`Encode Comments ${checked ? 'enabled' : 'disabled'}`);
+                          }}
+                          className="data-[state=checked]:bg-blue-600"
+                        />
+                      </div>
+                    </DropdownMenuItem>
+
+                    {/* Annotations */}
+                    <DropdownMenuItem className="flex items-center justify-between hover:bg-gray-800 cursor-pointer p-0">
+                      <div className="flex items-center justify-between w-full px-2 py-1.5">
+                        <div className="flex items-center space-x-2">
+                          <span>✏️</span>
+                          <span>Annotations</span>
+                        </div>
+                        <Switch
+                          checked={annotations}
+                          onCheckedChange={(checked) => {
+                            setAnnotations(checked);
+                            console.log(`Annotations ${checked ? 'enabled' : 'disabled'}`);
+                          }}
+                          className="data-[state=checked]:bg-blue-600"
+                        />
+                      </div>
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 
                 {/* Set Frame as Thumb */}
                 <DropdownMenuItem 
@@ -614,41 +770,13 @@ export const VideoPlayer = ({
                     <span>Download Still</span>
                   </div>
                 </DropdownMenuItem>
-
-                {/* Anchored Comments */}
-                <DropdownMenuItem className="flex items-center justify-between hover:bg-gray-800 cursor-pointer p-0">
-                  <div className="flex items-center justify-between w-full px-2 py-1.5">
-                    <div className="flex items-center space-x-2">
-                      <span>💬</span>
-                      <span>Anchored Comments</span>
-                    </div>
-                    <Switch
-                      checked={anchoredComments}
-                      onCheckedChange={setAnchoredComments}
-                      className="data-[state=checked]:bg-blue-600"
-                    />
-                  </div>
-                </DropdownMenuItem>
-
-                {/* Annotations */}
-                <DropdownMenuItem className="flex items-center justify-between hover:bg-gray-800 cursor-pointer p-0">
-                  <div className="flex items-center justify-between w-full px-2 py-1.5">
-                    <div className="flex items-center space-x-2">
-                      <span>✏️</span>
-                      <span>Annotations</span>
-                    </div>
-                    <Switch
-                      checked={annotations}
-                      onCheckedChange={setAnnotations}
-                      className="data-[state=checked]:bg-blue-600"
-                    />
-                  </div>
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             
             {/* HD */}
-            <span className="text-white text-sm font-medium">HD</span>
+            <span className="text-white text-sm font-medium">
+              {getQualityLabel(quality) || quality}
+            </span>
             
             {/* Fullscreen */}
             <Button
