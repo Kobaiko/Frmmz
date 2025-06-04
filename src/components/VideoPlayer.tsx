@@ -13,8 +13,10 @@ import {
   Maximize,
   ChevronRight,
   Check,
-  Plus,
-  Minus
+  ZoomIn,
+  ZoomOut,
+  Image,
+  Download
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -227,9 +229,7 @@ export const VideoPlayer = ({
     setQuality(newQuality);
     if (videoRef.current) {
       const currentTime = videoRef.current.currentTime;
-      // In a real implementation, you would switch video sources here
       console.log(`Quality changed to: ${newQuality}`);
-      // Simulate quality change by adjusting video element
       videoRef.current.currentTime = currentTime;
     }
   };
@@ -279,10 +279,6 @@ export const VideoPlayer = ({
         break;
     }
     console.log(`Zoom changed to: ${newZoom}`);
-  };
-
-  const handleViewOnAsset = () => {
-    console.log('View on Asset clicked');
   };
 
   const handleSetFrameAsThumb = () => {
@@ -394,8 +390,7 @@ export const VideoPlayer = ({
           }}
         />
         
-        {/* Guide lines overlay */}
-        {guides.enabled && getGuideLines()}
+        {getGuideLines()}
         
         {isDrawingMode && (
           <div className="absolute inset-0 pointer-events-none">
@@ -523,107 +518,97 @@ export const VideoPlayer = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent 
-                className="w-56 bg-gray-800 border-gray-600 text-white"
+                className="w-64 bg-gray-800 border-gray-600 text-white shadow-xl"
                 align="end"
+                sideOffset={5}
               >
                 {/* Quality Sub-menu */}
                 <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-3 py-2.5 cursor-pointer">
+                  <DropdownMenuSubTrigger className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-4 py-3 cursor-pointer border-none">
                     <div className="flex items-center space-x-3">
-                      <span>▶️</span>
-                      <span>Quality</span>
+                      <Play size={16} className="text-gray-300" />
+                      <span className="text-white">Quality</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-sm">{quality}</span>
-                      <span className="text-xs bg-blue-600 px-1.5 py-0.5 rounded text-white font-medium">
+                      <span className="text-sm text-gray-300">{quality}</span>
+                      <span className="text-xs bg-blue-600 px-2 py-1 rounded text-white font-medium">
                         {getQualityLabel(quality)}
                       </span>
-                      <ChevronRight size={16} />
                     </div>
                   </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="bg-gray-800 border-gray-600 text-white">
+                  <DropdownMenuSubContent className="bg-gray-800 border-gray-600 text-white shadow-xl">
                     {availableQualities.map((qual) => (
                       <DropdownMenuItem
                         key={qual}
-                        className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-3 py-2 cursor-pointer"
+                        className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-4 py-2 cursor-pointer"
                         onClick={() => handleQualityChange(qual)}
                       >
                         <div className="flex items-center space-x-2">
                           <span>{qual}</span>
-                          <span className="text-xs bg-blue-600 px-1.5 py-0.5 rounded text-white font-medium">
+                          <span className="text-xs bg-blue-600 px-2 py-1 rounded text-white font-medium">
                             {getQualityLabel(qual)}
                           </span>
                         </div>
                         {quality === qual && <Check size={16} />}
                       </DropdownMenuItem>
                     ))}
-                    <DropdownMenuItem 
-                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-3 py-2 cursor-pointer"
-                      onClick={() => handleQualityChange('Auto')}
-                    >
-                      <span>Auto</span>
-                      {quality === 'Auto' && <Check size={16} />}
-                    </DropdownMenuItem>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
                 
                 {/* Guides Sub-menu */}
                 <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-3 py-2.5 cursor-pointer">
+                  <DropdownMenuSubTrigger className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-4 py-3 cursor-pointer border-none">
                     <div className="flex items-center space-x-3">
-                      <span>📐</span>
-                      <span>Guides</span>
+                      <div className="w-4 h-4 border border-gray-300 rounded" />
+                      <span className="text-white">Guides</span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm">{guides.enabled ? guides.ratio : 'Off'}</span>
-                      <ChevronRight size={16} />
-                    </div>
+                    <span className="text-sm text-gray-300">{guides.enabled ? guides.ratio : 'Off'}</span>
                   </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="bg-gray-800 border-gray-600 text-white">
+                  <DropdownMenuSubContent className="bg-gray-800 border-gray-600 text-white shadow-xl">
                     <DropdownMenuItem
-                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-3 py-2 cursor-pointer"
+                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-4 py-2 cursor-pointer"
                       onClick={() => handleGuidesRatioChange('2.35')}
                     >
                       <span>2.35</span>
                       {guides.ratio === '2.35' && guides.enabled && <Check size={16} />}
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-3 py-2 cursor-pointer"
+                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-4 py-2 cursor-pointer"
                       onClick={() => handleGuidesRatioChange('1.85')}
                     >
                       <span>1.85</span>
                       {guides.ratio === '1.85' && guides.enabled && <Check size={16} />}
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-3 py-2 cursor-pointer"
+                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-4 py-2 cursor-pointer"
                       onClick={() => handleGuidesRatioChange('16:9')}
                     >
                       <span>16:9</span>
                       {guides.ratio === '16:9' && guides.enabled && <Check size={16} />}
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-3 py-2 cursor-pointer"
+                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-4 py-2 cursor-pointer"
                       onClick={() => handleGuidesRatioChange('9:16')}
                     >
                       <span>9:16</span>
                       {guides.ratio === '9:16' && guides.enabled && <Check size={16} />}
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-3 py-2 cursor-pointer"
+                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-4 py-2 cursor-pointer"
                       onClick={() => handleGuidesRatioChange('4:3')}
                     >
                       <span>4:3</span>
                       {guides.ratio === '4:3' && guides.enabled && <Check size={16} />}
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-3 py-2 cursor-pointer"
+                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-4 py-2 cursor-pointer"
                       onClick={() => handleGuidesRatioChange('1:1')}
                     >
                       <span>1:1</span>
                       {guides.ratio === '1:1' && guides.enabled && <Check size={16} />}
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-3 py-2 cursor-pointer"
+                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-4 py-2 cursor-pointer"
                       onClick={handleGuidesToggle}
                     >
                       <span>Off</span>
@@ -634,63 +619,69 @@ export const VideoPlayer = ({
                 
                 {/* Zoom Sub-menu */}
                 <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-3 py-2.5 cursor-pointer">
+                  <DropdownMenuSubTrigger className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-4 py-3 cursor-pointer border-none">
                     <div className="flex items-center space-x-3">
-                      <span>🔍</span>
-                      <span>Zoom</span>
+                      <ZoomIn size={16} className="text-gray-300" />
+                      <span className="text-white">Zoom</span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm">{zoom}</span>
-                      <ChevronRight size={16} />
-                    </div>
+                    <span className="text-sm text-gray-300">{zoom}</span>
                   </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="bg-gray-800 border-gray-600 text-white">
+                  <DropdownMenuSubContent className="bg-gray-800 border-gray-600 text-white shadow-xl">
                     <DropdownMenuItem
-                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-3 py-2 cursor-pointer"
+                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-4 py-2 cursor-pointer"
                       onClick={() => handleZoomChange('Fit')}
                     >
                       <div className="flex items-center space-x-3">
-                        <span>📱</span>
+                        <div className="w-4 h-4 bg-blue-600 rounded flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">F</span>
+                        </div>
                         <span>Fit</span>
                       </div>
+                      <span className="text-xs text-gray-400">T</span>
                       {zoom === 'Fit' && <Check size={16} />}
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-3 py-2 cursor-pointer"
+                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-4 py-2 cursor-pointer"
                       onClick={() => handleZoomChange('Fill')}
                     >
                       <div className="flex items-center space-x-3">
-                        <span>📱</span>
+                        <div className="w-4 h-4 bg-blue-600 rounded flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">F</span>
+                        </div>
                         <span>Fill</span>
                       </div>
+                      <span className="text-xs text-gray-400">Y</span>
                       {zoom === 'Fill' && <Check size={16} />}
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-3 py-2 cursor-pointer"
+                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-4 py-2 cursor-pointer"
                       onClick={() => handleZoomChange('Zoom In')}
                     >
                       <div className="flex items-center space-x-3">
-                        <span>🔍</span>
+                        <ZoomIn size={16} className="text-gray-300" />
                         <span>Zoom In</span>
                       </div>
+                      <span className="text-xs text-gray-400">+</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-3 py-2 cursor-pointer"
+                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-4 py-2 cursor-pointer"
                       onClick={() => handleZoomChange('Zoom Out')}
                     >
                       <div className="flex items-center space-x-3">
-                        <span>🔍</span>
+                        <ZoomOut size={16} className="text-gray-300" />
                         <span>Zoom Out</span>
                       </div>
+                      <span className="text-xs text-gray-400">-</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-3 py-2 cursor-pointer"
+                      className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-4 py-2 cursor-pointer"
                       onClick={() => handleZoomChange('100%')}
                     >
                       <div className="flex items-center space-x-3">
-                        <span>🔍</span>
+                        <ZoomIn size={16} className="text-gray-300" />
                         <span>Zoom to 100%</span>
                       </div>
+                      <span className="text-xs text-gray-400">⌘0</span>
                       {zoom === '100%' && <Check size={16} />}
                     </DropdownMenuItem>
                   </DropdownMenuSubContent>
@@ -698,19 +689,18 @@ export const VideoPlayer = ({
                 
                 {/* View on Asset Sub-menu */}
                 <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-3 py-2.5 cursor-pointer">
+                  <DropdownMenuSubTrigger className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 px-4 py-3 cursor-pointer border-none">
                     <div className="flex items-center space-x-3">
-                      <span>📱</span>
-                      <span>View on Asset</span>
+                      <div className="w-4 h-4 border border-gray-300 rounded-sm" />
+                      <span className="text-white">View on Asset</span>
                     </div>
-                    <ChevronRight size={16} />
                   </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="bg-gray-800 border-gray-600 text-white">
+                  <DropdownMenuSubContent className="bg-gray-800 border-gray-600 text-white shadow-xl">
                     {/* Encode Comments */}
                     <DropdownMenuItem className="hover:bg-gray-700 focus:bg-gray-700 cursor-pointer p-0">
-                      <div className="flex items-center justify-between w-full px-3 py-2">
+                      <div className="flex items-center justify-between w-full px-4 py-2">
                         <div className="flex items-center space-x-3">
-                          <span>💬</span>
+                          <MessageSquare size={16} className="text-gray-300" />
                           <span>Encode Comments</span>
                         </div>
                         <Switch
@@ -726,9 +716,9 @@ export const VideoPlayer = ({
 
                     {/* Annotations */}
                     <DropdownMenuItem className="hover:bg-gray-700 focus:bg-gray-700 cursor-pointer p-0">
-                      <div className="flex items-center justify-between w-full px-3 py-2">
+                      <div className="flex items-center justify-between w-full px-4 py-2">
                         <div className="flex items-center space-x-3">
-                          <span>✏️</span>
+                          <Pencil size={16} className="text-gray-300" />
                           <span>Annotations</span>
                         </div>
                         <Switch
@@ -746,22 +736,22 @@ export const VideoPlayer = ({
                 
                 {/* Set Frame as Thumb */}
                 <DropdownMenuItem 
-                  className="hover:bg-gray-700 focus:bg-gray-700 px-3 py-2.5 cursor-pointer"
+                  className="hover:bg-gray-700 focus:bg-gray-700 px-4 py-3 cursor-pointer"
                   onClick={handleSetFrameAsThumb}
                 >
                   <div className="flex items-center space-x-3">
-                    <span>🖼️</span>
+                    <Image size={16} className="text-gray-300" />
                     <span>Set Frame as Thumb</span>
                   </div>
                 </DropdownMenuItem>
                 
                 {/* Download Still */}
                 <DropdownMenuItem 
-                  className="hover:bg-gray-700 focus:bg-gray-700 px-3 py-2.5 cursor-pointer"
+                  className="hover:bg-gray-700 focus:bg-gray-700 px-4 py-3 cursor-pointer"
                   onClick={handleDownloadStill}
                 >
                   <div className="flex items-center space-x-3">
-                    <span>💾</span>
+                    <Download size={16} className="text-gray-300" />
                     <span>Download Still</span>
                   </div>
                 </DropdownMenuItem>
