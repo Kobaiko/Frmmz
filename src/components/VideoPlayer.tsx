@@ -658,7 +658,7 @@ export const VideoPlayer = ({
                       <ZoomIn size={16} className="text-gray-300" />
                       <span className="text-white">Zoom</span>
                     </div>
-                    <span className="text-sm text-gray-300">{zoom}</span>
+                    <span className="text-sm text-gray-300 ml-auto">{zoom}</span>
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent className="bg-gray-800 border-gray-600 text-white shadow-xl z-50">
                     <DropdownMenuItem
