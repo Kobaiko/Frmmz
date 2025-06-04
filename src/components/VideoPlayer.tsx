@@ -89,6 +89,7 @@ export const VideoPlayer = ({
   const [encodeComments, setEncodeComments] = useState(false);
   const [annotations, setAnnotations] = useState(false);
   const [isLooping, setIsLooping] = useState(false);
+  const [isVolumeHovered, setIsVolumeHovered] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -679,15 +680,15 @@ export const VideoPlayer = ({
                     size="sm"
                     variant="ghost"
                     onClick={togglePlayPause}
-                    className="text-white hover:text-white p-2"
+                    className="text-white hover:text-white hover:bg-gray-800 p-2"
                   >
                     {isPlaying ? <Pause size={20} /> : <Play size={20} />}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent className="bg-gray-800 text-white border-gray-600">
+                <TooltipContent className="bg-gray-200 text-black border-gray-300">
                   <div className="flex items-center space-x-2">
                     <span>{isPlaying ? 'Pause' : 'Play'}</span>
-                    <span className="bg-gray-700 px-1.5 py-0.5 rounded text-xs font-mono">K</span>
+                    <span className="bg-gray-300 px-1.5 py-0.5 rounded text-xs font-mono">K</span>
                   </div>
                 </TooltipContent>
               </Tooltip>
@@ -699,12 +700,12 @@ export const VideoPlayer = ({
                     size="sm"
                     variant="ghost"
                     onClick={toggleLoop}
-                    className={`text-white hover:text-white p-2 ${isLooping ? 'text-blue-400' : 'text-gray-400'}`}
+                    className={`hover:bg-gray-800 p-2 ${isLooping ? 'text-blue-400' : 'text-white'}`}
                   >
                     <Repeat size={16} />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent className="bg-gray-800 text-white border-gray-600">
+                <TooltipContent className="bg-gray-200 text-black border-gray-300">
                   <span>{isLooping ? 'Disable Loop' : 'Enable Loop'}</span>
                 </TooltipContent>
               </Tooltip>
@@ -714,29 +715,32 @@ export const VideoPlayer = ({
                 size="sm"
                 variant="ghost"
                 onClick={handleSpeedChange}
-                className="text-white hover:text-white px-3 py-2 text-sm"
+                className="text-white hover:text-white hover:bg-gray-800 px-3 py-2 text-sm"
               >
                 {playbackSpeed}x
               </Button>
               
-              {/* Volume with popover */}
-              <Popover>
+              {/* Volume with popover that opens on hover */}
+              <Popover open={isVolumeHovered} onOpenChange={setIsVolumeHovered}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <PopoverTrigger asChild>
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-white hover:text-white p-2"
+                        className="text-white hover:text-white hover:bg-gray-800 p-2"
+                        onMouseEnter={() => setIsVolumeHovered(true)}
+                        onMouseLeave={() => setIsVolumeHovered(false)}
+                        onClick={handleVolumeToggle}
                       >
                         {volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
                       </Button>
                     </PopoverTrigger>
                   </TooltipTrigger>
-                  <TooltipContent className="bg-gray-800 text-white border-gray-600">
+                  <TooltipContent className="bg-gray-200 text-black border-gray-300">
                     <div className="flex items-center space-x-2">
                       <span>Mute</span>
-                      <span className="bg-gray-700 px-1.5 py-0.5 rounded text-xs font-mono">M</span>
+                      <span className="bg-gray-300 px-1.5 py-0.5 rounded text-xs font-mono">M</span>
                     </div>
                   </TooltipContent>
                 </Tooltip>
@@ -744,16 +748,18 @@ export const VideoPlayer = ({
                   className="w-auto p-3 bg-gray-800 border-gray-600" 
                   side="right"
                   align="center"
+                  onMouseEnter={() => setIsVolumeHovered(true)}
+                  onMouseLeave={() => setIsVolumeHovered(false)}
                 >
-                  <div className="flex flex-col items-center space-y-2">
+                  <div className="flex items-center space-x-3">
                     <div className="text-white text-xs">{Math.round(volume * 100)}%</div>
                     <Slider
                       value={[volume]}
                       onValueChange={handleVolumeChange}
                       max={1}
                       step={0.1}
-                      orientation="vertical"
-                      className="h-20"
+                      orientation="horizontal"
+                      className="w-20"
                     />
                   </div>
                 </PopoverContent>
@@ -772,7 +778,7 @@ export const VideoPlayer = ({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="text-white hover:text-white p-2"
+                    className="text-white hover:text-white hover:bg-gray-800 p-2"
                   >
                     <Settings size={16} />
                   </Button>
@@ -1043,7 +1049,7 @@ export const VideoPlayer = ({
                 size="sm"
                 variant="ghost"
                 onClick={toggleFullscreen}
-                className="text-white hover:text-white p-2"
+                className="text-white hover:text-white hover:bg-gray-800 p-2"
               >
                 <Maximize size={16} />
               </Button>
