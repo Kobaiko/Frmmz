@@ -52,6 +52,7 @@ export const VideoPlayer = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [duration, setDuration] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -59,6 +60,7 @@ export const VideoPlayer = ({
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isHovering, setIsHovering] = useState(false);
   const [hoverTime, setHoverTime] = useState(0);
+  const [previewFrame, setPreviewFrame] = useState<string>('');
   const [quality, setQuality] = useState('1080p');
   const [availableQualities, setAvailableQualities] = useState<string[]>(['1080p', '720p', '540p', '360p']);
   const [maxQuality, setMaxQuality] = useState('1080p');
@@ -239,6 +241,7 @@ export const VideoPlayer = ({
       const percentage = hoverX / rect.width;
       const time = percentage * duration;
       setHoverTime(time);
+      updatePreviewFrame(time);
     }
   };
 
@@ -480,6 +483,31 @@ export const VideoPlayer = ({
     );
   };
 
+  const updatePreviewFrame = (time: number) => {
+    const video = videoRef.current;
+    const canvas = previewCanvasRef.current;
+    if (!video || !canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Temporarily set video time to capture frame
+    const originalTime = video.currentTime;
+    video.currentTime = time;
+    
+    // Wait for seeked event to ensure frame is loaded
+    const handleSeeked = () => {
+      canvas.width = 160;
+      canvas.height = 90;
+      ctx.drawImage(video, 0, 0, 160, 90);
+      setPreviewFrame(canvas.toDataURL());
+      video.removeEventListener('seeked', handleSeeked);
+      video.currentTime = originalTime;
+    };
+
+    video.addEventListener('seeked', handleSeeked);
+  };
+
   return (
     <div className="bg-black rounded-lg overflow-hidden shadow-2xl relative">
       <div className="relative overflow-hidden" ref={containerRef}>
@@ -492,6 +520,12 @@ export const VideoPlayer = ({
             maxWidth: '100%',
             maxHeight: '100%'
           }}
+        />
+        
+        {/* Hidden canvas for frame preview */}
+        <canvas
+          ref={previewCanvasRef}
+          style={{ display: 'none' }}
         />
         
         {getGuideLines()}
@@ -548,13 +582,26 @@ export const VideoPlayer = ({
               </div>
             ))}
             
-            {/* Hover time indicator */}
+            {/* Hover time indicator with frame preview */}
             {isHovering && (
               <div
-                className="absolute -top-8 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded"
+                className="absolute -top-20 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded shadow-lg border border-gray-600"
                 style={{ left: `${duration > 0 ? (hoverTime / duration) * 100 : 0}%` }}
               >
-                {formatTime(hoverTime)}
+                {/* Frame preview */}
+                {previewFrame && (
+                  <div className="mb-1">
+                    <img 
+                      src={previewFrame} 
+                      alt="Frame preview"
+                      className="rounded-t w-40 h-auto border-b border-gray-600"
+                    />
+                  </div>
+                )}
+                {/* Time display */}
+                <div className="px-2 py-1">
+                  {formatTime(hoverTime)}
+                </div>
               </div>
             )}
           </div>
