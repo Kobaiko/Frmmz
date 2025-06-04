@@ -2,9 +2,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Clock, MessageSquare, Plus } from "lucide-react";
+import { Clock, MessageSquare, Plus, Send } from "lucide-react";
 import type { Comment } from "@/pages/Index";
 
 interface CommentPanelProps {
@@ -47,89 +46,110 @@ export const CommentPanel = ({
   };
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="pb-4">
-        <CardTitle className="flex items-center space-x-2">
-          <MessageSquare size={20} />
-          <span>Comments ({comments.length})</span>
-        </CardTitle>
-      </CardHeader>
-      
-      <CardContent className="flex-1 flex flex-col space-y-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">
-            Current: {formatTime(currentTime)}
-          </span>
+    <div className="h-full bg-gray-800 flex flex-col">
+      <div className="p-6 border-b border-gray-700">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <MessageSquare size={20} className="text-blue-400" />
+            <h2 className="text-lg font-semibold text-white">Comments</h2>
+            <span className="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded-full">
+              {comments.length}
+            </span>
+          </div>
           <Button
             size="sm"
             onClick={() => setIsAddingComment(!isAddingComment)}
-            className="flex items-center space-x-1"
+            className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             <Plus size={16} />
-            <span>Add Comment</span>
           </Button>
         </div>
+        
+        <div className="flex items-center space-x-2 text-sm text-gray-400">
+          <Clock size={14} />
+          <span>{formatTime(currentTime)}</span>
+        </div>
+      </div>
 
+      <div className="flex-1 flex flex-col">
         {isAddingComment && (
-          <div className="space-y-3 p-3 bg-gray-50 rounded-lg">
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <Clock size={14} />
-              <span>At {formatTime(currentTime)}</span>
-            </div>
-            <Textarea
-              placeholder="Add your feedback..."
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              className="min-h-[80px]"
-            />
-            <div className="flex space-x-2">
-              <Button size="sm" onClick={handleSubmit} disabled={!newComment.trim()}>
-                Post Comment
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setIsAddingComment(false);
-                  setNewComment("");
-                }}
-              >
-                Cancel
-              </Button>
+          <div className="p-6 bg-gray-750 border-b border-gray-700">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2 text-sm text-blue-400">
+                <Clock size={14} />
+                <span>At {formatTime(currentTime)}</span>
+              </div>
+              <Textarea
+                placeholder="Leave your feedback..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 resize-none"
+                rows={3}
+              />
+              <div className="flex space-x-2">
+                <Button 
+                  size="sm" 
+                  onClick={handleSubmit} 
+                  disabled={!newComment.trim()}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Send size={14} />
+                  <span>Post</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setIsAddingComment(false);
+                    setNewComment("");
+                  }}
+                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
           </div>
         )}
 
-        <ScrollArea className="flex-1">
-          <div className="space-y-3">
+        <ScrollArea className="flex-1 p-6">
+          <div className="space-y-4">
             {comments.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <MessageSquare size={24} className="mx-auto mb-2 opacity-50" />
-                <p>No comments yet. Be the first to leave feedback!</p>
+              <div className="text-center py-12 text-gray-500">
+                <MessageSquare size={32} className="mx-auto mb-4 opacity-50" />
+                <p className="text-lg">No comments yet</p>
+                <p className="text-sm">Be the first to leave feedback!</p>
               </div>
             ) : (
               comments.map((comment) => (
                 <div
                   key={comment.id}
-                  className="p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                  className="p-4 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-650 transition-all duration-200 border border-gray-600 hover:border-gray-500"
                   onClick={() => onCommentClick(comment.timestamp)}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-blue-600">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-blue-400 font-medium text-sm">
                       {formatTime(comment.timestamp)}
                     </span>
                     <span className="text-xs text-gray-500">
                       {formatDate(comment.createdAt)}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-800 mb-1">{comment.text}</p>
-                  <p className="text-xs text-gray-500">by {comment.author}</p>
+                  <p className="text-gray-200 mb-2 leading-relaxed">{comment.text}</p>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                      <span className="text-xs text-white font-medium">
+                        {comment.author.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <span className="text-xs text-gray-400">{comment.author}</span>
+                  </div>
                 </div>
               ))
             )}
           </div>
         </ScrollArea>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

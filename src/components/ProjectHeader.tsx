@@ -1,5 +1,5 @@
 
-import { Share2, Link2 } from "lucide-react";
+import { Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -16,23 +16,23 @@ export const ProjectHeader = ({ projectId }: ProjectHeaderProps) => {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 shadow-sm">
-      <div className="container mx-auto px-4 py-4">
+    <header className="bg-gray-800 border-b border-gray-700">
+      <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <h1 className="text-xl font-semibold text-gray-900">
+            <h1 className="text-xl font-semibold text-white">
               VideoFeedback
             </h1>
-            <span className="text-sm text-gray-500">
-              Project: {projectId}
+            <span className="text-sm text-gray-400 bg-gray-700 px-3 py-1 rounded-full">
+              {projectId}
             </span>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             <Button
               variant="outline"
               size="sm"
               onClick={copyToClipboard}
-              className="flex items-center space-x-2"
+              className="bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600 hover:text-white"
             >
               <Share2 size={16} />
               <span>Share</span>

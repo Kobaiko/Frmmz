@@ -40,7 +40,6 @@ export const VideoUpload = ({ onVideoLoad }: VideoUploadProps) => {
     }
 
     setIsLoading(true);
-    // In a real app, you'd validate and potentially convert the URL
     setTimeout(() => {
       onVideoLoad(urlInput);
       setIsLoading(false);
@@ -49,55 +48,63 @@ export const VideoUpload = ({ onVideoLoad }: VideoUploadProps) => {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="text-center">Add Video</CardTitle>
+    <Card className="w-full max-w-lg mx-auto bg-gray-800 border-gray-700">
+      <CardHeader className="text-center">
+        <CardTitle className="text-white text-xl">Add Video</CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="upload" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="upload">Upload File</TabsTrigger>
-            <TabsTrigger value="url">Video URL</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 bg-gray-700">
+            <TabsTrigger value="upload" className="text-gray-300 data-[state=active]:bg-gray-600 data-[state=active]:text-white">
+              Upload File
+            </TabsTrigger>
+            <TabsTrigger value="url" className="text-gray-300 data-[state=active]:bg-gray-600 data-[state=active]:text-white">
+              Video URL
+            </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="upload" className="space-y-4">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="w-full border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
-                <Upload className="mx-auto mb-4 text-gray-400" size={32} />
-                <p className="text-sm text-gray-600 mb-4">
-                  Drag and drop your video here, or click to browse
-                </p>
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="video-upload"
-                  disabled={isLoading}
-                />
-                <label htmlFor="video-upload">
-                  <Button variant="outline" disabled={isLoading} asChild>
-                    <span>Choose File</span>
-                  </Button>
-                </label>
-              </div>
+          <TabsContent value="upload" className="space-y-4 mt-6">
+            <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center hover:border-blue-500 transition-colors">
+              <Upload className="mx-auto mb-4 text-gray-400" size={40} />
+              <p className="text-gray-300 mb-4">
+                Drag and drop your video here, or click to browse
+              </p>
+              <input
+                type="file"
+                accept="video/*"
+                onChange={handleFileUpload}
+                className="hidden"
+                id="video-upload"
+                disabled={isLoading}
+              />
+              <label htmlFor="video-upload">
+                <Button 
+                  variant="outline" 
+                  disabled={isLoading} 
+                  asChild
+                  className="bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600"
+                >
+                  <span>Choose File</span>
+                </Button>
+              </label>
             </div>
           </TabsContent>
           
-          <TabsContent value="url" className="space-y-4">
+          <TabsContent value="url" className="space-y-4 mt-6">
             <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Link size={16} className="text-gray-400" />
+              <div className="flex items-center space-x-3">
+                <Link size={20} className="text-gray-400" />
                 <Input
                   placeholder="https://example.com/video.mp4"
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
                   disabled={isLoading}
+                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                 />
               </div>
               <Button 
                 onClick={handleUrlSubmit} 
-                className="w-full"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                 disabled={isLoading || !urlInput.trim()}
               >
                 {isLoading ? "Loading..." : "Load Video"}

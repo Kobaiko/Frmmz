@@ -4,7 +4,7 @@ import videojs from "video.js";
 import "video.js/dist/video-js.css";
 import { DrawingCanvas } from "./DrawingCanvas";
 import { Button } from "@/components/ui/button";
-import { Pencil, Eraser } from "lucide-react";
+import { Pencil } from "lucide-react";
 
 interface VideoPlayerProps {
   src: string;
@@ -55,7 +55,7 @@ export const VideoPlayer = ({ src, currentTime, onTimeUpdate }: VideoPlayerProps
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+    <div className="bg-black rounded-lg overflow-hidden shadow-2xl">
       <div className="relative">
         <div data-vjs-player>
           <video
@@ -73,22 +73,24 @@ export const VideoPlayer = ({ src, currentTime, onTimeUpdate }: VideoPlayerProps
           </div>
         )}
         
-        <div className="absolute top-4 right-4 flex space-x-2">
+        <div className="absolute top-4 right-4">
           <Button
             size="sm"
             variant={isDrawingMode ? "default" : "outline"}
             onClick={() => setIsDrawingMode(!isDrawingMode)}
-            className="bg-white/90 hover:bg-white"
+            className="bg-black/70 border-gray-600 text-white hover:bg-black/90 backdrop-blur-sm"
           >
             <Pencil size={16} />
           </Button>
         </div>
       </div>
       
-      <div className="p-4 border-t">
-        <div className="flex items-center justify-between text-sm text-gray-600">
-          <span>Current time: {formatTime(currentTime)}</span>
-          <span>Drawing mode: {isDrawingMode ? "ON" : "OFF"}</span>
+      <div className="p-4 bg-gray-800 border-t border-gray-700">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-300">Current: {formatTime(currentTime)}</span>
+          <span className="text-gray-400">
+            Drawing: <span className={isDrawingMode ? "text-green-400" : "text-gray-500"}>{isDrawingMode ? "ON" : "OFF"}</span>
+          </span>
         </div>
       </div>
     </div>
