@@ -1,10 +1,17 @@
 
 import { useEffect, useRef, useState } from "react";
-import videojs from "video.js";
-import "video.js/dist/video-js.css";
-import { DrawingCanvas } from "./DrawingCanvas";
 import { Button } from "@/components/ui/button";
-import { Pencil, MessageSquare, Clock } from "lucide-react";
+import { DrawingCanvas } from "./DrawingCanvas";
+import { 
+  Play, 
+  Pause, 
+  RotateCcw, 
+  Volume2, 
+  Pencil, 
+  MessageSquare,
+  Settings,
+  Maximize
+} from "lucide-react";
 import type { Comment } from "@/pages/Index";
 
 interface VideoPlayerProps {
@@ -25,56 +32,107 @@ export const VideoPlayer = ({
   onTimeClick 
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const playerRef = useRef<any>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [duration, setDuration] = useState<number>(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isHovering, setIsHovering] = useState(false);
   const [hoverTime, setHoverTime] = useState(0);
 
   useEffect(() => {
-    if (videoRef.current && !playerRef.current) {
-      playerRef.current = videojs(videoRef.current, {
-        controls: true,
-        responsive: true,
-        fluid: true,
-        sources: [{
-          src,
-          type: 'video/mp4'
-        }]
-      });
+    const video = videoRef.current;
+    if (!video) return;
 
-      playerRef.current.on('timeupdate', () => {
-        onTimeUpdate(playerRef.current.currentTime());
-      });
+    const handleLoadedMetadata = () => {
+      const videoDuration = video.duration;
+      setDuration(videoDuration);
+      if (onDurationChange) {
+        onDurationChange(videoDuration);
+      }
+    };
 
-      playerRef.current.on('loadedmetadata', () => {
-        const videoDuration = playerRef.current.duration();
-        setDuration(videoDuration);
-        if (onDurationChange) {
-          onDurationChange(videoDuration);
-        }
-      });
-    }
+    const handleTimeUpdate = () => {
+      onTimeUpdate(video.currentTime);
+    };
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+
+    // Set video source
+    video.src = src;
 
     return () => {
-      if (playerRef.current) {
-        playerRef.current.dispose();
-        playerRef.current = null;
-      }
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
     };
   }, [src, onTimeUpdate, onDurationChange]);
 
   useEffect(() => {
-    if (playerRef.current && Math.abs(playerRef.current.currentTime() - currentTime) > 0.5) {
-      playerRef.current.currentTime(currentTime);
+    const video = videoRef.current;
+    if (video && Math.abs(video.currentTime - currentTime) > 0.5) {
+      video.currentTime = currentTime;
     }
   }, [currentTime]);
 
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
+    
+    if (hours > 0) {
+      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const togglePlayPause = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (isPlaying) {
+      video.pause();
+    } else {
+      video.play();
+    }
+  };
+
+  const handleRestart = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = 0;
+    onTimeClick(0);
+  };
+
+  const handleSpeedChange = () => {
+    const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
+    const currentIndex = speeds.indexOf(playbackSpeed);
+    const nextSpeed = speeds[(currentIndex + 1) % speeds.length];
+    setPlaybackSpeed(nextSpeed);
+    if (videoRef.current) {
+      videoRef.current.playbackRate = nextSpeed;
+    }
+  };
+
+  const handleVolumeToggle = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    if (volume > 0) {
+      setVolume(0);
+      video.volume = 0;
+    } else {
+      setVolume(1);
+      video.volume = 1;
+    }
   };
 
   const handleTimelineClick = (e: React.MouseEvent) => {
@@ -104,18 +162,25 @@ export const VideoPlayer = ({
     }));
   };
 
+  const toggleFullscreen = () => {
+    const container = videoRef.current?.parentElement;
+    if (!container) return;
+    
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      container.requestFullscreen();
+    }
+  };
+
   return (
-    <div className="bg-black rounded-lg overflow-hidden shadow-2xl">
+    <div className="bg-black rounded-lg overflow-hidden shadow-2xl relative">
       <div className="relative">
-        <div data-vjs-player>
-          <video
-            ref={videoRef}
-            className="video-js vjs-default-skin w-full"
-            controls
-            preload="auto"
-            data-setup="{}"
-          />
-        </div>
+        <video
+          ref={videoRef}
+          className="w-full h-auto"
+          onClick={togglePlayPause}
+        />
         
         {isDrawingMode && (
           <div className="absolute inset-0 pointer-events-none">
@@ -135,17 +200,13 @@ export const VideoPlayer = ({
         </div>
       </div>
       
-      {/* Integrated Timeline */}
-      {duration > 0 && (
-        <div className="bg-gray-800 p-4 border-t border-gray-700">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-400">Timeline</span>
-            <span className="text-sm text-gray-400">{formatTime(duration)}</span>
-          </div>
-          
+      {/* Custom Control Bar */}
+      <div className="bg-black p-4">
+        {/* Timeline */}
+        <div className="mb-4">
           <div
             ref={timelineRef}
-            className="relative h-8 bg-gray-700 rounded-full cursor-pointer"
+            className="relative h-1 bg-gray-600 rounded cursor-pointer"
             onClick={handleTimelineClick}
             onMouseMove={handleTimelineMouseMove}
             onMouseEnter={() => setIsHovering(true)}
@@ -153,14 +214,8 @@ export const VideoPlayer = ({
           >
             {/* Progress bar */}
             <div
-              className="absolute top-0 left-0 h-full bg-blue-500 rounded-full"
+              className="absolute top-0 left-0 h-full bg-blue-500 rounded"
               style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
-            />
-            
-            {/* Current time indicator */}
-            <div
-              className="absolute top-1/2 transform -translate-y-1/2 w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg"
-              style={{ left: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
             />
             
             {/* Comment markers */}
@@ -170,17 +225,7 @@ export const VideoPlayer = ({
                 className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2"
                 style={{ left: `${comment.position}%` }}
               >
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="w-6 h-6 p-0 bg-yellow-500 hover:bg-yellow-600 rounded-full"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onTimeClick(comment.timestamp);
-                  }}
-                >
-                  <MessageSquare size={12} className="text-white" />
-                </Button>
+                <div className="w-3 h-3 bg-white rounded-full border-2 border-black" />
               </div>
             ))}
             
@@ -194,15 +239,82 @@ export const VideoPlayer = ({
               </div>
             )}
           </div>
+        </div>
+        
+        {/* Controls */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            {/* Play/Pause */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={togglePlayPause}
+              className="text-white hover:bg-gray-800 p-2"
+            >
+              {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+            </Button>
+            
+            {/* Restart */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleRestart}
+              className="text-white hover:bg-gray-800 p-2"
+            >
+              <RotateCcw size={16} />
+            </Button>
+            
+            {/* Speed */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleSpeedChange}
+              className="text-white hover:bg-gray-800 px-3 py-2 text-sm"
+            >
+              {playbackSpeed}x
+            </Button>
+            
+            {/* Volume */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleVolumeToggle}
+              className="text-white hover:bg-gray-800 p-2"
+            >
+              <Volume2 size={16} />
+            </Button>
+          </div>
           
-          <div className="flex items-center justify-between text-sm mt-2">
-            <span className="text-gray-300">Current: {formatTime(currentTime)}</span>
-            <span className="text-gray-400">
-              Drawing: <span className={isDrawingMode ? "text-green-400" : "text-gray-500"}>{isDrawingMode ? "ON" : "OFF"}</span>
-            </span>
+          {/* Time Display */}
+          <div className="text-white text-sm font-mono">
+            {formatTime(currentTime)}:{formatTime(duration)}
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            {/* Settings */}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-white hover:bg-gray-800 p-2"
+            >
+              <Settings size={16} />
+            </Button>
+            
+            {/* HD */}
+            <span className="text-white text-sm font-medium">HD</span>
+            
+            {/* Fullscreen */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={toggleFullscreen}
+              className="text-white hover:bg-gray-800 p-2"
+            >
+              <Maximize size={16} />
+            </Button>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
