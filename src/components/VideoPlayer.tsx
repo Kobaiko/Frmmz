@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DrawingCanvas } from "./DrawingCanvas";
@@ -10,8 +9,15 @@ import {
   Pencil, 
   MessageSquare,
   Settings,
-  Maximize
+  Maximize,
+  ChevronRight
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { Comment } from "@/pages/Index";
 
 interface VideoPlayerProps {
@@ -40,6 +46,9 @@ export const VideoPlayer = ({
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isHovering, setIsHovering] = useState(false);
   const [hoverTime, setHoverTime] = useState(0);
+  const [quality, setQuality] = useState('1080p');
+  const [showGuides, setShowGuides] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState('Fit');
 
   useEffect(() => {
     const video = videoRef.current;
@@ -173,6 +182,37 @@ export const VideoPlayer = ({
     }
   };
 
+  const handleQualityChange = (newQuality: string) => {
+    setQuality(newQuality);
+    // In a real implementation, this would change the video source
+    console.log(`Quality changed to: ${newQuality}`);
+  };
+
+  const handleGuidesToggle = () => {
+    setShowGuides(!showGuides);
+    console.log(`Guides ${!showGuides ? 'enabled' : 'disabled'}`);
+  };
+
+  const handleZoomChange = (newZoom: string) => {
+    setZoomLevel(newZoom);
+    console.log(`Zoom changed to: ${newZoom}`);
+  };
+
+  const handleViewOnAsset = () => {
+    console.log('View on Asset clicked');
+    // Implementation for viewing on asset platform
+  };
+
+  const handleSetFrameAsThumb = () => {
+    console.log('Set Frame as Thumb clicked');
+    // Implementation for setting current frame as thumbnail
+  };
+
+  const handleDownloadStill = () => {
+    console.log('Download Still clicked');
+    // Implementation for downloading current frame as image
+  };
+
   return (
     <div className="bg-black rounded-lg overflow-hidden shadow-2xl relative">
       <div className="relative">
@@ -291,14 +331,96 @@ export const VideoPlayer = ({
           </div>
           
           <div className="flex items-center space-x-3">
-            {/* Settings */}
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-white hover:bg-gray-800 p-2"
-            >
-              <Settings size={16} />
-            </Button>
+            {/* Settings Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-white hover:bg-gray-800 p-2"
+                >
+                  <Settings size={16} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent 
+                className="w-56 bg-gray-900 border-gray-700 text-white"
+                align="end"
+              >
+                <DropdownMenuItem 
+                  className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
+                  onClick={() => handleQualityChange(quality === '1080p' ? '720p' : '1080p')}
+                >
+                  <div className="flex items-center space-x-2">
+                    <span>🎬</span>
+                    <span>Quality</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <span className="text-sm">{quality}</span>
+                    <span className="text-xs bg-blue-600 px-1 rounded">HD</span>
+                    <ChevronRight size={16} />
+                  </div>
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem 
+                  className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
+                  onClick={handleGuidesToggle}
+                >
+                  <div className="flex items-center space-x-2">
+                    <span>📐</span>
+                    <span>Guides</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <span className="text-sm">{showGuides ? 'On' : 'Off'}</span>
+                    <ChevronRight size={16} />
+                  </div>
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem 
+                  className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
+                  onClick={() => handleZoomChange(zoomLevel === 'Fit' ? '100%' : 'Fit')}
+                >
+                  <div className="flex items-center space-x-2">
+                    <span>🔍</span>
+                    <span>Zoom</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <span className="text-sm">{zoomLevel}</span>
+                    <ChevronRight size={16} />
+                  </div>
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem 
+                  className="flex items-center justify-between hover:bg-gray-800 cursor-pointer"
+                  onClick={handleViewOnAsset}
+                >
+                  <div className="flex items-center space-x-2">
+                    <span>📱</span>
+                    <span>View on Asset</span>
+                  </div>
+                  <ChevronRight size={16} />
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem 
+                  className="flex items-center hover:bg-gray-800 cursor-pointer"
+                  onClick={handleSetFrameAsThumb}
+                >
+                  <div className="flex items-center space-x-2">
+                    <span>🖼️</span>
+                    <span>Set Frame as Thumb</span>
+                  </div>
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem 
+                  className="flex items-center hover:bg-gray-800 cursor-pointer"
+                  onClick={handleDownloadStill}
+                >
+                  <div className="flex items-center space-x-2">
+                    <span>💾</span>
+                    <span>Download Still</span>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             
             {/* HD */}
             <span className="text-white text-sm font-medium">HD</span>
