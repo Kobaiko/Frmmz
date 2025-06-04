@@ -4,6 +4,7 @@ import { VideoPlayer } from "@/components/VideoPlayer";
 import { CommentPanel } from "@/components/CommentPanel";
 import { VideoUpload } from "@/components/VideoUpload";
 import { ProjectHeader } from "@/components/ProjectHeader";
+import { CommentInput } from "@/components/CommentInput";
 
 export interface Comment {
   id: string;
@@ -11,6 +12,8 @@ export interface Comment {
   text: string;
   author: string;
   createdAt: Date;
+  parentId?: string;
+  attachments?: string[];
 }
 
 const Index = () => {
@@ -25,15 +28,21 @@ const Index = () => {
     setVideoUrl(url);
   };
 
-  const handleAddComment = (text: string, timestamp: number) => {
+  const handleAddComment = (text: string, timestamp: number, parentId?: string, attachments?: string[]) => {
     const newComment: Comment = {
       id: Math.random().toString(36).substr(2, 9),
       timestamp,
       text,
-      author: "User", // In a real app, this would come from auth
+      author: "User",
       createdAt: new Date(),
+      parentId,
+      attachments,
     };
     setComments([...comments, newComment].sort((a, b) => a.timestamp - b.timestamp));
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    setComments(comments.filter(comment => comment.id !== commentId && comment.parentId !== commentId));
   };
 
   const handleCommentClick = (timestamp: number) => {
@@ -60,9 +69,9 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-900 flex flex-col">
       <ProjectHeader projectId={projectId} />
-      <div className="flex h-[calc(100vh-72px)]">
+      <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 p-6">
           <VideoPlayer
             src={videoUrl}
@@ -70,14 +79,23 @@ const Index = () => {
             onTimeUpdate={setCurrentTime}
           />
         </div>
-        <div className="w-96 border-l border-gray-700">
+        <div className="w-96 border-l border-gray-700 flex flex-col">
           <CommentPanel
             comments={comments}
             currentTime={currentTime}
-            onAddComment={handleAddComment}
             onCommentClick={handleCommentClick}
+            onDeleteComment={handleDeleteComment}
+            onReplyComment={(parentId, text, attachments) => 
+              handleAddComment(text, currentTime, parentId, attachments)
+            }
           />
         </div>
+      </div>
+      <div className="border-t border-gray-700 bg-gray-800">
+        <CommentInput
+          currentTime={currentTime}
+          onAddComment={(text, attachments) => handleAddComment(text, currentTime, undefined, attachments)}
+        />
       </div>
     </div>
   );
