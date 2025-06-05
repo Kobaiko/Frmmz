@@ -71,7 +71,7 @@ export const VideoPlayer = ({
   };
 
   const toggleFullscreen = () => {
-    const container = videoRef.current?.parentElement;
+    const container = containerRef.current;
     if (!container) return;
     
     if (document.fullscreenElement) {
@@ -177,52 +177,55 @@ export const VideoPlayer = ({
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="bg-black rounded-lg overflow-hidden shadow-2xl relative">
-        <div className="relative overflow-hidden" ref={containerRef}>
-          <video
-            ref={videoRef}
-            className="w-full h-auto transition-transform duration-200"
-            onClick={togglePlayPause}
-            style={{ 
-              display: 'block',
-              maxWidth: '100%',
-              maxHeight: '100%'
-            }}
-          />
-          
-          {/* Hidden preview video for thumbnails */}
-          <video
-            ref={previewVideoRef}
-            style={{ display: 'none' }}
-            muted
-          />
-          
-          <VideoGuides
-            videoRef={videoRef}
-            containerRef={containerRef}
-            guides={guides}
-          />
-          
-          {isDrawingMode && (
-            <div className="absolute inset-0 pointer-events-none">
-              <DrawingCanvas />
+      <div className="h-full bg-black flex flex-col relative" ref={containerRef}>
+        {/* Main video area - centered */}
+        <div className="flex-1 flex items-center justify-center relative overflow-hidden">
+          <div className="relative">
+            <video
+              ref={videoRef}
+              className="max-w-full max-h-full transition-transform duration-200"
+              onClick={togglePlayPause}
+              style={{ 
+                display: 'block',
+                objectFit: 'contain'
+              }}
+            />
+            
+            {/* Hidden preview video for thumbnails */}
+            <video
+              ref={previewVideoRef}
+              style={{ display: 'none' }}
+              muted
+            />
+            
+            <VideoGuides
+              videoRef={videoRef}
+              containerRef={containerRef}
+              guides={guides}
+            />
+            
+            {isDrawingMode && (
+              <div className="absolute inset-0 pointer-events-none">
+                <DrawingCanvas />
+              </div>
+            )}
+            
+            {/* Drawing mode toggle - positioned over video */}
+            <div className="absolute top-4 right-4">
+              <Button
+                size="sm"
+                variant={isDrawingMode ? "default" : "outline"}
+                onClick={() => setIsDrawingMode(!isDrawingMode)}
+                className="bg-black/70 border-gray-600 text-white hover:bg-black/90 backdrop-blur-sm"
+              >
+                <Pencil size={16} />
+              </Button>
             </div>
-          )}
-          
-          <div className="absolute top-4 right-4">
-            <Button
-              size="sm"
-              variant={isDrawingMode ? "default" : "outline"}
-              onClick={() => setIsDrawingMode(!isDrawingMode)}
-              className="bg-black/70 border-gray-600 text-white hover:bg-black/90 backdrop-blur-sm"
-            >
-              <Pencil size={16} />
-            </Button>
           </div>
         </div>
         
-        {/* Custom Control Bar */}
-        <div className="bg-black p-4 relative z-10">
+        {/* Bottom control panel */}
+        <div className="bg-black border-t border-gray-800 p-6">
           {/* Timeline */}
           <VideoTimeline
             currentTime={currentTime}

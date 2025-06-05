@@ -69,10 +69,10 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-black flex flex-col">
       <ProjectHeader projectId={projectId} />
       <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 p-6">
+        <div className="flex-1">
           <VideoPlayer
             src={videoUrl}
             currentTime={currentTime}
