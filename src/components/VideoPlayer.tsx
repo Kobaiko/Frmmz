@@ -264,6 +264,7 @@ export const VideoPlayer = ({
   const toggleLoop = () => {
     setIsLooping(!isLooping);
     console.log(`Loop ${!isLooping ? 'enabled' : 'disabled'}`);
+    // Don't restart the video, just toggle the loop state
   };
 
   const handleSpeedChange = (speeds: number[]) => {
