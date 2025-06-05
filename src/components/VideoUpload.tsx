@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
 
 interface VideoUploadProps {
   onVideoLoad: (url: string) => void;
@@ -19,7 +18,7 @@ export const VideoUpload = ({ onVideoLoad }: VideoUploadProps) => {
     const file = event.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('video/')) {
-        toast.error("Please select a valid video file");
+        console.error("Please select a valid video file");
         return;
       }
       
@@ -28,14 +27,13 @@ export const VideoUpload = ({ onVideoLoad }: VideoUploadProps) => {
       setTimeout(() => {
         onVideoLoad(url);
         setIsLoading(false);
-        toast.success("Video uploaded successfully!");
       }, 500);
     }
   };
 
   const handleUrlSubmit = () => {
     if (!urlInput.trim()) {
-      toast.error("Please enter a video URL");
+      console.error("Please enter a video URL");
       return;
     }
 
@@ -43,7 +41,6 @@ export const VideoUpload = ({ onVideoLoad }: VideoUploadProps) => {
     setTimeout(() => {
       onVideoLoad(urlInput);
       setIsLoading(false);
-      toast.success("Video loaded successfully!");
     }, 500);
   };
 

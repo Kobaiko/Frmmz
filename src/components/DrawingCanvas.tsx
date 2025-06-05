@@ -4,7 +4,7 @@ import { Canvas as FabricCanvas, PencilBrush, Rect, Line, Circle } from "fabric"
 
 interface DrawingCanvasProps {
   currentTime?: number;
-  onDrawingStart?: () => void;
+  videoRef?: React.RefObject<HTMLVideoElement>;
 }
 
 interface FrameDrawing {
@@ -12,7 +12,7 @@ interface FrameDrawing {
   canvasData: string;
 }
 
-export const DrawingCanvas = ({ currentTime = 0, onDrawingStart }: DrawingCanvasProps) => {
+export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<FabricCanvas | null>(null);
   const [currentTool, setCurrentTool] = useState("pen");
@@ -34,8 +34,8 @@ export const DrawingCanvas = ({ currentTime = 0, onDrawingStart }: DrawingCanvas
     const currentFrame = getCurrentFrame();
     
     // Update undo stack
-    setUndoStack(prev => [...prev.slice(-19), canvasData]); // Keep only last 20 states
-    setRedoStack([]); // Clear redo stack when new action is performed
+    setUndoStack(prev => [...prev.slice(-19), canvasData]);
+    setRedoStack([]);
     
     // Save for current frame
     setFrameDrawings(prev => {
@@ -46,9 +46,15 @@ export const DrawingCanvas = ({ currentTime = 0, onDrawingStart }: DrawingCanvas
     console.log(`Canvas state saved for frame ${currentFrame}`);
   }, [getCurrentFrame]);
 
-  // Initialize Fabric canvas
+  // Initialize canvas
   useEffect(() => {
     if (!canvasRef.current || fabricCanvasRef.current) return;
+
+    // Pause video immediately
+    if (videoRef?.current && !videoRef.current.paused) {
+      console.log('Pausing video for drawing canvas initialization');
+      videoRef.current.pause();
+    }
 
     const parentElement = canvasRef.current.parentElement;
     const width = parentElement?.clientWidth || 800;
@@ -61,10 +67,10 @@ export const DrawingCanvas = ({ currentTime = 0, onDrawingStart }: DrawingCanvas
       height: height,
       backgroundColor: 'transparent',
       selection: false,
-      isDrawingMode: false,
+      isDrawingMode: currentTool === "pen",
     });
 
-    // Configure pen tool
+    // Configure brush
     const brush = new PencilBrush(canvas);
     brush.color = currentColor;
     brush.width = 3;
@@ -72,20 +78,23 @@ export const DrawingCanvas = ({ currentTime = 0, onDrawingStart }: DrawingCanvas
 
     fabricCanvasRef.current = canvas;
 
-    // Event handlers
+    // Pen tool events
     canvas.on('path:created', () => {
       console.log('Pen path created');
       saveCanvasState();
     });
 
+    // Shape tool events
     canvas.on('mouse:down', (e) => {
       if (currentTool === "pen" || !e.pointer) return;
       
-      console.log(`Mouse down for ${currentTool} tool`);
-      if (onDrawingStart) {
-        onDrawingStart();
+      // Pause video when starting to draw
+      if (videoRef?.current && !videoRef.current.paused) {
+        console.log('Pausing video for shape drawing');
+        videoRef.current.pause();
       }
       
+      console.log(`Mouse down for ${currentTool} tool`);
       isDrawingRef.current = true;
       startPointRef.current = { x: e.pointer.x, y: e.pointer.y };
     });
@@ -96,7 +105,6 @@ export const DrawingCanvas = ({ currentTime = 0, onDrawingStart }: DrawingCanvas
       console.log(`Mouse up for ${currentTool} tool`);
       const endPoint = { x: e.pointer.x, y: e.pointer.y };
       
-      // Create the appropriate shape
       let shape = null;
       
       if (currentTool === "line") {
@@ -106,6 +114,7 @@ export const DrawingCanvas = ({ currentTime = 0, onDrawingStart }: DrawingCanvas
           selectable: false,
           evented: false,
         });
+        canvas.add(shape);
       } else if (currentTool === "square") {
         const left = Math.min(startPointRef.current.x, endPoint.x);
         const top = Math.min(startPointRef.current.y, endPoint.y);
@@ -123,6 +132,7 @@ export const DrawingCanvas = ({ currentTime = 0, onDrawingStart }: DrawingCanvas
           selectable: false,
           evented: false,
         });
+        canvas.add(shape);
       } else if (currentTool === "arrow") {
         const angle = Math.atan2(endPoint.y - startPointRef.current.y, endPoint.x - startPointRef.current.x);
         const headLength = 20;
@@ -161,26 +171,14 @@ export const DrawingCanvas = ({ currentTime = 0, onDrawingStart }: DrawingCanvas
         });
         
         canvas.add(mainLine, head1, head2);
-        saveCanvasState();
-        isDrawingRef.current = false;
-        startPointRef.current = null;
-        return;
       }
       
-      if (shape) {
-        canvas.add(shape);
+      if (shape || currentTool === "arrow") {
         saveCanvasState();
       }
       
       isDrawingRef.current = false;
       startPointRef.current = null;
-    });
-
-    // Handle pen tool activation
-    canvas.on('mouse:down', () => {
-      if (currentTool === "pen" && onDrawingStart) {
-        onDrawingStart();
-      }
     });
 
     console.log('Fabric canvas initialized successfully');
@@ -190,9 +188,9 @@ export const DrawingCanvas = ({ currentTime = 0, onDrawingStart }: DrawingCanvas
       canvas.dispose();
       fabricCanvasRef.current = null;
     };
-  }, []); // Only run once on mount
+  }, []);
 
-  // Update tool mode when currentTool changes
+  // Update tool settings
   useEffect(() => {
     if (!fabricCanvasRef.current) return;
     
@@ -207,18 +205,16 @@ export const DrawingCanvas = ({ currentTime = 0, onDrawingStart }: DrawingCanvas
     console.log(`Tool changed to: ${currentTool}, drawing mode: ${canvas.isDrawingMode}`);
   }, [currentTool, currentColor]);
 
-  // Load canvas state for current frame
+  // Load frame-specific drawings
   useEffect(() => {
     if (!fabricCanvasRef.current) return;
     
     const canvas = fabricCanvasRef.current;
     const currentFrame = getCurrentFrame();
     
-    // Find drawing for current frame
     const frameDrawing = frameDrawings.find(f => f.frame === currentFrame);
     
     if (frameDrawing) {
-      // Load the saved canvas state
       canvas.loadFromJSON(frameDrawing.canvasData).then(() => {
         canvas.renderAll();
         console.log(`Loaded drawings for frame ${currentFrame}`);
@@ -226,7 +222,6 @@ export const DrawingCanvas = ({ currentTime = 0, onDrawingStart }: DrawingCanvas
         console.error('Error loading canvas data:', error);
       });
     } else {
-      // Clear canvas if no drawing for this frame
       canvas.clear();
       canvas.backgroundColor = 'transparent';
       canvas.renderAll();
@@ -234,14 +229,17 @@ export const DrawingCanvas = ({ currentTime = 0, onDrawingStart }: DrawingCanvas
     }
   }, [currentTime, frameDrawings, getCurrentFrame]);
 
-  // Expose methods globally for the drawing menu
+  // Global API for drawing tools menu
   useEffect(() => {
     const drawingCanvasAPI = {
       setTool: (tool: string) => {
         console.log(`Setting tool to: ${tool}`);
         setCurrentTool(tool);
-        if (onDrawingStart) {
-          onDrawingStart();
+        
+        // Pause video when switching tools
+        if (videoRef?.current && !videoRef.current.paused) {
+          console.log('Pausing video for tool change');
+          videoRef.current.pause();
         }
       },
       setColor: (color: string) => {
@@ -256,7 +254,6 @@ export const DrawingCanvas = ({ currentTime = 0, onDrawingStart }: DrawingCanvas
         canvas.backgroundColor = 'transparent';
         canvas.renderAll();
         
-        // Remove from frame drawings
         const currentFrame = getCurrentFrame();
         setFrameDrawings(prev => prev.filter(f => f.frame !== currentFrame));
         
@@ -303,7 +300,7 @@ export const DrawingCanvas = ({ currentTime = 0, onDrawingStart }: DrawingCanvas
     return () => {
       delete (window as any).drawingCanvas;
     };
-  }, [undoStack, redoStack, onDrawingStart, getCurrentFrame]);
+  }, [undoStack, redoStack, getCurrentFrame, videoRef]);
 
   return (
     <canvas

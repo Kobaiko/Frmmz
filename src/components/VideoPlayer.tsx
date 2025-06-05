@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DrawingCanvas } from "./DrawingCanvas";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -62,7 +63,15 @@ export const VideoPlayer = ({
     handleQualityChange
   } = useVideoPlayer({ src, currentTime, onTimeUpdate, onDurationChange });
 
-  // Handle drawing mode change - pause video immediately
+  // Pause video immediately when drawing mode is enabled
+  useEffect(() => {
+    if (isDrawingMode && videoRef.current && !videoRef.current.paused) {
+      console.log('Drawing mode enabled - pausing video immediately');
+      videoRef.current.pause();
+    }
+  }, [isDrawingMode]);
+
+  // Handle drawing mode change
   const handleDrawingModeChange = (enabled: boolean) => {
     console.log(`Drawing mode ${enabled ? 'enabled' : 'disabled'}`);
     if (enabled && videoRef.current && !videoRef.current.paused) {
@@ -231,7 +240,7 @@ export const VideoPlayer = ({
               <div className="absolute inset-0 pointer-events-auto">
                 <DrawingCanvas 
                   currentTime={currentTime} 
-                  onDrawingStart={handleDrawingStart}
+                  videoRef={videoRef}
                 />
               </div>
             )}
