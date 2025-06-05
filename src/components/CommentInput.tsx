@@ -1,5 +1,5 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Clock, Paperclip, Smile, Send, X, ChevronDown, Globe } from "lucide-react";
@@ -14,7 +14,7 @@ import {
 
 interface CommentInputProps {
   currentTime: number;
-  onAddComment: (text: string, attachments?: string[], isInternal?: boolean, attachTime?: boolean) => void;
+  onAddComment: (text: string, attachments?: string[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
   parentId?: string;
   onCancel?: () => void;
   placeholder?: string;
@@ -37,7 +37,20 @@ export const CommentInput = ({
   const [attachTime, setAttachTime] = useState(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showDrawingTools, setShowDrawingTools] = useState(false);
+  const [hasDrawing, setHasDrawing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Check for drawings on canvas when drawing mode changes
+  useEffect(() => {
+    if (!isDrawingMode && showDrawingTools) {
+      // Check if there are any drawings on the canvas
+      const canvas = (window as any).drawingCanvas;
+      if (canvas) {
+        // We'll set hasDrawing to true if drawing tools were used
+        setHasDrawing(true);
+      }
+    }
+  }, [isDrawingMode, showDrawingTools]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -45,13 +58,21 @@ export const CommentInput = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const getPlaceholder = () => {
+    if (attachTime) {
+      return `${formatTime(currentTime)} - ${placeholder}`;
+    }
+    return placeholder;
+  };
+
   const handleSubmit = () => {
     if (comment.trim()) {
-      onAddComment(comment.trim(), attachments, isInternal, attachTime);
+      onAddComment(comment.trim(), attachments, isInternal, attachTime, hasDrawing);
       setComment("");
       setAttachments([]);
       setIsInternal(false);
       setAttachTime(true);
+      setHasDrawing(false);
       if (onCancel) onCancel();
     }
   };
@@ -107,11 +128,26 @@ export const CommentInput = ({
           </div>
         )}
 
+        {/* Drawing indicator */}
+        {hasDrawing && (
+          <div className="mb-3">
+            <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-2 flex items-center space-x-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-400">
+                <path d="M12 19l7-7 3 3-7 7-3-3z"/>
+                <path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+                <path d="m2 2 7.586 7.586"/>
+                <circle cx="11" cy="11" r="2"/>
+              </svg>
+              <span className="text-xs text-blue-400 font-medium">Drawing attached</span>
+            </div>
+          </div>
+        )}
+
         <div className="bg-gray-700/50 rounded-lg p-3">
           {/* Main textarea */}
           <div className="mb-3">
             <Textarea
-              placeholder={placeholder}
+              placeholder={getPlaceholder()}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               className="bg-gray-800 border-gray-600 text-white placeholder-gray-400 resize-none min-h-[80px] focus:ring-2 focus:ring-blue-500 focus:border-transparent"

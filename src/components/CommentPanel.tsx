@@ -252,13 +252,35 @@ export const CommentPanel = ({
                 >
                   <div className="p-4 bg-gray-700 rounded-lg border border-gray-600 hover:border-gray-500 transition-all duration-200 cursor-pointer">
                     <div className="flex items-center justify-between mb-3">
-                      <button
-                        onClick={() => onCommentClick(comment.timestamp)}
-                        className="flex items-center space-x-2 bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full text-sm font-medium hover:bg-yellow-500/30 transition-colors"
-                      >
-                        <Clock size={12} />
-                        <span>{formatTime(comment.timestamp)}</span>
-                      </button>
+                      <div className="flex items-center space-x-2">
+                        {comment.timestamp >= 0 ? (
+                          <button
+                            onClick={() => onCommentClick(comment.timestamp)}
+                            className="flex items-center space-x-2 bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full text-sm font-medium hover:bg-yellow-500/30 transition-colors"
+                          >
+                            <Clock size={12} />
+                            <span>{formatTime(comment.timestamp)}</span>
+                          </button>
+                        ) : (
+                          <div className="flex items-center space-x-2 bg-gray-600/50 text-gray-400 px-2 py-1 rounded-full text-sm font-medium">
+                            <MessageSquare size={12} />
+                            <span>General</span>
+                          </div>
+                        )}
+                        
+                        {comment.hasDrawing && (
+                          <div className="flex items-center space-x-1 bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full text-xs font-medium">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M12 19l7-7 3 3-7 7-3-3z"/>
+                              <path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+                              <path d="m2 2 7.586 7.586"/>
+                              <circle cx="11" cy="11" r="2"/>
+                            </svg>
+                            <span>Drawing</span>
+                          </div>
+                        )}
+                      </div>
+                      
                       <div className="flex items-center space-x-2">
                         <span className="text-xs text-gray-500">
                           {formatDate(comment.createdAt)}
@@ -372,13 +394,20 @@ export const CommentPanel = ({
                   {getReplies(comment.id).map((reply) => (
                     <div key={reply.id} className="ml-6 p-3 bg-gray-750 rounded-lg border border-gray-600">
                       <div className="flex items-center justify-between mb-2">
-                        <button
-                          onClick={() => onCommentClick(reply.timestamp)}
-                          className="flex items-center space-x-2 bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full text-xs font-medium hover:bg-yellow-500/30 transition-colors"
-                        >
-                          <Clock size={10} />
-                          <span>{formatTime(reply.timestamp)}</span>
-                        </button>
+                        {reply.timestamp >= 0 ? (
+                          <button
+                            onClick={() => onCommentClick(reply.timestamp)}
+                            className="flex items-center space-x-2 bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full text-xs font-medium hover:bg-yellow-500/30 transition-colors"
+                          >
+                            <Clock size={10} />
+                            <span>{formatTime(reply.timestamp)}</span>
+                          </button>
+                        ) : (
+                          <div className="flex items-center space-x-2 bg-gray-600/50 text-gray-400 px-2 py-1 rounded-full text-xs font-medium">
+                            <MessageSquare size={10} />
+                            <span>General</span>
+                          </div>
+                        )}
                         <Button
                           size="sm"
                           variant="ghost"

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { CommentPanel } from "@/components/CommentPanel";
@@ -14,6 +13,7 @@ export interface Comment {
   parentId?: string;
   attachments?: string[];
   isInternal?: boolean;
+  hasDrawing?: boolean;
 }
 
 const Index = () => {
@@ -30,18 +30,25 @@ const Index = () => {
     setVideoUrl(url);
   };
 
-  const handleAddComment = (text: string, timestamp: number, parentId?: string, attachments?: string[], isInternal?: boolean, attachTime?: boolean) => {
+  const handleAddComment = (text: string, timestamp: number, parentId?: string, attachments?: string[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
     const newComment: Comment = {
       id: Math.random().toString(36).substr(2, 9),
-      timestamp: attachTime ? timestamp : 0,
+      timestamp: attachTime ? timestamp : -1, // Use -1 for general comments without timestamp
       text,
       author: "User",
       createdAt: new Date(),
       parentId,
       attachments,
       isInternal: isInternal || false,
+      hasDrawing: hasDrawing || false,
     };
-    setComments([...comments, newComment].sort((a, b) => a.timestamp - b.timestamp));
+    setComments([...comments, newComment].sort((a, b) => {
+      // Sort by timestamp, but put general comments (-1) at the end
+      if (a.timestamp === -1 && b.timestamp === -1) return a.createdAt.getTime() - b.createdAt.getTime();
+      if (a.timestamp === -1) return 1;
+      if (b.timestamp === -1) return -1;
+      return a.timestamp - b.timestamp;
+    }));
   };
 
   const handleDeleteComment = (commentId: string) => {
@@ -49,7 +56,9 @@ const Index = () => {
   };
 
   const handleCommentClick = (timestamp: number) => {
-    setCurrentTime(timestamp);
+    if (timestamp >= 0) { // Only seek if it's a timestamped comment
+      setCurrentTime(timestamp);
+    }
   };
 
   const handleStartDrawing = () => {
@@ -103,11 +112,11 @@ const Index = () => {
             currentTime={currentTime}
             onCommentClick={handleCommentClick}
             onDeleteComment={handleDeleteComment}
-            onReplyComment={(parentId, text, attachments, isInternal, attachTime) => 
-              handleAddComment(text, currentTime, parentId, attachments, isInternal, attachTime)
+            onReplyComment={(parentId, text, attachments, isInternal, attachTime, hasDrawing) => 
+              handleAddComment(text, currentTime, parentId, attachments, isInternal, attachTime, hasDrawing)
             }
-            onAddComment={(text, attachments, isInternal, attachTime) => 
-              handleAddComment(text, currentTime, undefined, attachments, isInternal, attachTime)
+            onAddComment={(text, attachments, isInternal, attachTime, hasDrawing) => 
+              handleAddComment(text, currentTime, undefined, attachments, isInternal, attachTime, hasDrawing)
             }
             onStartDrawing={handleStartDrawing}
             isDrawingMode={isDrawingMode}
