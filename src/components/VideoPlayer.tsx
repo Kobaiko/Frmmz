@@ -177,16 +177,17 @@ export const VideoPlayer = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return; // Don't trigger shortcuts when typing in input fields
+        return;
       }
 
       const video = videoRef.current;
       if (!video) return;
 
+      e.preventDefault();
+
       switch (e.key.toLowerCase()) {
         case 'k':
         case ' ':
-          e.preventDefault();
           if (isPlaying) {
             video.pause();
           } else {
@@ -194,7 +195,6 @@ export const VideoPlayer = ({
           }
           break;
         case 'm':
-          e.preventDefault();
           if (video.muted || volume === 0) {
             video.muted = false;
             const newVolume = volume === 0 ? 0.5 : volume;
@@ -221,7 +221,6 @@ export const VideoPlayer = ({
       }
 
       if ((e.metaKey || e.ctrlKey) && e.key === '0') {
-        e.preventDefault();
         handleZoomChange('100%');
       }
     };
@@ -261,10 +260,12 @@ export const VideoPlayer = ({
     }
   };
 
-  const toggleLoop = () => {
-    setIsLooping(!isLooping);
-    console.log(`Loop ${!isLooping ? 'enabled' : 'disabled'}`);
-    // Don't restart the video, just toggle the loop state
+  const toggleLoop = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const newLoopState = !isLooping;
+    setIsLooping(newLoopState);
+    console.log(`Loop ${newLoopState ? 'enabled' : 'disabled'}`);
   };
 
   const handleSpeedChange = (speeds: number[]) => {
@@ -703,7 +704,7 @@ export const VideoPlayer = ({
                     size="sm"
                     variant="ghost"
                     onClick={togglePlayPause}
-                    className="text-white hover:text-white hover:bg-gray-800 p-2 focus:ring-0 focus:outline-none focus:border-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="text-white hover:text-white hover:bg-gray-800 p-2"
                   >
                     {isPlaying ? <Pause size={20} /> : <Play size={20} />}
                   </Button>
@@ -723,7 +724,7 @@ export const VideoPlayer = ({
                     size="sm"
                     variant="ghost"
                     onClick={toggleLoop}
-                    className={`hover:bg-gray-800 p-2 focus:ring-0 focus:outline-none focus:border-none focus-visible:ring-0 focus-visible:ring-offset-0 ${isLooping ? 'text-blue-400 hover:text-blue-400' : 'text-white hover:text-white'}`}
+                    className={`hover:bg-gray-800 p-2 ${isLooping ? 'text-blue-400 hover:text-blue-400' : 'text-white hover:text-white'}`}
                   >
                     <Repeat size={16} />
                   </Button>
@@ -739,7 +740,7 @@ export const VideoPlayer = ({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="text-white hover:text-white hover:bg-gray-800 px-3 py-2 text-sm focus:ring-0 focus:outline-none focus:border-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="text-white hover:text-white hover:bg-gray-800 px-3 py-2 text-sm"
                     onMouseEnter={() => setIsSpeedHovered(true)}
                     onMouseLeave={() => setIsSpeedHovered(false)}
                   >
@@ -783,7 +784,7 @@ export const VideoPlayer = ({
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-white hover:text-white hover:bg-gray-800 p-2 focus:ring-0 focus:outline-none focus:border-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        className="text-white hover:text-white hover:bg-gray-800 p-2"
                         onMouseEnter={() => setIsVolumeHovered(true)}
                         onMouseLeave={() => setIsVolumeHovered(false)}
                         onClick={handleVolumeToggle}
