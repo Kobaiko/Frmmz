@@ -68,33 +68,50 @@ export const VideoPlayer = ({
     if (isDrawingMode && videoRef.current) {
       console.log('Drawing mode enabled - forcing video pause');
       const video = videoRef.current;
-      // Use a small timeout to ensure the video element is ready
-      setTimeout(() => {
-        if (!video.paused) {
-          video.pause();
-          console.log('Video successfully paused for drawing mode');
-        }
-      }, 10);
-    }
-  }, [isDrawingMode]);
-
-  // Handle drawing mode change - ensure video is paused
-  const handleDrawingModeChange = (enabled: boolean) => {
-    console.log(`Drawing mode ${enabled ? 'enabled' : 'disabled'}`);
-    if (enabled && videoRef.current) {
-      console.log('Immediately pausing video for drawing mode');
-      const video = videoRef.current;
+      
+      // Immediate pause
       if (!video.paused) {
         video.pause();
+        console.log('Video immediately paused for drawing mode');
       }
-      // Double-check with a small delay
-      setTimeout(() => {
+      
+      // Double-check with timeout to ensure it stays paused
+      const timeoutId = setTimeout(() => {
         if (!video.paused) {
           video.pause();
           console.log('Video pause enforced with timeout');
         }
-      }, 50);
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
     }
+  }, [isDrawingMode]);
+
+  // Handle drawing mode change - ensure video is paused and handle cleanup
+  const handleDrawingModeChange = (enabled: boolean) => {
+    console.log(`Drawing mode change requested: ${enabled ? 'enabled' : 'disabled'}`);
+    
+    if (enabled && videoRef.current) {
+      console.log('Enabling drawing mode and pausing video');
+      const video = videoRef.current;
+      
+      // Force pause immediately
+      if (!video.paused) {
+        video.pause();
+        console.log('Video paused due to drawing mode activation');
+      }
+      
+      // Ensure it stays paused
+      setTimeout(() => {
+        if (!video.paused) {
+          video.pause();
+          console.log('Video pause double-checked');
+        }
+      }, 50);
+    } else if (!enabled) {
+      console.log('Disabling drawing mode');
+    }
+    
     if (onDrawingModeChange) {
       onDrawingModeChange(enabled);
     }
@@ -102,13 +119,15 @@ export const VideoPlayer = ({
 
   // Handle drawing start - pause video immediately and enable drawing mode
   const handleDrawingStart = () => {
-    console.log('Drawing started - pausing video and enabling drawing mode');
+    console.log('Drawing start requested - pausing video and enabling drawing mode');
+    
     if (videoRef.current) {
       const video = videoRef.current;
       video.pause();
-      console.log('Video paused for drawing');
+      console.log('Video paused for drawing start');
     }
-    // Enable drawing mode when starting to draw
+    
+    // Always enable drawing mode when starting to draw
     handleDrawingModeChange(true);
   };
 

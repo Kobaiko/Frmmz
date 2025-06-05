@@ -48,9 +48,18 @@ export const CommentInput = ({
       if (canvas) {
         // We'll set hasDrawing to true if drawing tools were used
         setHasDrawing(true);
+        console.log('Drawing detected, setting hasDrawing to true');
       }
     }
   }, [isDrawingMode, showDrawingTools]);
+
+  // Reset drawing tools state when drawing mode is disabled externally
+  useEffect(() => {
+    if (!isDrawingMode && showDrawingTools) {
+      console.log('Drawing mode disabled, closing drawing tools');
+      setShowDrawingTools(false);
+    }
+  }, [isDrawingMode]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -76,12 +85,18 @@ export const CommentInput = ({
 
   const handleSubmit = () => {
     if (comment.trim()) {
+      console.log('Submitting comment with hasDrawing:', hasDrawing);
       onAddComment(comment.trim(), attachments, isInternal, attachTime, hasDrawing);
+      
+      // Reset all states after submitting
       setComment("");
       setAttachments([]);
       setIsInternal(false);
       setAttachTime(true);
       setHasDrawing(false);
+      setShowDrawingTools(false);
+      setShowEmojiPicker(false);
+      
       if (onCancel) onCancel();
     }
   };
@@ -106,11 +121,22 @@ export const CommentInput = ({
   };
 
   const handleDrawingClick = () => {
-    console.log('Drawing button clicked - starting drawing mode');
-    if (onStartDrawing) {
-      onStartDrawing();
+    console.log('Drawing button clicked - current states:', { isDrawingMode, showDrawingTools });
+    
+    if (isDrawingMode && showDrawingTools) {
+      // If already in drawing mode and tools are showing, we're turning it off
+      console.log('Turning off drawing mode');
+      setShowDrawingTools(false);
+      setHasDrawing(true); // Assume drawing was made
+      // Don't call onStartDrawing here as we're turning off drawing mode
+    } else {
+      // Starting drawing mode
+      console.log('Starting drawing mode');
+      if (onStartDrawing) {
+        onStartDrawing();
+      }
+      setShowDrawingTools(true);
     }
-    setShowDrawingTools(!showDrawingTools);
   };
 
   return (
@@ -219,7 +245,7 @@ export const CommentInput = ({
                   variant="ghost"
                   onClick={handleDrawingClick}
                   className={`p-2 rounded-lg ${
-                    isDrawingMode || showDrawingTools
+                    (isDrawingMode && showDrawingTools) || hasDrawing
                       ? "text-blue-400 bg-blue-500/20" 
                       : "text-gray-400 hover:text-white hover:bg-gray-600"
                   }`}
