@@ -26,17 +26,20 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
   const currentShapeRef = useRef<any>(null);
   const lastFrameRef = useRef<number>(-1);
   const apiAttachedRef = useRef(false);
+  const isLoadingRef = useRef(false);
 
   // Get current frame number (30fps)
   const getCurrentFrame = useCallback(() => Math.floor(currentTime * 30), [currentTime]);
 
   // Save current canvas state
   const saveState = useCallback(() => {
-    if (!fabricCanvasRef.current) return;
+    if (!fabricCanvasRef.current || isLoadingRef.current) return;
     
     const canvas = fabricCanvasRef.current;
     const canvasData = JSON.stringify(canvas.toJSON());
     const currentFrame = getCurrentFrame();
+    
+    console.log(`Saving canvas state for frame ${currentFrame} with ${canvas.getObjects().length} objects`);
     
     // Update undo stack
     setUndoStack(prev => [...prev.slice(-19), canvasData]);
@@ -45,10 +48,11 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     // Save for current frame
     setFrameDrawings(prev => {
       const filtered = prev.filter(f => f.frame !== currentFrame);
-      return [...filtered, { frame: currentFrame, canvasData }];
+      if (canvas.getObjects().length > 0) {
+        return [...filtered, { frame: currentFrame, canvasData }];
+      }
+      return filtered;
     });
-    
-    console.log(`Canvas state saved for frame ${currentFrame}`);
   }, [getCurrentFrame]);
 
   // Initialize Fabric.js canvas ONCE
@@ -87,7 +91,14 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     // Set up event handlers
     const handlePathCreated = () => {
       console.log('Free drawing path created');
-      saveState();
+      setTimeout(() => saveState(), 100); // Small delay to ensure the object is added
+    };
+
+    const handleObjectAdded = () => {
+      if (!isLoadingRef.current) {
+        console.log('Object added to canvas');
+        setTimeout(() => saveState(), 100);
+      }
     };
 
     const handleMouseDown = (e: any) => {
@@ -255,7 +266,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
         }
         
         canvas.renderAll();
-        saveState();
       } catch (error) {
         console.error('Error adding shape to canvas:', error);
       }
@@ -268,6 +278,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
 
     // Add event listeners
     canvas.on('path:created', handlePathCreated);
+    canvas.on('object:added', handleObjectAdded);
     canvas.on('mouse:down', handleMouseDown);
     canvas.on('mouse:move', handleMouseMove);
     canvas.on('mouse:up', handleMouseUp);
@@ -331,8 +342,10 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
         setRedoStack(prev => [...prev, currentState]);
         setUndoStack(prev => prev.slice(0, -1));
         
+        isLoadingRef.current = true;
         canvas.loadFromJSON(previousState).then(() => {
           canvas.renderAll();
+          isLoadingRef.current = false;
         });
       },
       redo: () => {
@@ -346,8 +359,10 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
         setUndoStack(prev => [...prev, currentState]);
         setRedoStack(prev => prev.slice(0, -1));
         
+        isLoadingRef.current = true;
         canvas.loadFromJSON(nextState).then(() => {
           canvas.renderAll();
+          isLoadingRef.current = false;
         });
       },
       getDrawingsForFrame: (frame: number) => {
@@ -392,38 +407,48 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     // Only update if frame actually changed
     if (currentFrame === lastFrameRef.current) return;
     
-    // Save current frame's drawings before switching
-    if (lastFrameRef.current >= 0) {
+    console.log(`Frame changed from ${lastFrameRef.current} to ${currentFrame}`);
+    
+    // Save current frame's drawings before switching (if we have any objects)
+    if (lastFrameRef.current >= 0 && canvas.getObjects().length > 0) {
       const currentCanvasData = JSON.stringify(canvas.toJSON());
+      console.log(`Saving ${canvas.getObjects().length} objects for frame ${lastFrameRef.current}`);
       setFrameDrawings(prev => {
         const filtered = prev.filter(f => f.frame !== lastFrameRef.current);
-        if (canvas.getObjects().length > 0) {
-          return [...filtered, { frame: lastFrameRef.current, canvasData: currentCanvasData }];
-        }
-        return filtered;
+        return [...filtered, { frame: lastFrameRef.current, canvasData: currentCanvasData }];
       });
     }
     
-    lastFrameRef.current = currentFrame;
-    
+    // Load drawings for the new frame
     const frameDrawing = frameDrawings.find(f => f.frame === currentFrame);
     
     if (frameDrawing) {
+      console.log(`Loading drawings for frame ${currentFrame}`);
       try {
+        isLoadingRef.current = true;
         canvas.loadFromJSON(frameDrawing.canvasData).then(() => {
           canvas.renderAll();
-          console.log(`Loaded drawings for frame ${currentFrame}`);
+          isLoadingRef.current = false;
+          console.log(`Successfully loaded ${canvas.getObjects().length} objects for frame ${currentFrame}`);
+        }).catch((error) => {
+          console.error('Error loading frame drawings:', error);
+          canvas.clear();
+          canvas.renderAll();
+          isLoadingRef.current = false;
         });
       } catch (error) {
-        console.error('Error loading frame drawings:', error);
+        console.error('Error parsing frame drawings:', error);
         canvas.clear();
         canvas.renderAll();
+        isLoadingRef.current = false;
       }
     } else {
+      console.log(`No drawings found for frame ${currentFrame}, clearing canvas`);
       canvas.clear();
       canvas.renderAll();
-      console.log(`Cleared canvas for frame ${currentFrame} (no drawings)`);
     }
+    
+    lastFrameRef.current = currentFrame;
   }, [currentTime, frameDrawings, getCurrentFrame]);
 
   return (
