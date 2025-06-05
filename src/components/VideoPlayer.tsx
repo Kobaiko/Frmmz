@@ -142,41 +142,29 @@ export const VideoPlayer = ({
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
     
-    const handleEnded = () => {
-      if (isLooping) {
-        video.currentTime = 0;
-        video.play();
-      }
-    };
-
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
-    video.addEventListener('ended', handleEnded);
 
     // Set video source
     video.src = src;
-    
-    // Set loop attribute on video element
-    video.loop = isLooping;
 
     return () => {
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
-      video.removeEventListener('ended', handleEnded);
     };
-  }, [src, onTimeUpdate, onDurationChange, isLooping]);
+  }, [src, onTimeUpdate, onDurationChange]);
 
-  // Separate effect for managing loop state
+  // Simple loop effect - just set the loop attribute
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
-    
-    video.loop = isLooping;
-    console.log(`Loop ${isLooping ? 'enabled' : 'disabled'}`);
+    if (video) {
+      video.loop = isLooping;
+      console.log(`Loop ${isLooping ? 'enabled' : 'disabled'}`);
+    }
   }, [isLooping]);
 
   useEffect(() => {
@@ -272,8 +260,9 @@ export const VideoPlayer = ({
     }
   };
 
+  // Simplified loop toggle - just toggle the state
   const toggleLoop = () => {
-    setIsLooping(!isLooping);
+    setIsLooping(prev => !prev);
   };
 
   const handleSpeedChange = (speeds: number[]) => {
