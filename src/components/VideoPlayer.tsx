@@ -187,18 +187,19 @@ export const VideoPlayer = ({
         case 'k':
         case ' ':
           e.preventDefault();
-          if (video.paused) {
-            video.play();
-          } else {
+          if (isPlaying) {
             video.pause();
+          } else {
+            video.play();
           }
           break;
         case 'm':
           e.preventDefault();
-          if (video.muted || video.volume === 0) {
+          if (video.muted || volume === 0) {
             video.muted = false;
-            video.volume = volume || 0.5;
-            setVolume(video.volume);
+            const newVolume = volume === 0 ? 0.5 : volume;
+            video.volume = newVolume;
+            setVolume(newVolume);
           } else {
             video.muted = true;
             setVolume(0);
@@ -227,7 +228,7 @@ export const VideoPlayer = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [volume]);
+  }, [volume, isPlaying]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -265,26 +266,26 @@ export const VideoPlayer = ({
     console.log(`Loop ${!isLooping ? 'enabled' : 'disabled'}`);
   };
 
-  const handleSpeedChange = (speed: number) => {
+  const handleSpeedChange = (speeds: number[]) => {
+    const speed = speeds[0];
     setPlaybackSpeed(speed);
     if (videoRef.current) {
       videoRef.current.playbackRate = speed;
     }
-    setIsSpeedHovered(false);
   };
 
   const handleVolumeToggle = () => {
     const video = videoRef.current;
     if (!video) return;
     
-    if (volume > 0 || !video.muted) {
-      setVolume(0);
-      video.volume = 0;
-      video.muted = true;
-    } else {
-      setVolume(1);
-      video.volume = 1;
+    if (video.muted || volume === 0) {
       video.muted = false;
+      const newVolume = volume === 0 ? 0.5 : volume;
+      video.volume = newVolume;
+      setVolume(newVolume);
+    } else {
+      video.muted = true;
+      setVolume(0);
     }
   };
 
@@ -579,10 +580,10 @@ export const VideoPlayer = ({
     previewVideo.addEventListener('seeked', handleSeeked);
   };
 
-  const getSpeedChoices = () => {
-    const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
-    return speeds;
-  };
+  // Speed value to index mapping for the slider
+  const speedValues = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+  const getSpeedIndex = (speed: number) => speedValues.indexOf(speed);
+  const getSpeedFromIndex = (index: number) => speedValues[index];
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -745,30 +746,29 @@ export const VideoPlayer = ({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent 
-                  className="w-auto p-0 bg-gray-800 border-gray-600 rounded-lg" 
+                  className="w-80 p-0 bg-gray-800 border-gray-600 rounded-lg" 
                   side="top"
                   align="center"
                   onMouseEnter={() => setIsSpeedHovered(true)}
                   onMouseLeave={() => setIsSpeedHovered(false)}
                 >
                   <div className="p-4">
-                    <div className="text-white text-sm font-medium mb-3">Playback speed</div>
-                    <div className="space-y-1">
-                      {getSpeedChoices().map((speed) => (
-                        <div
-                          key={speed}
-                          className="flex items-center justify-between cursor-pointer hover:bg-gray-700 px-3 py-2 rounded group"
-                          onClick={() => handleSpeedChange(speed)}
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div 
-                              className={`w-2 h-2 rounded-full transition-colors ${playbackSpeed === speed ? 'bg-blue-500' : 'bg-gray-500 group-hover:bg-gray-400'}`}
-                            />
-                            <span className="text-white text-sm">{speed}x</span>
-                          </div>
-                          {speed === 1 && <span className="text-gray-400 text-xs">Normal</span>}
-                        </div>
-                      ))}
+                    <div className="text-white text-sm font-medium mb-4">Playback speed</div>
+                    <div className="relative">
+                      <Slider
+                        value={[getSpeedIndex(playbackSpeed)]}
+                        onValueChange={(value) => handleSpeedChange([getSpeedFromIndex(value[0])])}
+                        max={speedValues.length - 1}
+                        step={1}
+                        className="w-full [&_[role=slider]]:bg-white [&_[role=slider]]:border-white [&_.relative]:bg-gray-600 [&_.bg-primary]:bg-blue-500"
+                      />
+                      <div className="flex justify-between mt-2 text-xs text-gray-300">
+                        {speedValues.map((speed, index) => (
+                          <span key={speed} className="text-center" style={{ width: '12.5%' }}>
+                            {speed}x
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </PopoverContent>
