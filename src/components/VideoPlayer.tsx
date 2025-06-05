@@ -62,6 +62,14 @@ export const VideoPlayer = ({
     handleQualityChange
   } = useVideoPlayer({ src, currentTime, onTimeUpdate, onDurationChange });
 
+  // Handle drawing start - pause video
+  const handleDrawingStart = () => {
+    if (isPlaying && videoRef.current) {
+      videoRef.current.pause();
+      console.log('Video paused for drawing');
+    }
+  };
+
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -208,7 +216,10 @@ export const VideoPlayer = ({
             
             {isDrawingMode && (
               <div className="absolute inset-0 pointer-events-auto">
-                <DrawingCanvas currentTime={currentTime} />
+                <DrawingCanvas 
+                  currentTime={currentTime} 
+                  onDrawingStart={handleDrawingStart}
+                />
               </div>
             )}
           </div>
