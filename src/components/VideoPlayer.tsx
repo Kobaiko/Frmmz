@@ -90,6 +90,7 @@ export const VideoPlayer = ({
   const [annotations, setAnnotations] = useState(false);
   const [isLooping, setIsLooping] = useState(false);
   const [isVolumeHovered, setIsVolumeHovered] = useState(false);
+  const [isSpeedHovered, setIsSpeedHovered] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -250,14 +251,12 @@ export const VideoPlayer = ({
     console.log(`Loop ${!isLooping ? 'enabled' : 'disabled'}`);
   };
 
-  const handleSpeedChange = () => {
-    const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
-    const currentIndex = speeds.indexOf(playbackSpeed);
-    const nextSpeed = speeds[(currentIndex + 1) % speeds.length];
-    setPlaybackSpeed(nextSpeed);
+  const handleSpeedChange = (speed: number) => {
+    setPlaybackSpeed(speed);
     if (videoRef.current) {
-      videoRef.current.playbackRate = nextSpeed;
+      videoRef.current.playbackRate = speed;
     }
+    setIsSpeedHovered(false);
   };
 
   const handleVolumeToggle = () => {
@@ -566,6 +565,11 @@ export const VideoPlayer = ({
     previewVideo.addEventListener('seeked', handleSeeked);
   };
 
+  const getSpeedChoices = () => {
+    const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+    return speeds;
+  };
+
   return (
     <TooltipProvider delayDuration={0}>
       <div className="bg-black rounded-lg overflow-hidden shadow-2xl relative">
@@ -713,15 +717,48 @@ export const VideoPlayer = ({
                 </TooltipContent>
               </Tooltip>
               
-              {/* Speed */}
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleSpeedChange}
-                className="text-white hover:text-white hover:bg-gray-800 px-3 py-2 text-sm"
-              >
-                {playbackSpeed}x
-              </Button>
+              {/* Speed with popover */}
+              <Popover open={isSpeedHovered} onOpenChange={setIsSpeedHovered}>
+                <PopoverTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-white hover:text-white hover:bg-gray-800 px-3 py-2 text-sm focus:ring-0 focus:outline-none"
+                    onMouseEnter={() => setIsSpeedHovered(true)}
+                    onMouseLeave={() => setIsSpeedHovered(false)}
+                  >
+                    {playbackSpeed}x
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent 
+                  className="w-auto p-0 bg-gray-800 border-gray-600 rounded-lg" 
+                  side="top"
+                  align="center"
+                  onMouseEnter={() => setIsSpeedHovered(true)}
+                  onMouseLeave={() => setIsSpeedHovered(false)}
+                >
+                  <div className="p-4">
+                    <div className="text-white text-sm font-medium mb-3">Playback speed</div>
+                    <div className="space-y-2">
+                      {getSpeedChoices().map((speed) => (
+                        <div
+                          key={speed}
+                          className="flex items-center justify-between cursor-pointer hover:bg-gray-700 px-3 py-2 rounded"
+                          onClick={() => handleSpeedChange(speed)}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div 
+                              className={`w-2 h-2 rounded-full ${playbackSpeed === speed ? 'bg-blue-500' : 'bg-gray-500'}`}
+                            />
+                            <span className="text-white">{speed}</span>
+                          </div>
+                          {speed === 1 && <span className="text-gray-400 text-sm">Normal</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
               
               {/* Volume with popover that opens on hover */}
               <Popover open={isVolumeHovered} onOpenChange={setIsVolumeHovered}>
@@ -731,7 +768,7 @@ export const VideoPlayer = ({
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-white hover:text-white hover:bg-gray-800 p-2"
+                        className="text-white hover:text-white hover:bg-gray-800 p-2 focus:ring-0 focus:outline-none"
                         onMouseEnter={() => setIsVolumeHovered(true)}
                         onMouseLeave={() => setIsVolumeHovered(false)}
                         onClick={handleVolumeToggle}
@@ -755,8 +792,6 @@ export const VideoPlayer = ({
                   onMouseLeave={() => setIsVolumeHovered(false)}
                 >
                   <div className="flex items-center space-x-2">
-                    <span className="text-white text-xs font-medium">Mute</span>
-                    <span className="bg-gray-700 text-white px-1 py-0.5 rounded text-xs font-mono">M</span>
                     <Slider
                       value={[volume]}
                       onValueChange={handleVolumeChange}
