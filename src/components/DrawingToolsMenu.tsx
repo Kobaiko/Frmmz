@@ -22,7 +22,7 @@ export const DrawingToolsMenu = ({ onClose }: DrawingToolsMenuProps) => {
   const tools = [
     { id: "pen", label: "Pen", symbol: "/" },
     { id: "square", label: "Square", symbol: "□" },
-    { id: "text", label: "Text", symbol: "A" },
+    { id: "arrow", label: "Arrow", symbol: "→" },
   ];
 
   useEffect(() => {
@@ -38,6 +38,7 @@ export const DrawingToolsMenu = ({ onClose }: DrawingToolsMenuProps) => {
 
   const handleToolChange = (toolId: string) => {
     setSelectedTool(toolId);
+    console.log(`Drawing tool changed to: ${toolId}`);
     if ((window as any).drawingCanvas) {
       (window as any).drawingCanvas.setTool(toolId);
     }
@@ -45,24 +46,28 @@ export const DrawingToolsMenu = ({ onClose }: DrawingToolsMenuProps) => {
 
   const handleColorChange = (color: string) => {
     setSelectedColor(color);
+    console.log(`Drawing color changed to: ${color}`);
     if ((window as any).drawingCanvas) {
       (window as any).drawingCanvas.setColor(color);
     }
   };
 
   const handleUndo = () => {
+    console.log('Undo drawing action');
     if ((window as any).drawingCanvas) {
       (window as any).drawingCanvas.undo();
     }
   };
 
   const handleRedo = () => {
+    console.log('Redo drawing action');
     if ((window as any).drawingCanvas) {
       (window as any).drawingCanvas.redo();
     }
   };
 
   const handleClear = () => {
+    console.log('Clear drawing canvas');
     if ((window as any).drawingCanvas) {
       (window as any).drawingCanvas.clear();
     }
@@ -135,6 +140,15 @@ export const DrawingToolsMenu = ({ onClose }: DrawingToolsMenuProps) => {
           title="Redo"
         >
           <Redo size={14} />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleClear}
+          className="p-1 text-gray-400 hover:text-white"
+          title="Clear all"
+        >
+          <Trash2 size={14} />
         </Button>
       </div>
     </div>
