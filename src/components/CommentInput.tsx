@@ -79,11 +79,20 @@ export const CommentInput = ({
 
   const handleSubmit = () => {
     if (comment.trim()) {
-      // Force save drawings before submitting comment
+      // Force save drawings before submitting comment and resetting drawing mode
       const canvas = (window as any).drawingCanvas;
-      if (canvas && canvas.forceSave && hasDrawing) {
-        console.log('Force saving drawings before submitting comment');
-        canvas.forceSave();
+      if (canvas && hasDrawing) {
+        console.log('Force saving drawings before submitting comment and resetting mode');
+        
+        // Use the new saveBeforeDisposal method to ensure drawings are saved
+        if (canvas.saveBeforeDisposal) {
+          canvas.saveBeforeDisposal();
+        }
+        
+        // Also force save as backup
+        if (canvas.forceSave) {
+          canvas.forceSave();
+        }
       }
       
       console.log('Submitting comment with hasDrawing:', hasDrawing);

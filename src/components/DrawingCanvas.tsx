@@ -68,11 +68,28 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     saveFrameDrawings();
   }, [saveFrameDrawings]);
 
-  // Force save current drawings
+  // Force save current drawings - ensure it's synchronous
   const forceSaveCurrentFrame = useCallback(() => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+    
     console.log('Force saving current frame drawings');
-    saveFrameDrawings();
-  }, [saveFrameDrawings]);
+    const currentFrame = getCurrentFrame();
+    const objects = canvas.getObjects();
+    
+    if (objects.length > 0) {
+      const canvasData = JSON.stringify(canvas.toJSON());
+      console.log(`Force saving ${objects.length} objects for frame ${currentFrame}`);
+      
+      // Update frameDrawings synchronously
+      setFrameDrawings(prev => {
+        const filtered = prev.filter(f => f.frame !== currentFrame);
+        const newDrawings = [...filtered, { frame: currentFrame, canvasData }];
+        console.log('Updated frameDrawings:', newDrawings.map(f => ({ frame: f.frame, hasData: !!f.canvasData })));
+        return newDrawings;
+      });
+    }
+  }, [getCurrentFrame]);
 
   // Initialize Fabric.js canvas ONCE
   useEffect(() => {
@@ -383,11 +400,33 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
       hasDrawingsForCurrentFrame: () => {
         const currentFrame = getCurrentFrame();
         const canvas = fabricCanvasRef.current;
-        return canvas ? canvas.getObjects().length > 0 : false;
+        const hasCanvasObjects = canvas ? canvas.getObjects().length > 0 : false;
+        const hasStoredDrawings = frameDrawings.some(f => f.frame === currentFrame);
+        return hasCanvasObjects || hasStoredDrawings;
       },
       forceSave: () => {
         console.log('API: Force saving current frame');
         forceSaveCurrentFrame();
+      },
+      // New method to save before disposal
+      saveBeforeDisposal: () => {
+        console.log('API: Saving before disposal');
+        const canvas = fabricCanvasRef.current;
+        if (!canvas) return;
+        
+        const currentFrame = getCurrentFrame();
+        const objects = canvas.getObjects();
+        
+        if (objects.length > 0) {
+          const canvasData = JSON.stringify(canvas.toJSON());
+          console.log(`Saving ${objects.length} objects for frame ${currentFrame} before disposal`);
+          
+          // Force immediate update to frameDrawings
+          setFrameDrawings(prev => {
+            const filtered = prev.filter(f => f.frame !== currentFrame);
+            return [...filtered, { frame: currentFrame, canvasData }];
+          });
+        }
       }
     };
 
@@ -401,7 +440,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
         apiAttachedRef.current = false;
       }
     };
-  }, [undoStack, redoStack, getCurrentFrame, forceSaveCurrentFrame]);
+  }, [undoStack, redoStack, getCurrentFrame, forceSaveCurrentFrame, frameDrawings]);
 
   // Load frame-specific drawings when time changes
   useEffect(() => {
@@ -411,6 +450,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     const currentFrame = getCurrentFrame();
     
     console.log(`Loading drawings for frame ${currentFrame}, lastFrame: ${lastFrameRef.current}`);
+    console.log('Available frameDrawings:', frameDrawings.map(f => ({ frame: f.frame, hasData: !!f.canvasData })));
     
     // Save current frame's drawings before switching if we have any objects
     if (lastFrameRef.current >= 0 && lastFrameRef.current !== currentFrame) {
