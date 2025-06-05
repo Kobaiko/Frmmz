@@ -24,8 +24,10 @@ export const CommentContextMenu = ({
 }: CommentContextMenuProps) => {
   return (
     <ContextMenu>
-      <ContextMenuTrigger asChild>
-        {children}
+      <ContextMenuTrigger>
+        <div>
+          {children}
+        </div>
       </ContextMenuTrigger>
       <ContextMenuContent className="bg-gray-800 border-gray-600 text-white">
         <ContextMenuItem 
