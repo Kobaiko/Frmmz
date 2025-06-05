@@ -63,10 +63,10 @@ export const VideoPlayer = ({
     handleQualityChange
   } = useVideoPlayer({ src, currentTime, onTimeUpdate, onDurationChange });
 
-  // Pause video immediately when drawing mode is enabled
+  // Force pause video when drawing mode is enabled
   useEffect(() => {
     if (isDrawingMode && videoRef.current && !videoRef.current.paused) {
-      console.log('Drawing mode enabled - pausing video immediately');
+      console.log('Drawing mode enabled - forcing video pause');
       videoRef.current.pause();
     }
   }, [isDrawingMode]);
