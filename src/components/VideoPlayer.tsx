@@ -170,6 +170,15 @@ export const VideoPlayer = ({
     };
   }, [src, onTimeUpdate, onDurationChange, isLooping]);
 
+  // Separate effect for managing loop state
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    video.loop = isLooping;
+    console.log(`Loop ${isLooping ? 'enabled' : 'disabled'}`);
+  }, [isLooping]);
+
   useEffect(() => {
     const video = videoRef.current;
     if (video && Math.abs(video.currentTime - currentTime) > 0.5) {
@@ -264,15 +273,7 @@ export const VideoPlayer = ({
   };
 
   const toggleLoop = () => {
-    const newLoopState = !isLooping;
-    setIsLooping(newLoopState);
-    
-    // Update the video element's loop property
-    if (videoRef.current) {
-      videoRef.current.loop = newLoopState;
-    }
-    
-    console.log(`Loop ${newLoopState ? 'enabled' : 'disabled'}`);
+    setIsLooping(!isLooping);
   };
 
   const handleSpeedChange = (speeds: number[]) => {
