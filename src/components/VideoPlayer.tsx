@@ -610,6 +610,19 @@ export const VideoPlayer = ({
   const getSpeedIndex = (speed: number) => speedValues.indexOf(speed);
   const getSpeedFromIndex = (index: number) => speedValues[index];
 
+  const getTimeFormatLabel = () => {
+    switch (timeFormat) {
+      case 'timecode':
+        return 'Timecode';
+      case 'frames':
+        return 'Frames';
+      case 'standard':
+        return 'Standard';
+      default:
+        return 'Timecode';
+    }
+  };
+
   return (
     <TooltipProvider delayDuration={0}>
       <div className="bg-black rounded-lg overflow-hidden shadow-2xl relative">
@@ -853,6 +866,9 @@ export const VideoPlayer = ({
               <div className="text-white text-sm font-mono">
                 {formatTimeByFormat(currentTime)} / {formatTimeByFormat(duration)}
               </div>
+              <span className="text-gray-400 text-xs">
+                {getTimeFormatLabel()}
+              </span>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
