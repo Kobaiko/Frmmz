@@ -866,9 +866,6 @@ export const VideoPlayer = ({
               <div className="text-white text-sm font-mono">
                 {formatTimeByFormat(currentTime)} / {formatTimeByFormat(duration)}
               </div>
-              <span className="text-gray-400 text-xs">
-                {getTimeFormatLabel()}
-              </span>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
