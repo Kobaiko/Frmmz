@@ -53,6 +53,10 @@ const Index = () => {
       if (b.timestamp === -1) return -1;
       return a.timestamp - b.timestamp;
     }));
+
+    // Reset drawing mode after adding comment
+    setIsDrawingMode(false);
+    console.log('Drawing mode reset after adding comment');
   };
 
   const handleDeleteComment = (commentId: string) => {

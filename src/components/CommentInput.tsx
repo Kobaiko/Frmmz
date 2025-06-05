@@ -40,14 +40,12 @@ export const CommentInput = ({
   const [hasDrawing, setHasDrawing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Monitor canvas for drawings
+  // Monitor canvas for drawings - improved detection
   useEffect(() => {
     const checkForDrawings = () => {
       const canvas = (window as any).drawingCanvas;
-      if (canvas && canvas.getDrawingsForFrame) {
-        const currentFrame = Math.floor(currentTime * 30); // Assuming 30fps
-        const drawings = canvas.getDrawingsForFrame(currentFrame);
-        const hasAnyDrawings = drawings && drawings.length > 0;
+      if (canvas && canvas.hasDrawingsForCurrentFrame) {
+        const hasAnyDrawings = canvas.hasDrawingsForCurrentFrame();
         
         if (hasAnyDrawings !== hasDrawing) {
           setHasDrawing(hasAnyDrawings);
@@ -57,6 +55,9 @@ export const CommentInput = ({
     };
 
     if (isDrawingMode) {
+      // Check immediately
+      checkForDrawings();
+      // Then check periodically
       const interval = setInterval(checkForDrawings, 500);
       return () => clearInterval(interval);
     }
@@ -236,7 +237,7 @@ export const CommentInput = ({
                   variant="ghost"
                   onClick={handleDrawingClick}
                   className={`p-2 rounded-lg ${
-                    showDrawingTools || hasDrawing
+                    isDrawingMode || hasDrawing
                       ? "text-blue-400 bg-blue-500/20" 
                       : "text-gray-400 hover:text-white hover:bg-gray-600"
                   }`}

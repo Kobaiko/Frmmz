@@ -25,6 +25,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
   const startPointRef = useRef<{ x: number; y: number } | null>(null);
   const currentShapeRef = useRef<any>(null);
   const lastFrameRef = useRef<number>(-1);
+  const apiAttachedRef = useRef(false);
 
   // Get current frame number (30fps)
   const getCurrentFrame = useCallback(() => Math.floor(currentTime * 30), [currentTime]);
@@ -280,11 +281,14 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
         fabricCanvasRef.current = null;
       }
       isInitializedRef.current = false;
+      apiAttachedRef.current = false;
     };
   }, []); // Empty dependency array - initialize ONCE
 
-  // Global API for drawing tools - STABLE reference
+  // Global API for drawing tools - STABLE reference and prevent multiple attachments
   useEffect(() => {
+    if (apiAttachedRef.current) return;
+    
     const api = {
       setTool: (tool: string) => {
         console.log(`API: Setting tool to ${tool}`);
@@ -345,16 +349,38 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
         canvas.loadFromJSON(nextState).then(() => {
           canvas.renderAll();
         });
+      },
+      getDrawingsForFrame: (frame: number) => {
+        const frameDrawing = frameDrawings.find(f => f.frame === frame);
+        if (frameDrawing) {
+          try {
+            const canvasData = JSON.parse(frameDrawing.canvasData);
+            return canvasData.objects || [];
+          } catch (error) {
+            console.error('Error parsing frame drawings:', error);
+            return [];
+          }
+        }
+        return [];
+      },
+      hasDrawingsForCurrentFrame: () => {
+        const currentFrame = getCurrentFrame();
+        const canvas = fabricCanvasRef.current;
+        return canvas ? canvas.getObjects().length > 0 : false;
       }
     };
 
     (window as any).drawingCanvas = api;
+    apiAttachedRef.current = true;
     console.log('Drawing canvas API attached to window');
 
     return () => {
-      delete (window as any).drawingCanvas;
+      if (apiAttachedRef.current) {
+        delete (window as any).drawingCanvas;
+        apiAttachedRef.current = false;
+      }
     };
-  }, [undoStack, redoStack, getCurrentFrame]);
+  }, [undoStack, redoStack, getCurrentFrame, frameDrawings]);
 
   // Load frame-specific drawings when time changes
   useEffect(() => {
