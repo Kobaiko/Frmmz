@@ -91,7 +91,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     // Set up event handlers
     const handlePathCreated = () => {
       console.log('Free drawing path created');
-      setTimeout(() => saveState(), 100); // Small delay to ensure the object is added
+      setTimeout(() => saveState(), 100);
     };
 
     const handleObjectAdded = () => {
@@ -119,7 +119,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
 
       const pointer = canvas.getPointer(e.e);
       
-      // Remove previous preview shape
       if (currentShapeRef.current) {
         canvas.remove(currentShapeRef.current);
         currentShapeRef.current = null;
@@ -183,7 +182,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
       const pointer = canvas.getPointer(e.e);
       console.log(`Finishing ${currentToolRef.current} drawing at`, pointer);
       
-      // Remove preview shape
       if (currentShapeRef.current) {
         canvas.remove(currentShapeRef.current);
         currentShapeRef.current = null;
@@ -270,13 +268,11 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
         console.error('Error adding shape to canvas:', error);
       }
       
-      // Reset drawing state
       isDrawingRef.current = false;
       startPointRef.current = null;
       canvas.selection = false;
     };
 
-    // Add event listeners
     canvas.on('path:created', handlePathCreated);
     canvas.on('object:added', handleObjectAdded);
     canvas.on('mouse:down', handleMouseDown);
@@ -294,9 +290,9 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
       isInitializedRef.current = false;
       apiAttachedRef.current = false;
     };
-  }, []); // Empty dependency array - initialize ONCE
+  }, []);
 
-  // Global API for drawing tools - STABLE reference and prevent multiple attachments
+  // Global API for drawing tools
   useEffect(() => {
     if (apiAttachedRef.current) return;
     
@@ -397,22 +393,27 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     };
   }, [undoStack, redoStack, getCurrentFrame, frameDrawings]);
 
-  // Load frame-specific drawings when time changes
+  // Load frame-specific drawings when time changes - FIXED VERSION
   useEffect(() => {
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
     
     const currentFrame = getCurrentFrame();
     
+    console.log(`Time effect triggered: currentTime=${currentTime}, currentFrame=${currentFrame}, lastFrame=${lastFrameRef.current}`);
+    
     // Only update if frame actually changed
-    if (currentFrame === lastFrameRef.current) return;
+    if (currentFrame === lastFrameRef.current) {
+      console.log('Same frame, skipping load');
+      return;
+    }
     
     console.log(`Frame changed from ${lastFrameRef.current} to ${currentFrame}`);
     
-    // Save current frame's drawings before switching (if we have any objects)
+    // Save current frame's drawings before switching (if we have any objects and frame is valid)
     if (lastFrameRef.current >= 0 && canvas.getObjects().length > 0) {
       const currentCanvasData = JSON.stringify(canvas.toJSON());
-      console.log(`Saving ${canvas.getObjects().length} objects for frame ${lastFrameRef.current}`);
+      console.log(`Saving ${canvas.getObjects().length} objects for previous frame ${lastFrameRef.current}`);
       setFrameDrawings(prev => {
         const filtered = prev.filter(f => f.frame !== lastFrameRef.current);
         return [...filtered, { frame: lastFrameRef.current, canvasData: currentCanvasData }];
@@ -423,7 +424,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     const frameDrawing = frameDrawings.find(f => f.frame === currentFrame);
     
     if (frameDrawing) {
-      console.log(`Loading drawings for frame ${currentFrame}`);
+      console.log(`Loading saved drawings for frame ${currentFrame}`);
       try {
         isLoadingRef.current = true;
         canvas.loadFromJSON(frameDrawing.canvasData).then(() => {
@@ -448,6 +449,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
       canvas.renderAll();
     }
     
+    // Update the last frame reference
     lastFrameRef.current = currentFrame;
   }, [currentTime, frameDrawings, getCurrentFrame]);
 
