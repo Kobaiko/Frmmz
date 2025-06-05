@@ -20,8 +20,8 @@ import {
   Shrink,
   Maximize2,
   Repeat,
-  Image,
-  Download
+  Camera,
+  ArrowDown
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -852,8 +852,8 @@ export const VideoPlayer = ({
                         <Play size={16} className="text-gray-300" />
                         <span className="text-white">Quality</span>
                       </div>
-                      <div className="flex items-center space-x-4">
-                        <span className="text-sm text-gray-300 ml-auto">{quality}</span>
+                      <div className="flex items-center space-x-3 ml-auto">
+                        <span className="text-sm text-gray-300">{quality}</span>
                         <span className="text-xs bg-blue-600 px-2 py-1 rounded text-white font-medium">
                           {getQualityLabel(quality)}
                         </span>
@@ -1084,7 +1084,7 @@ export const VideoPlayer = ({
                     onClick={handleSetFrameAsThumb}
                   >
                     <div className="flex items-center space-x-3">
-                      <Image size={16} className="text-gray-300" />
+                      <Camera size={16} className="text-gray-300" />
                       <span className="text-white">Set Frame as Thumb</span>
                     </div>
                   </DropdownMenuItem>
@@ -1095,7 +1095,7 @@ export const VideoPlayer = ({
                     onClick={handleDownloadStill}
                   >
                     <div className="flex items-center space-x-3">
-                      <Download size={16} className="text-gray-300" />
+                      <ArrowDown size={16} className="text-gray-300" />
                       <span className="text-white">Download Still</span>
                     </div>
                   </DropdownMenuItem>
