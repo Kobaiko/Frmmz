@@ -691,9 +691,9 @@ export const VideoPlayer = ({
                     />
                   </div>
                 )}
-                {/* Time display with full format */}
+                {/* Time display with selected format */}
                 <div className="px-3 py-2 text-center font-mono">
-                  {formatTime(hoverTime)}
+                  {formatTimeByFormat(hoverTime)}
                 </div>
               </div>
             )}
