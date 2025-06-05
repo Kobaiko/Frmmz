@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,8 +18,8 @@ interface CommentPanelProps {
   currentTime: number;
   onCommentClick: (timestamp: number) => void;
   onDeleteComment: (commentId: string) => void;
-  onReplyComment: (parentId: string, text: string, attachments?: string[]) => void;
-  onAddComment: (text: string, attachments?: string[]) => void;
+  onReplyComment: (parentId: string, text: string, attachments?: string[], isInternal?: boolean, attachTime?: boolean) => void;
+  onAddComment: (text: string, attachments?: string[], isInternal?: boolean, attachTime?: boolean) => void;
 }
 
 export const CommentPanel = ({
