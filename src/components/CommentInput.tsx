@@ -106,6 +106,7 @@ export const CommentInput = ({
   };
 
   const handleDrawingClick = () => {
+    console.log('Drawing button clicked - starting drawing mode');
     if (onStartDrawing) {
       onStartDrawing();
     }

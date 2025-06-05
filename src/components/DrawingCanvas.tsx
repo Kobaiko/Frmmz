@@ -24,6 +24,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
   const isDrawingRef = useRef(false);
   const startPointRef = useRef<{ x: number; y: number } | null>(null);
   const currentShapeRef = useRef<any>(null);
+  const lastFrameRef = useRef<number>(-1);
 
   // Get current frame number (30fps)
   const getCurrentFrame = useCallback(() => Math.floor(currentTime * 30), [currentTime]);
@@ -355,12 +356,30 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     };
   }, [undoStack, redoStack, getCurrentFrame]);
 
-  // Load frame-specific drawings
+  // Load frame-specific drawings when time changes
   useEffect(() => {
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
     
     const currentFrame = getCurrentFrame();
+    
+    // Only update if frame actually changed
+    if (currentFrame === lastFrameRef.current) return;
+    
+    // Save current frame's drawings before switching
+    if (lastFrameRef.current >= 0) {
+      const currentCanvasData = JSON.stringify(canvas.toJSON());
+      setFrameDrawings(prev => {
+        const filtered = prev.filter(f => f.frame !== lastFrameRef.current);
+        if (canvas.getObjects().length > 0) {
+          return [...filtered, { frame: lastFrameRef.current, canvasData: currentCanvasData }];
+        }
+        return filtered;
+      });
+    }
+    
+    lastFrameRef.current = currentFrame;
+    
     const frameDrawing = frameDrawings.find(f => f.frame === currentFrame);
     
     if (frameDrawing) {
