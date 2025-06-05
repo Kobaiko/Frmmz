@@ -247,10 +247,40 @@ export const DrawingCanvas = ({ currentTime = 0 }: DrawingCanvasProps) => {
     // Load all relevant drawings
     relevantDrawings.forEach(drawing => {
       drawing.objects.forEach(objData => {
-        FabricObject.fromObject(objData).then(obj => {
+        let obj: FabricObject | null = null;
+        
+        // Create objects based on their type
+        if (objData.type === 'path') {
+          // For free drawing paths, use fromObject
+          FabricObject.fromObject(objData).then(fabricObj => {
+            canvas.add(fabricObj);
+            canvas.renderAll();
+          });
+        } else if (objData.type === 'line') {
+          obj = new Line([objData.x1, objData.y1, objData.x2, objData.y2], {
+            stroke: objData.stroke,
+            strokeWidth: objData.strokeWidth,
+            selectable: false,
+            evented: false,
+          });
+        } else if (objData.type === 'rect') {
+          obj = new Rect({
+            left: objData.left,
+            top: objData.top,
+            width: objData.width,
+            height: objData.height,
+            fill: objData.fill,
+            stroke: objData.stroke,
+            strokeWidth: objData.strokeWidth,
+            selectable: false,
+            evented: false,
+          });
+        }
+        
+        if (obj) {
           canvas.add(obj);
           canvas.renderAll();
-        });
+        }
       });
     });
   }, [currentTime, allDrawings]);
