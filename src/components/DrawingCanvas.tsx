@@ -1,6 +1,6 @@
 
 import { useEffect, useRef, useState } from "react";
-import { Canvas as FabricCanvas, PencilBrush, Rect, Line, FabricObject } from "fabric";
+import { Canvas as FabricCanvas, PencilBrush, Rect, Line, FabricObject, Path } from "fabric";
 
 interface DrawingCanvasProps {
   currentTime?: number;
@@ -251,10 +251,13 @@ export const DrawingCanvas = ({ currentTime = 0 }: DrawingCanvasProps) => {
         
         // Create objects based on their type
         if (objData.type === 'path') {
-          // For free drawing paths, use fromObject
-          FabricObject.fromObject(objData).then(fabricObj => {
-            canvas.add(fabricObj);
-            canvas.renderAll();
+          // For free drawing paths, create a new Path object
+          obj = new Path(objData.path, {
+            stroke: objData.stroke,
+            strokeWidth: objData.strokeWidth,
+            fill: objData.fill,
+            selectable: false,
+            evented: false,
           });
         } else if (objData.type === 'line') {
           obj = new Line([objData.x1, objData.y1, objData.x2, objData.y2], {
