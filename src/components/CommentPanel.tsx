@@ -17,8 +17,8 @@ interface CommentPanelProps {
   currentTime: number;
   onCommentClick: (timestamp: number) => void;
   onDeleteComment: (commentId: string) => void;
-  onReplyComment: (parentId: string, text: string, attachments?: string[], isInternal?: boolean, attachTime?: boolean) => void;
-  onAddComment: (text: string, attachments?: string[], isInternal?: boolean, attachTime?: boolean) => void;
+  onReplyComment: (parentId: string, text: string, attachments?: string[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
+  onAddComment: (text: string, attachments?: string[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
   onStartDrawing?: () => void;
   isDrawingMode?: boolean;
 }
