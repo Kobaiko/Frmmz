@@ -21,7 +21,8 @@ import {
   Maximize2,
   Repeat,
   Camera,
-  ArrowDown
+  ArrowDown,
+  Image
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -1084,7 +1085,7 @@ export const VideoPlayer = ({
                     onClick={handleSetFrameAsThumb}
                   >
                     <div className="flex items-center space-x-3">
-                      <Camera size={16} className="text-gray-300" />
+                      <Image size={16} className="text-gray-300" />
                       <span className="text-white">Set Frame as Thumb</span>
                     </div>
                   </DropdownMenuItem>
