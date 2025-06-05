@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Canvas as FabricCanvas, PencilBrush, Rect, Line, Circle } from "fabric";
 
@@ -26,7 +27,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
   const lastFrameRef = useRef<number>(-1);
   const apiAttachedRef = useRef(false);
   const isLoadingRef = useRef(false);
-  const pendingSaveRef = useRef(false);
+  const isDisposingRef = useRef(false);
 
   // Get current frame number (30fps)
   const getCurrentFrame = useCallback(() => Math.floor(currentTime * 30), [currentTime]);
@@ -34,7 +35,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
   // Save current canvas state to frame storage
   const saveFrameDrawings = useCallback(() => {
     const canvas = fabricCanvasRef.current;
-    if (!canvas || isLoadingRef.current || pendingSaveRef.current) return;
+    if (!canvas || isLoadingRef.current || isDisposingRef.current) return;
     
     const currentFrame = getCurrentFrame();
     const objects = canvas.getObjects();
@@ -55,7 +56,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
 
   // Save state for undo/redo
   const saveState = useCallback(() => {
-    if (!fabricCanvasRef.current || isLoadingRef.current) return;
+    if (!fabricCanvasRef.current || isLoadingRef.current || isDisposingRef.current) return;
     
     const canvas = fabricCanvasRef.current;
     const canvasData = JSON.stringify(canvas.toJSON());
@@ -71,7 +72,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
   // Force save current drawings - ensure it's synchronous
   const forceSaveCurrentFrame = useCallback(() => {
     const canvas = fabricCanvasRef.current;
-    if (!canvas) return;
+    if (!canvas || isDisposingRef.current) return;
     
     console.log('Force saving current frame drawings');
     const currentFrame = getCurrentFrame();
@@ -81,7 +82,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
       const canvasData = JSON.stringify(canvas.toJSON());
       console.log(`Force saving ${objects.length} objects for frame ${currentFrame}`);
       
-      // Update frameDrawings synchronously
+      // Update frameDrawings immediately
       setFrameDrawings(prev => {
         const filtered = prev.filter(f => f.frame !== currentFrame);
         const newDrawings = [...filtered, { frame: currentFrame, canvasData }];
@@ -91,7 +92,44 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     }
   }, [getCurrentFrame]);
 
-  // Initialize Fabric.js canvas ONCE
+  // Load drawings for a specific frame
+  const loadDrawingsForFrame = useCallback((frame: number) => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+
+    console.log(`Loading drawings for frame ${frame}`);
+    console.log('Available frameDrawings:', frameDrawings.map(f => ({ frame: f.frame, hasData: !!f.canvasData })));
+    
+    const frameDrawing = frameDrawings.find(f => f.frame === frame);
+    
+    if (frameDrawing) {
+      console.log(`Loading saved drawings for frame ${frame}`);
+      try {
+        isLoadingRef.current = true;
+        canvas.loadFromJSON(frameDrawing.canvasData).then(() => {
+          canvas.renderAll();
+          isLoadingRef.current = false;
+          console.log(`Successfully loaded ${canvas.getObjects().length} objects for frame ${frame}`);
+        }).catch((error) => {
+          console.error('Error loading frame drawings:', error);
+          canvas.clear();
+          canvas.renderAll();
+          isLoadingRef.current = false;
+        });
+      } catch (error) {
+        console.error('Error parsing frame drawings:', error);
+        canvas.clear();
+        canvas.renderAll();
+        isLoadingRef.current = false;
+      }
+    } else {
+      console.log(`No drawings found for frame ${frame}, clearing canvas`);
+      canvas.clear();
+      canvas.renderAll();
+    }
+  }, [frameDrawings]);
+
+  // Initialize Fabric.js canvas
   useEffect(() => {
     if (!canvasRef.current || isInitializedRef.current) return;
 
@@ -131,7 +169,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     };
 
     const handleObjectAdded = () => {
-      if (!isLoadingRef.current) {
+      if (!isLoadingRef.current && !isDisposingRef.current) {
         console.log('Object added to canvas');
         setTimeout(() => saveState(), 100);
       }
@@ -317,16 +355,25 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
 
     console.log('Fabric.js canvas initialized successfully');
 
+    // Load drawings for current frame after initialization
+    const currentFrame = getCurrentFrame();
+    setTimeout(() => {
+      loadDrawingsForFrame(currentFrame);
+      lastFrameRef.current = currentFrame;
+    }, 100);
+
     return () => {
       console.log('Disposing Fabric canvas');
+      isDisposingRef.current = true;
       if (fabricCanvasRef.current) {
         fabricCanvasRef.current.dispose();
         fabricCanvasRef.current = null;
       }
       isInitializedRef.current = false;
       apiAttachedRef.current = false;
+      isDisposingRef.current = false;
     };
-  }, [saveState]);
+  }, [getCurrentFrame, loadDrawingsForFrame, saveState]);
 
   // Global API for drawing tools
   useEffect(() => {
@@ -408,11 +455,10 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
         console.log('API: Force saving current frame');
         forceSaveCurrentFrame();
       },
-      // New method to save before disposal
       saveBeforeDisposal: () => {
         console.log('API: Saving before disposal');
         const canvas = fabricCanvasRef.current;
-        if (!canvas) return;
+        if (!canvas || isDisposingRef.current) return;
         
         const currentFrame = getCurrentFrame();
         const objects = canvas.getObjects();
@@ -445,59 +491,32 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
   // Load frame-specific drawings when time changes
   useEffect(() => {
     const canvas = fabricCanvasRef.current;
-    if (!canvas) return;
+    if (!canvas || isDisposingRef.current) return;
     
     const currentFrame = getCurrentFrame();
     
-    console.log(`Loading drawings for frame ${currentFrame}, lastFrame: ${lastFrameRef.current}`);
-    console.log('Available frameDrawings:', frameDrawings.map(f => ({ frame: f.frame, hasData: !!f.canvasData })));
-    
-    // Save current frame's drawings before switching if we have any objects
-    if (lastFrameRef.current >= 0 && lastFrameRef.current !== currentFrame) {
-      const currentObjects = canvas.getObjects();
-      if (currentObjects.length > 0) {
-        const currentCanvasData = JSON.stringify(canvas.toJSON());
-        console.log(`Saving ${currentObjects.length} objects for previous frame ${lastFrameRef.current}`);
-        setFrameDrawings(prev => {
-          const filtered = prev.filter(f => f.frame !== lastFrameRef.current);
-          return [...filtered, { frame: lastFrameRef.current, canvasData: currentCanvasData }];
-        });
-      }
-    }
-    
     // Only load if frame actually changed
     if (currentFrame !== lastFrameRef.current) {
-      const frameDrawing = frameDrawings.find(f => f.frame === currentFrame);
+      console.log(`Time changed - loading frame ${currentFrame}, lastFrame: ${lastFrameRef.current}`);
       
-      if (frameDrawing) {
-        console.log(`Loading saved drawings for frame ${currentFrame}`);
-        try {
-          isLoadingRef.current = true;
-          canvas.loadFromJSON(frameDrawing.canvasData).then(() => {
-            canvas.renderAll();
-            isLoadingRef.current = false;
-            console.log(`Successfully loaded ${canvas.getObjects().length} objects for frame ${currentFrame}`);
-          }).catch((error) => {
-            console.error('Error loading frame drawings:', error);
-            canvas.clear();
-            canvas.renderAll();
-            isLoadingRef.current = false;
+      // Save current frame's drawings before switching if we have any objects
+      if (lastFrameRef.current >= 0) {
+        const currentObjects = canvas.getObjects();
+        if (currentObjects.length > 0) {
+          const currentCanvasData = JSON.stringify(canvas.toJSON());
+          console.log(`Saving ${currentObjects.length} objects for previous frame ${lastFrameRef.current}`);
+          setFrameDrawings(prev => {
+            const filtered = prev.filter(f => f.frame !== lastFrameRef.current);
+            return [...filtered, { frame: lastFrameRef.current, canvasData: currentCanvasData }];
           });
-        } catch (error) {
-          console.error('Error parsing frame drawings:', error);
-          canvas.clear();
-          canvas.renderAll();
-          isLoadingRef.current = false;
         }
-      } else {
-        console.log(`No drawings found for frame ${currentFrame}, clearing canvas`);
-        canvas.clear();
-        canvas.renderAll();
       }
       
+      // Load drawings for new frame
+      loadDrawingsForFrame(currentFrame);
       lastFrameRef.current = currentFrame;
     }
-  }, [currentTime, frameDrawings, getCurrentFrame]);
+  }, [currentTime, getCurrentFrame, loadDrawingsForFrame]);
 
   return (
     <canvas

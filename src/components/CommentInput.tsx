@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -79,35 +78,46 @@ export const CommentInput = ({
 
   const handleSubmit = () => {
     if (comment.trim()) {
-      // Force save drawings before submitting comment and resetting drawing mode
+      // CRITICAL: Save drawings before submitting comment
       const canvas = (window as any).drawingCanvas;
       if (canvas && hasDrawing) {
-        console.log('Force saving drawings before submitting comment and resetting mode');
+        console.log('CRITICAL: Saving drawings before comment submission');
         
-        // Use the new saveBeforeDisposal method to ensure drawings are saved
+        // Multiple save attempts to ensure data persistence
         if (canvas.saveBeforeDisposal) {
           canvas.saveBeforeDisposal();
         }
         
-        // Also force save as backup
         if (canvas.forceSave) {
           canvas.forceSave();
         }
+
+        // Additional backup save with delay
+        setTimeout(() => {
+          if (canvas.forceSave) {
+            canvas.forceSave();
+            console.log('Backup save completed');
+          }
+        }, 100);
       }
       
       console.log('Submitting comment with hasDrawing:', hasDrawing);
+      
+      // Submit the comment
       onAddComment(comment.trim(), attachments, isInternal, attachTime, hasDrawing);
       
-      // Reset all states after submitting
-      setComment("");
-      setAttachments([]);
-      setIsInternal(false);
-      setAttachTime(true);
-      setHasDrawing(false);
-      setShowDrawingTools(false);
-      setShowEmojiPicker(false);
-      
-      if (onCancel) onCancel();
+      // Reset states after a delay to ensure drawings are saved
+      setTimeout(() => {
+        setComment("");
+        setAttachments([]);
+        setIsInternal(false);
+        setAttachTime(true);
+        setHasDrawing(false);
+        setShowDrawingTools(false);
+        setShowEmojiPicker(false);
+        
+        if (onCancel) onCancel();
+      }, 200);
     }
   };
 
