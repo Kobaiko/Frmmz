@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { DrawingCanvas } from "./DrawingCanvas";
@@ -209,7 +208,7 @@ export const VideoPlayer = ({
             
             {isDrawingMode && (
               <div className="absolute inset-0 pointer-events-auto">
-                <DrawingCanvas />
+                <DrawingCanvas currentTime={currentTime} />
               </div>
             )}
           </div>
