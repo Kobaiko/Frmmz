@@ -176,7 +176,7 @@ export const VideoPlayer = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return; // Don't trigger shortcuts when typing
+        return; // Don't trigger shortcuts when typing in input fields
       }
 
       switch (e.key.toLowerCase()) {
@@ -683,15 +683,15 @@ export const VideoPlayer = ({
                     size="sm"
                     variant="ghost"
                     onClick={togglePlayPause}
-                    className="text-white hover:text-white hover:bg-gray-800 p-2"
+                    className="text-white hover:text-white hover:bg-gray-800 p-2 focus:ring-0 focus:outline-none"
                   >
                     {isPlaying ? <Pause size={20} /> : <Play size={20} />}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent className="bg-gray-200 text-black border-gray-300">
+                <TooltipContent className="bg-gray-800 text-white border-gray-600">
                   <div className="flex items-center space-x-2">
                     <span>{isPlaying ? 'Pause' : 'Play'}</span>
-                    <span className="bg-gray-300 px-1.5 py-0.5 rounded text-xs font-mono">K</span>
+                    <span className="bg-gray-700 px-1.5 py-0.5 rounded text-xs font-mono">K</span>
                   </div>
                 </TooltipContent>
               </Tooltip>
@@ -703,12 +703,12 @@ export const VideoPlayer = ({
                     size="sm"
                     variant="ghost"
                     onClick={toggleLoop}
-                    className={`hover:bg-gray-800 p-2 ${isLooping ? 'text-blue-400' : 'text-white'}`}
+                    className={`hover:bg-gray-800 p-2 ${isLooping ? 'text-blue-400 hover:text-blue-400' : 'text-white hover:text-white'}`}
                   >
                     <Repeat size={16} />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent className="bg-gray-200 text-black border-gray-300">
+                <TooltipContent className="bg-gray-800 text-white border-gray-600">
                   <span>{isLooping ? 'Disable Loop' : 'Enable Loop'}</span>
                 </TooltipContent>
               </Tooltip>
@@ -740,10 +740,10 @@ export const VideoPlayer = ({
                       </Button>
                     </PopoverTrigger>
                   </TooltipTrigger>
-                  <TooltipContent className="bg-gray-200 text-black border-gray-300">
+                  <TooltipContent className="bg-gray-800 text-white border-gray-600">
                     <div className="flex items-center space-x-2">
                       <span>Mute</span>
-                      <span className="bg-gray-300 px-1.5 py-0.5 rounded text-xs font-mono">M</span>
+                      <span className="bg-gray-700 px-1.5 py-0.5 rounded text-xs font-mono">M</span>
                     </div>
                   </TooltipContent>
                 </Tooltip>
