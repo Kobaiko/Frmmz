@@ -62,7 +62,7 @@ const Index = () => {
   };
 
   const handleStartDrawing = () => {
-    console.log('Start drawing requested from comment panel - pausing video and enabling drawing mode');
+    console.log('Start drawing requested from comment panel - enabling drawing mode and pausing video');
     setIsDrawingMode(true);
   };
 

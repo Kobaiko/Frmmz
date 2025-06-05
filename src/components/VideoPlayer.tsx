@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DrawingCanvas } from "./DrawingCanvas";
@@ -62,22 +63,24 @@ export const VideoPlayer = ({
     handleQualityChange
   } = useVideoPlayer({ src, currentTime, onTimeUpdate, onDurationChange });
 
-  // Force pause video when drawing mode is enabled
+  // Enhanced effect to force pause video when drawing mode is enabled
   useEffect(() => {
-    if (isDrawingMode && videoRef.current && !videoRef.current.paused) {
+    if (isDrawingMode && videoRef.current) {
       console.log('Drawing mode enabled - forcing video pause');
-      videoRef.current.pause();
+      if (!videoRef.current.paused) {
+        videoRef.current.pause();
+        console.log('Video has been paused due to drawing mode');
+      }
     }
   }, [isDrawingMode]);
 
-  // Handle drawing mode change - ensure video is paused
   const handleDrawingModeChange = (enabled: boolean) => {
     console.log(`Drawing mode ${enabled ? 'enabled' : 'disabled'}`);
     if (enabled) {
       // Force pause the video immediately when enabling drawing mode
       if (videoRef.current && !videoRef.current.paused) {
+        console.log('Pausing video for drawing mode');
         videoRef.current.pause();
-        console.log('Video paused due to drawing mode activation');
       }
     }
     if (onDrawingModeChange) {
