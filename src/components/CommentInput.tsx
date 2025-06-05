@@ -2,7 +2,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Clock, Paperclip, Smile, Send, X, Square, Circle, Minus, ChevronDown } from "lucide-react";
+import { Clock, Paperclip, Smile, Send, X, Square, Circle, Minus, ChevronDown, Globe } from "lucide-react";
 import { EmojiPicker } from "./EmojiPicker";
 import { DrawingToolsMenu } from "./DrawingToolsMenu";
 import {
@@ -18,6 +18,8 @@ interface CommentInputProps {
   parentId?: string;
   onCancel?: () => void;
   placeholder?: string;
+  onStartDrawing?: () => void;
+  isDrawingMode?: boolean;
 }
 
 export const CommentInput = ({ 
@@ -25,7 +27,9 @@ export const CommentInput = ({
   onAddComment, 
   parentId, 
   onCancel,
-  placeholder = "Leave your feedback..." 
+  placeholder = "Leave your comment...",
+  onStartDrawing,
+  isDrawingMode = false
 }: CommentInputProps) => {
   const [comment, setComment] = useState("");
   const [attachments, setAttachments] = useState<string[]>([]);
@@ -71,60 +75,16 @@ export const CommentInput = ({
     setAttachTime(!attachTime);
   };
 
+  const handleDrawingClick = () => {
+    if (onStartDrawing) {
+      onStartDrawing();
+    }
+    setShowDrawingTools(!showDrawingTools);
+  };
+
   return (
-    <div className="p-4 bg-gray-800">
+    <div className="p-4 bg-gray-800/90 backdrop-blur-sm">
       <div className="max-w-4xl mx-auto">
-        {/* Top controls row */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-2">
-            <Button
-              variant={attachTime ? "default" : "outline"}
-              size="sm"
-              onClick={toggleAttachTime}
-              className={`${
-                attachTime 
-                  ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" 
-                  : "bg-gray-700 text-gray-300 border-gray-600"
-              } text-xs font-medium`}
-            >
-              <Clock size={14} className="mr-1" />
-              {attachTime ? `Attach ${formatTime(currentTime)}` : "Don't attach time"}
-            </Button>
-            
-            {parentId && (
-              <span className="text-xs text-gray-400">Replying to comment</span>
-            )}
-          </div>
-
-          {/* Comment type selector */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs border-gray-600 text-gray-300 hover:bg-gray-700"
-              >
-                {isInternal ? "Internal" : "Public"}
-                <ChevronDown size={14} className="ml-1" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-gray-800 border-gray-600 text-white">
-              <DropdownMenuItem
-                onClick={() => setIsInternal(false)}
-                className="hover:bg-gray-700 focus:bg-gray-700"
-              >
-                Public
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setIsInternal(true)}
-                className="hover:bg-gray-700 focus:bg-gray-700"
-              >
-                Internal
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
         {/* Attachments display */}
         {attachments.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-2">
@@ -147,18 +107,18 @@ export const CommentInput = ({
           </div>
         )}
 
-        <div className="flex items-end space-x-3">
+        <div className="flex items-center space-x-3 bg-gray-700/50 rounded-lg p-3">
           <div className="flex-1">
             <Textarea
               placeholder={placeholder}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 resize-none min-h-[60px]"
-              rows={2}
+              className="bg-transparent border-none text-white placeholder-gray-400 resize-none min-h-[40px] focus:outline-none focus:ring-0 shadow-none"
+              rows={1}
             />
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1">
             <input
               ref={fileInputRef}
               type="file"
@@ -167,67 +127,142 @@ export const CommentInput = ({
               onChange={handleFileUpload}
             />
             
+            {/* Time attach button */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={toggleAttachTime}
+              className={`p-2 rounded-lg ${
+                attachTime 
+                  ? "text-blue-400 bg-blue-500/20" 
+                  : "text-gray-400 hover:text-white hover:bg-gray-600"
+              }`}
+              title={attachTime ? `Attach ${formatTime(currentTime)}` : "Don't attach time"}
+            >
+              <Clock size={18} />
+            </Button>
+            
+            {/* Undo button */}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-gray-400 hover:text-white hover:bg-gray-600 p-2 rounded-lg"
+              title="Undo"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 7v6h6"/>
+                <path d="m21 17-3-3-3 3"/>
+                <path d="M14 3v6l-3-3-3 3"/>
+              </svg>
+            </Button>
+            
+            {/* Attachment button */}
             <Button
               size="sm"
               variant="ghost"
               onClick={() => fileInputRef.current?.click()}
-              className="text-gray-400 hover:text-white p-2"
+              className="text-gray-400 hover:text-white hover:bg-gray-600 p-2 rounded-lg"
               title="Attach files"
             >
-              <Paperclip size={16} />
+              <Paperclip size={18} />
             </Button>
             
+            {/* Drawing tools button */}
             <div className="relative">
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => setShowDrawingTools(!showDrawingTools)}
-                className="text-gray-400 hover:text-white p-2"
+                onClick={handleDrawingClick}
+                className={`p-2 rounded-lg ${
+                  isDrawingMode || showDrawingTools
+                    ? "text-blue-400 bg-blue-500/20" 
+                    : "text-gray-400 hover:text-white hover:bg-gray-600"
+                }`}
                 title="Drawing tools"
               >
-                <Square size={16} />
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 19l7-7 3 3-7 7-3-3z"/>
+                  <path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+                  <path d="m2 2 7.586 7.586"/>
+                  <circle cx="11" cy="11" r="2"/>
+                </svg>
               </Button>
               {showDrawingTools && (
                 <DrawingToolsMenu onClose={() => setShowDrawingTools(false)} />
               )}
             </div>
             
+            {/* Emoji button */}
             <div className="relative">
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="text-gray-400 hover:text-white p-2"
+                className="text-gray-400 hover:text-white hover:bg-gray-600 p-2 rounded-lg"
                 title="Add emoji"
               >
-                <Smile size={16} />
+                <Smile size={18} />
               </Button>
               {showEmojiPicker && (
                 <EmojiPicker onEmojiSelect={addEmoji} onClose={() => setShowEmojiPicker(false)} />
               )}
             </div>
             
+            {/* Public/Internal dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-300 hover:text-white hover:bg-gray-600 p-2 rounded-lg"
+                >
+                  <Globe size={18} />
+                  <span className="ml-1 text-sm">{isInternal ? "Internal" : "Public"}</span>
+                  <ChevronDown size={14} className="ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-gray-800 border-gray-600 text-white">
+                <DropdownMenuItem
+                  onClick={() => setIsInternal(false)}
+                  className="hover:bg-gray-700 focus:bg-gray-700"
+                >
+                  <Globe size={16} className="mr-2" />
+                  Public
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setIsInternal(true)}
+                  className="hover:bg-gray-700 focus:bg-gray-700"
+                >
+                  <div className="w-4 h-4 mr-2 rounded-full bg-orange-500"></div>
+                  Internal
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            {/* Send button */}
             <Button
               size="sm"
               onClick={handleSubmit}
               disabled={!comment.trim()}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
             >
-              <Send size={14} />
+              <Send size={16} />
             </Button>
-            
-            {onCancel && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={onCancel}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700"
-              >
-                Cancel
-              </Button>
-            )}
           </div>
         </div>
+
+        {onCancel && (
+          <div className="mt-2 flex justify-end">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onCancel}
+              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

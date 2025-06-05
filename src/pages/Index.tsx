@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { CommentPanel } from "@/components/CommentPanel";
@@ -20,6 +21,7 @@ const Index = () => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
+  const [isDrawingMode, setIsDrawingMode] = useState<boolean>(false);
   const [projectId] = useState<string>(() => 
     window.location.hash.slice(1) || Math.random().toString(36).substr(2, 9)
   );
@@ -48,6 +50,10 @@ const Index = () => {
 
   const handleCommentClick = (timestamp: number) => {
     setCurrentTime(timestamp);
+  };
+
+  const handleStartDrawing = () => {
+    setIsDrawingMode(true);
   };
 
   if (!videoUrl) {
@@ -81,6 +87,8 @@ const Index = () => {
             onDurationChange={setDuration}
             comments={comments}
             onTimeClick={handleCommentClick}
+            isDrawingMode={isDrawingMode}
+            onDrawingModeChange={setIsDrawingMode}
           />
         </div>
         <div className="w-96 border-l border-gray-700 flex flex-col">
@@ -95,6 +103,8 @@ const Index = () => {
             onAddComment={(text, attachments, isInternal, attachTime) => 
               handleAddComment(text, currentTime, undefined, attachments, isInternal, attachTime)
             }
+            onStartDrawing={handleStartDrawing}
+            isDrawingMode={isDrawingMode}
           />
         </div>
       </div>

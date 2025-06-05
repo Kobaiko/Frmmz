@@ -18,6 +18,8 @@ interface VideoPlayerProps {
   onDurationChange?: (duration: number) => void;
   comments: Comment[];
   onTimeClick: (time: number) => void;
+  isDrawingMode?: boolean;
+  onDrawingModeChange?: (enabled: boolean) => void;
 }
 
 export const VideoPlayer = ({ 
@@ -26,10 +28,11 @@ export const VideoPlayer = ({
   onTimeUpdate, 
   onDurationChange, 
   comments, 
-  onTimeClick 
+  onTimeClick,
+  isDrawingMode = false,
+  onDrawingModeChange
 }: VideoPlayerProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [guides, setGuides] = useState({
     enabled: false,
     ratio: '4:3',
@@ -163,6 +166,14 @@ export const VideoPlayer = ({
     }
   };
 
+  const toggleDrawingMode = () => {
+    const newMode = !isDrawingMode;
+    if (onDrawingModeChange) {
+      onDrawingModeChange(newMode);
+    }
+    console.log(`Drawing mode ${newMode ? 'enabled' : 'disabled'}`);
+  };
+
   useVideoKeyboardShortcuts({
     videoRef,
     volume,
@@ -184,10 +195,11 @@ export const VideoPlayer = ({
             <video
               ref={videoRef}
               className="max-w-full max-h-full transition-transform duration-200"
-              onClick={togglePlayPause}
+              onClick={!isDrawingMode ? togglePlayPause : undefined}
               style={{ 
                 display: 'block',
-                objectFit: 'contain'
+                objectFit: 'contain',
+                pointerEvents: isDrawingMode ? 'none' : 'auto'
               }}
             />
             
@@ -205,7 +217,7 @@ export const VideoPlayer = ({
             />
             
             {isDrawingMode && (
-              <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute inset-0 pointer-events-auto">
                 <DrawingCanvas />
               </div>
             )}
@@ -215,7 +227,7 @@ export const VideoPlayer = ({
               <Button
                 size="sm"
                 variant={isDrawingMode ? "default" : "outline"}
-                onClick={() => setIsDrawingMode(!isDrawingMode)}
+                onClick={toggleDrawingMode}
                 className="bg-black/70 border-gray-600 text-white hover:bg-black/90 backdrop-blur-sm"
               >
                 <Pencil size={16} />
