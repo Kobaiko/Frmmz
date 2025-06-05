@@ -1,7 +1,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Square, Circle, Minus, ArrowLeft, ArrowRight, Undo, Redo } from "lucide-react";
+import { Square, Circle, Minus, Undo, Redo, Trash2 } from "lucide-react";
 
 interface DrawingToolsMenuProps {
   onClose: () => void;
@@ -34,6 +34,38 @@ export const DrawingToolsMenu = ({ onClose }: DrawingToolsMenuProps) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
+  const handleToolChange = (toolId: string) => {
+    setSelectedTool(toolId);
+    if ((window as any).drawingCanvas) {
+      (window as any).drawingCanvas.setTool(toolId);
+    }
+  };
+
+  const handleColorChange = (color: string) => {
+    setSelectedColor(color);
+    if ((window as any).drawingCanvas) {
+      (window as any).drawingCanvas.setColor(color);
+    }
+  };
+
+  const handleUndo = () => {
+    if ((window as any).drawingCanvas) {
+      (window as any).drawingCanvas.undo();
+    }
+  };
+
+  const handleRedo = () => {
+    if ((window as any).drawingCanvas) {
+      (window as any).drawingCanvas.redo();
+    }
+  };
+
+  const handleClear = () => {
+    if ((window as any).drawingCanvas) {
+      (window as any).drawingCanvas.clear();
+    }
+  };
+
   return (
     <div
       ref={menuRef}
@@ -48,7 +80,7 @@ export const DrawingToolsMenu = ({ onClose }: DrawingToolsMenuProps) => {
               key={tool.id}
               variant={selectedTool === tool.id ? "default" : "outline"}
               size="sm"
-              onClick={() => setSelectedTool(tool.id)}
+              onClick={() => handleToolChange(tool.id)}
               className="p-2"
               title={tool.label}
             >
@@ -63,7 +95,7 @@ export const DrawingToolsMenu = ({ onClose }: DrawingToolsMenuProps) => {
         {colors.map((color) => (
           <button
             key={color}
-            onClick={() => setSelectedColor(color)}
+            onClick={() => handleColorChange(color)}
             className={`w-6 h-6 rounded border-2 ${
               selectedColor === color ? "border-white" : "border-gray-600"
             }`}
@@ -78,6 +110,7 @@ export const DrawingToolsMenu = ({ onClose }: DrawingToolsMenuProps) => {
         <Button
           variant="outline"
           size="sm"
+          onClick={handleUndo}
           className="p-2 border-gray-600 text-gray-300"
           title="Undo"
         >
@@ -86,10 +119,20 @@ export const DrawingToolsMenu = ({ onClose }: DrawingToolsMenuProps) => {
         <Button
           variant="outline"
           size="sm"
+          onClick={handleRedo}
           className="p-2 border-gray-600 text-gray-300"
           title="Redo"
         >
           <Redo size={14} />
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleClear}
+          className="p-2 border-gray-600 text-gray-300"
+          title="Clear"
+        >
+          <Trash2 size={14} />
         </Button>
       </div>
     </div>

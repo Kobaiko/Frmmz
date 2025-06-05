@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -20,6 +19,8 @@ interface CommentPanelProps {
   onDeleteComment: (commentId: string) => void;
   onReplyComment: (parentId: string, text: string, attachments?: string[], isInternal?: boolean, attachTime?: boolean) => void;
   onAddComment: (text: string, attachments?: string[], isInternal?: boolean, attachTime?: boolean) => void;
+  onStartDrawing?: () => void;
+  isDrawingMode?: boolean;
 }
 
 export const CommentPanel = ({
@@ -29,6 +30,8 @@ export const CommentPanel = ({
   onDeleteComment,
   onReplyComment,
   onAddComment,
+  onStartDrawing,
+  isDrawingMode = false,
 }: CommentPanelProps) => {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
@@ -425,6 +428,8 @@ export const CommentPanel = ({
           currentTime={currentTime}
           onAddComment={onAddComment}
           placeholder="Leave your comment..."
+          onStartDrawing={onStartDrawing}
+          isDrawingMode={isDrawingMode}
         />
       </div>
     </div>

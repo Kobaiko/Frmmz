@@ -1,6 +1,6 @@
 
 import { useEffect, useRef, useState } from "react";
-import { Canvas as FabricCanvas, PencilBrush } from "fabric";
+import { Canvas as FabricCanvas, PencilBrush, CircleBrush, SprayBrush } from "fabric";
 
 export const DrawingCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -60,19 +60,53 @@ export const DrawingCanvas = () => {
     }
   }, [currentColor]);
 
+  useEffect(() => {
+    if (fabricCanvasRef.current) {
+      let brush;
+      switch (currentTool) {
+        case "circle":
+          brush = new CircleBrush(fabricCanvasRef.current);
+          break;
+        case "spray":
+          brush = new SprayBrush(fabricCanvasRef.current);
+          break;
+        case "pen":
+        default:
+          brush = new PencilBrush(fabricCanvasRef.current);
+          break;
+      }
+      brush.color = currentColor;
+      brush.width = 3;
+      fabricCanvasRef.current.freeDrawingBrush = brush;
+    }
+  }, [currentTool, currentColor]);
+
   // Expose methods to parent components through global functions
   useEffect(() => {
     (window as any).drawingCanvas = {
-      setTool: setCurrentTool,
-      setColor: setCurrentColor,
+      setTool: (tool: string) => {
+        setCurrentTool(tool);
+        console.log(`Drawing tool changed to: ${tool}`);
+      },
+      setColor: (color: string) => {
+        setCurrentColor(color);
+        console.log(`Drawing color changed to: ${color}`);
+      },
       clear: () => {
         if (fabricCanvasRef.current) {
           fabricCanvasRef.current.clear();
+          console.log('Drawing canvas cleared');
         }
       },
       undo: () => {
-        // Implement undo functionality
-        console.log('Undo drawing action');
+        if (fabricCanvasRef.current) {
+          const objects = fabricCanvasRef.current.getObjects();
+          if (objects.length > 0) {
+            fabricCanvasRef.current.remove(objects[objects.length - 1]);
+            fabricCanvasRef.current.renderAll();
+            console.log('Undo drawing action');
+          }
+        }
       },
       redo: () => {
         // Implement redo functionality

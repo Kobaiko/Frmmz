@@ -2,7 +2,6 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { DrawingCanvas } from "./DrawingCanvas";
-import { Pencil } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { VideoTimeline } from "./VideoTimeline";
 import { VideoControls } from "./VideoControls";
@@ -166,14 +165,6 @@ export const VideoPlayer = ({
     }
   };
 
-  const toggleDrawingMode = () => {
-    const newMode = !isDrawingMode;
-    if (onDrawingModeChange) {
-      onDrawingModeChange(newMode);
-    }
-    console.log(`Drawing mode ${newMode ? 'enabled' : 'disabled'}`);
-  };
-
   useVideoKeyboardShortcuts({
     videoRef,
     volume,
@@ -221,18 +212,6 @@ export const VideoPlayer = ({
                 <DrawingCanvas />
               </div>
             )}
-            
-            {/* Drawing mode toggle - positioned over video */}
-            <div className="absolute top-4 right-4">
-              <Button
-                size="sm"
-                variant={isDrawingMode ? "default" : "outline"}
-                onClick={toggleDrawingMode}
-                className="bg-black/70 border-gray-600 text-white hover:bg-black/90 backdrop-blur-sm"
-              >
-                <Pencil size={16} />
-              </Button>
-            </div>
           </div>
         </div>
         
