@@ -62,6 +62,18 @@ export const VideoPlayer = ({
     handleQualityChange
   } = useVideoPlayer({ src, currentTime, onTimeUpdate, onDurationChange });
 
+  // Handle drawing mode change - pause video immediately
+  const handleDrawingModeChange = (enabled: boolean) => {
+    console.log(`Drawing mode ${enabled ? 'enabled' : 'disabled'}`);
+    if (enabled && videoRef.current && !videoRef.current.paused) {
+      videoRef.current.pause();
+      console.log('Video paused due to drawing mode activation');
+    }
+    if (onDrawingModeChange) {
+      onDrawingModeChange(enabled);
+    }
+  };
+
   // Handle drawing start - pause video immediately
   const handleDrawingStart = () => {
     console.log('Drawing started - pausing video');

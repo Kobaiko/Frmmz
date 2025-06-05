@@ -53,7 +53,13 @@ const Index = () => {
   };
 
   const handleStartDrawing = () => {
+    console.log('Start drawing requested from comment panel');
     setIsDrawingMode(true);
+  };
+
+  const handleDrawingModeChange = (enabled: boolean) => {
+    console.log(`Drawing mode changed to: ${enabled}`);
+    setIsDrawingMode(enabled);
   };
 
   if (!videoUrl) {
@@ -88,7 +94,7 @@ const Index = () => {
             comments={comments}
             onTimeClick={handleCommentClick}
             isDrawingMode={isDrawingMode}
-            onDrawingModeChange={setIsDrawingMode}
+            onDrawingModeChange={handleDrawingModeChange}
           />
         </div>
         <div className="w-96 border-l border-gray-700 flex flex-col">
