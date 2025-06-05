@@ -17,11 +17,11 @@ import {
   Check,
   ZoomIn,
   ZoomOut,
-  Image,
-  Download,
   Shrink,
   Maximize2,
-  Repeat
+  Repeat,
+  FileImage,
+  Download
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -31,6 +31,7 @@ import {
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   Tooltip,
@@ -877,6 +878,9 @@ export const VideoPlayer = ({
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
                   
+                  {/* Separator after Quality */}
+                  <DropdownMenuSeparator className="bg-gray-600 my-1" />
+                  
                   {/* Guides Sub-menu */}
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 data-[state=open]:bg-gray-700 px-4 py-3 cursor-pointer border-none text-white">
@@ -1071,13 +1075,16 @@ export const VideoPlayer = ({
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
                   
+                  {/* Separator before Set Frame as Thumb */}
+                  <DropdownMenuSeparator className="bg-gray-600 my-1" />
+                  
                   {/* Set Frame as Thumb */}
                   <DropdownMenuItem 
                     className="hover:bg-gray-700 focus:bg-gray-700 data-[highlighted]:bg-gray-700 px-4 py-3 cursor-pointer text-white"
                     onClick={handleSetFrameAsThumb}
                   >
                     <div className="flex items-center space-x-3">
-                      <Image size={16} className="text-gray-300" />
+                      <FileImage size={16} className="text-gray-300" />
                       <span className="text-white">Set Frame as Thumb</span>
                     </div>
                   </DropdownMenuItem>
