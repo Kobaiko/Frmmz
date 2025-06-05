@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { CommentPanel } from "@/components/CommentPanel";
@@ -13,6 +12,7 @@ export interface Comment {
   createdAt: Date;
   parentId?: string;
   attachments?: string[];
+  isInternal?: boolean;
 }
 
 const Index = () => {
@@ -28,15 +28,16 @@ const Index = () => {
     setVideoUrl(url);
   };
 
-  const handleAddComment = (text: string, timestamp: number, parentId?: string, attachments?: string[]) => {
+  const handleAddComment = (text: string, timestamp: number, parentId?: string, attachments?: string[], isInternal?: boolean, attachTime?: boolean) => {
     const newComment: Comment = {
       id: Math.random().toString(36).substr(2, 9),
-      timestamp,
+      timestamp: attachTime ? timestamp : 0,
       text,
       author: "User",
       createdAt: new Date(),
       parentId,
       attachments,
+      isInternal: isInternal || false,
     };
     setComments([...comments, newComment].sort((a, b) => a.timestamp - b.timestamp));
   };
@@ -88,10 +89,12 @@ const Index = () => {
             currentTime={currentTime}
             onCommentClick={handleCommentClick}
             onDeleteComment={handleDeleteComment}
-            onReplyComment={(parentId, text, attachments) => 
-              handleAddComment(text, currentTime, parentId, attachments)
+            onReplyComment={(parentId, text, attachments, isInternal, attachTime) => 
+              handleAddComment(text, currentTime, parentId, attachments, isInternal, attachTime)
             }
-            onAddComment={(text, attachments) => handleAddComment(text, currentTime, undefined, attachments)}
+            onAddComment={(text, attachments, isInternal, attachTime) => 
+              handleAddComment(text, currentTime, undefined, attachments, isInternal, attachTime)
+            }
           />
         </div>
       </div>

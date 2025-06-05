@@ -2,11 +2,19 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Clock, Paperclip, Smile, Send, X } from "lucide-react";
+import { Clock, Paperclip, Smile, Send, X, Square, Circle, Minus, ChevronDown } from "lucide-react";
+import { EmojiPicker } from "./EmojiPicker";
+import { DrawingToolsMenu } from "./DrawingToolsMenu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface CommentInputProps {
   currentTime: number;
-  onAddComment: (text: string, attachments?: string[]) => void;
+  onAddComment: (text: string, attachments?: string[], isInternal?: boolean, attachTime?: boolean) => void;
   parentId?: string;
   onCancel?: () => void;
   placeholder?: string;
@@ -21,6 +29,10 @@ export const CommentInput = ({
 }: CommentInputProps) => {
   const [comment, setComment] = useState("");
   const [attachments, setAttachments] = useState<string[]>([]);
+  const [isInternal, setIsInternal] = useState(false);
+  const [attachTime, setAttachTime] = useState(true);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showDrawingTools, setShowDrawingTools] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const formatTime = (seconds: number) => {
@@ -31,9 +43,11 @@ export const CommentInput = ({
 
   const handleSubmit = () => {
     if (comment.trim()) {
-      onAddComment(comment.trim(), attachments);
+      onAddComment(comment.trim(), attachments, isInternal, attachTime);
       setComment("");
       setAttachments([]);
+      setIsInternal(false);
+      setAttachTime(true);
       if (onCancel) onCancel();
     }
   };
@@ -50,21 +64,68 @@ export const CommentInput = ({
 
   const addEmoji = (emoji: string) => {
     setComment(comment + emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const toggleAttachTime = () => {
+    setAttachTime(!attachTime);
   };
 
   return (
     <div className="p-4 bg-gray-800">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center space-x-2 mb-3">
-          <div className="flex items-center space-x-2 bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-sm font-medium">
-            <Clock size={14} />
-            <span>{formatTime(currentTime)}</span>
+        {/* Top controls row */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-2">
+            <Button
+              variant={attachTime ? "default" : "outline"}
+              size="sm"
+              onClick={toggleAttachTime}
+              className={`${
+                attachTime 
+                  ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" 
+                  : "bg-gray-700 text-gray-300 border-gray-600"
+              } text-xs font-medium`}
+            >
+              <Clock size={14} className="mr-1" />
+              {attachTime ? `Attach ${formatTime(currentTime)}` : "Don't attach time"}
+            </Button>
+            
+            {parentId && (
+              <span className="text-xs text-gray-400">Replying to comment</span>
+            )}
           </div>
-          {parentId && (
-            <span className="text-xs text-gray-400">Replying to comment</span>
-          )}
+
+          {/* Comment type selector */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                {isInternal ? "Internal" : "Public"}
+                <ChevronDown size={14} className="ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-gray-800 border-gray-600 text-white">
+              <DropdownMenuItem
+                onClick={() => setIsInternal(false)}
+                className="hover:bg-gray-700 focus:bg-gray-700"
+              >
+                Public
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setIsInternal(true)}
+                className="hover:bg-gray-700 focus:bg-gray-700"
+              >
+                Internal
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
+        {/* Attachments display */}
         {attachments.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-2">
             {attachments.map((attachment, index) => (
@@ -116,15 +177,35 @@ export const CommentInput = ({
               <Paperclip size={16} />
             </Button>
             
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => addEmoji("😊")}
-              className="text-gray-400 hover:text-white p-2"
-              title="Add emoji"
-            >
-              <Smile size={16} />
-            </Button>
+            <div className="relative">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowDrawingTools(!showDrawingTools)}
+                className="text-gray-400 hover:text-white p-2"
+                title="Drawing tools"
+              >
+                <Square size={16} />
+              </Button>
+              {showDrawingTools && (
+                <DrawingToolsMenu onClose={() => setShowDrawingTools(false)} />
+              )}
+            </div>
+            
+            <div className="relative">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className="text-gray-400 hover:text-white p-2"
+                title="Add emoji"
+              >
+                <Smile size={16} />
+              </Button>
+              {showEmojiPicker && (
+                <EmojiPicker onEmojiSelect={addEmoji} onClose={() => setShowEmojiPicker(false)} />
+              )}
+            </div>
             
             <Button
               size="sm"
