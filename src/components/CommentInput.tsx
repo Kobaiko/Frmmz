@@ -58,11 +58,20 @@ export const CommentInput = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getPlaceholder = () => {
-    if (attachTime) {
-      return `${formatTime(currentTime)} - ${placeholder}`;
+  const renderPlaceholder = () => {
+    if (!attachTime) {
+      return placeholder;
     }
-    return placeholder;
+    
+    return (
+      <div className="flex items-center gap-2">
+        <div className="inline-flex items-center space-x-1 bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full text-sm font-medium">
+          <Clock size={12} />
+          <span>{formatTime(currentTime)}</span>
+        </div>
+        <span>{placeholder}</span>
+      </div>
+    );
   };
 
   const handleSubmit = () => {
@@ -144,13 +153,23 @@ export const CommentInput = ({
         )}
 
         <div className="bg-gray-700/50 rounded-lg p-3">
-          {/* Main textarea */}
-          <div className="mb-3">
+          {/* Main textarea with styled placeholder */}
+          <div className="mb-3 relative">
+            {attachTime && (
+              <div className="absolute top-3 left-3 z-10 pointer-events-none">
+                <div className="flex items-center space-x-1 bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full text-sm font-medium">
+                  <Clock size={12} />
+                  <span>{formatTime(currentTime)}</span>
+                </div>
+              </div>
+            )}
             <Textarea
-              placeholder={getPlaceholder()}
+              placeholder={attachTime ? ` - ${placeholder}` : placeholder}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="bg-gray-800 border-gray-600 text-white placeholder-gray-400 resize-none min-h-[80px] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`bg-gray-800 border-gray-600 text-white placeholder-gray-400 resize-none min-h-[80px] focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                attachTime ? 'pl-20' : ''
+              }`}
               rows={3}
             />
           </div>
