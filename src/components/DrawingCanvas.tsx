@@ -2,11 +2,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Canvas as FabricCanvas, PencilBrush, Rect, Line, FabricObject } from "fabric";
 
-interface Drawing {
-  timestamp: number;
-  objects: string; // Serialized fabric objects
-}
-
 interface DrawingCanvasProps {
   currentTime?: number;
 }
@@ -18,10 +13,8 @@ export const DrawingCanvas = ({ currentTime = 0 }: DrawingCanvasProps) => {
   const [currentColor, setCurrentColor] = useState("#ff6b35");
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
-  const [drawings, setDrawings] = useState<Drawing[]>([]);
-  const [currentDrawingObjects, setCurrentDrawingObjects] = useState<FabricObject[]>([]);
-  const [undoStack, setUndoStack] = useState<FabricObject[]>([]);
-  const [redoStack, setRedoStack] = useState<FabricObject[]>([]);
+  const [undoStack, setUndoStack] = useState<string[]>([]);
+  const [redoStack, setRedoStack] = useState<string[]>([]);
   const tempObjectRef = useRef<FabricObject | null>(null);
 
   // Initialize canvas
@@ -36,7 +29,7 @@ export const DrawingCanvas = ({ currentTime = 0 }: DrawingCanvasProps) => {
         width: width,
         height: height,
         backgroundColor: 'transparent',
-        selection: true,
+        selection: false,
       });
 
       const brush = new PencilBrush(fabricCanvasRef.current);
@@ -44,22 +37,32 @@ export const DrawingCanvas = ({ currentTime = 0 }: DrawingCanvasProps) => {
       brush.width = 3;
       fabricCanvasRef.current.freeDrawingBrush = brush;
 
-      // Mouse events for shape drawing
+      // Save state after each action
+      const saveState = () => {
+        if (fabricCanvasRef.current) {
+          const state = JSON.stringify(fabricCanvasRef.current.toJSON());
+          setUndoStack(prev => [...prev, state]);
+          setRedoStack([]); // Clear redo stack on new action
+          console.log('Canvas state saved');
+        }
+      };
+
+      // Handle shape drawing
       fabricCanvasRef.current.on('mouse:down', (e) => {
-        if (currentTool !== "pen" && e.pointer && fabricCanvasRef.current) {
-          const canvas = fabricCanvasRef.current;
+        if (currentTool !== "pen" && e.pointer) {
+          const canvas = fabricCanvasRef.current!;
           setIsDrawing(true);
           setStartPoint({ x: e.pointer.x, y: e.pointer.y });
           canvas.selection = false;
-          canvas.defaultCursor = 'crosshair';
+          console.log(`Started drawing ${currentTool} at:`, e.pointer);
         }
       });
 
       fabricCanvasRef.current.on('mouse:move', (e) => {
-        if (isDrawing && startPoint && e.pointer && fabricCanvasRef.current && currentTool !== "pen") {
-          const canvas = fabricCanvasRef.current;
+        if (isDrawing && startPoint && e.pointer && currentTool !== "pen") {
+          const canvas = fabricCanvasRef.current!;
           
-          // Remove temporary object if it exists
+          // Remove previous temporary object
           if (tempObjectRef.current) {
             canvas.remove(tempObjectRef.current);
             tempObjectRef.current = null;
@@ -73,28 +76,38 @@ export const DrawingCanvas = ({ currentTime = 0 }: DrawingCanvasProps) => {
               stroke: currentColor,
               strokeWidth: 3,
               selectable: false,
+              evented: false,
             });
           } else if (currentTool === "square") {
+            const left = Math.min(startPoint.x, currentPoint.x);
+            const top = Math.min(startPoint.y, currentPoint.y);
+            const width = Math.abs(currentPoint.x - startPoint.x);
+            const height = Math.abs(currentPoint.y - startPoint.y);
+            
             tempObject = new Rect({
-              left: Math.min(startPoint.x, currentPoint.x),
-              top: Math.min(startPoint.y, currentPoint.y),
-              width: Math.abs(currentPoint.x - startPoint.x),
-              height: Math.abs(currentPoint.y - startPoint.y),
+              left,
+              top,
+              width,
+              height,
               fill: 'transparent',
               stroke: currentColor,
               strokeWidth: 3,
               selectable: false,
+              evented: false,
             });
           } else if (currentTool === "arrow") {
             const angle = Math.atan2(currentPoint.y - startPoint.y, currentPoint.x - startPoint.x);
             const headLength = 20;
             
-            const mainLine = new Line([startPoint.x, startPoint.y, currentPoint.x, currentPoint.y], {
+            // Create arrow line
+            tempObject = new Line([startPoint.x, startPoint.y, currentPoint.x, currentPoint.y], {
               stroke: currentColor,
               strokeWidth: 3,
               selectable: false,
+              evented: false,
             });
             
+            // Add arrowhead lines
             const head1 = new Line([
               currentPoint.x,
               currentPoint.y,
@@ -104,6 +117,7 @@ export const DrawingCanvas = ({ currentTime = 0 }: DrawingCanvasProps) => {
               stroke: currentColor,
               strokeWidth: 3,
               selectable: false,
+              evented: false,
             });
             
             const head2 = new Line([
@@ -115,10 +129,11 @@ export const DrawingCanvas = ({ currentTime = 0 }: DrawingCanvasProps) => {
               stroke: currentColor,
               strokeWidth: 3,
               selectable: false,
+              evented: false,
             });
             
-            canvas.add(mainLine, head1, head2);
-            tempObjectRef.current = mainLine; // We'll track the main line as temp
+            canvas.add(tempObject, head1, head2);
+            tempObjectRef.current = tempObject;
             canvas.renderAll();
             return;
           }
@@ -132,8 +147,8 @@ export const DrawingCanvas = ({ currentTime = 0 }: DrawingCanvasProps) => {
       });
 
       fabricCanvasRef.current.on('mouse:up', (e) => {
-        if (isDrawing && startPoint && e.pointer && fabricCanvasRef.current) {
-          const canvas = fabricCanvasRef.current;
+        if (isDrawing && startPoint && e.pointer) {
+          const canvas = fabricCanvasRef.current!;
           const endPoint = { x: e.pointer.x, y: e.pointer.y };
           
           // Remove temporary object
@@ -142,27 +157,34 @@ export const DrawingCanvas = ({ currentTime = 0 }: DrawingCanvasProps) => {
             tempObjectRef.current = null;
           }
           
-          let newObjects: FabricObject[] = [];
+          let finalObjects: FabricObject[] = [];
 
           if (currentTool === "line") {
             const line = new Line([startPoint.x, startPoint.y, endPoint.x, endPoint.y], {
               stroke: currentColor,
               strokeWidth: 3,
-              selectable: true,
+              selectable: false,
+              evented: false,
             });
-            newObjects.push(line);
+            finalObjects.push(line);
           } else if (currentTool === "square") {
+            const left = Math.min(startPoint.x, endPoint.x);
+            const top = Math.min(startPoint.y, endPoint.y);
+            const width = Math.abs(endPoint.x - startPoint.x);
+            const height = Math.abs(endPoint.y - startPoint.y);
+            
             const rect = new Rect({
-              left: Math.min(startPoint.x, endPoint.x),
-              top: Math.min(startPoint.y, endPoint.y),
-              width: Math.abs(endPoint.x - startPoint.x),
-              height: Math.abs(endPoint.y - startPoint.y),
+              left,
+              top,
+              width,
+              height,
               fill: 'transparent',
               stroke: currentColor,
               strokeWidth: 3,
-              selectable: true,
+              selectable: false,
+              evented: false,
             });
-            newObjects.push(rect);
+            finalObjects.push(rect);
           } else if (currentTool === "arrow") {
             const angle = Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x);
             const headLength = 20;
@@ -170,7 +192,8 @@ export const DrawingCanvas = ({ currentTime = 0 }: DrawingCanvasProps) => {
             const mainLine = new Line([startPoint.x, startPoint.y, endPoint.x, endPoint.y], {
               stroke: currentColor,
               strokeWidth: 3,
-              selectable: true,
+              selectable: false,
+              evented: false,
             });
             
             const head1 = new Line([
@@ -181,7 +204,8 @@ export const DrawingCanvas = ({ currentTime = 0 }: DrawingCanvasProps) => {
             ], {
               stroke: currentColor,
               strokeWidth: 3,
-              selectable: true,
+              selectable: false,
+              evented: false,
             });
             
             const head2 = new Line([
@@ -192,64 +216,40 @@ export const DrawingCanvas = ({ currentTime = 0 }: DrawingCanvasProps) => {
             ], {
               stroke: currentColor,
               strokeWidth: 3,
-              selectable: true,
+              selectable: false,
+              evented: false,
             });
             
-            newObjects.push(mainLine, head1, head2);
+            finalObjects.push(mainLine, head1, head2);
           }
           
-          // Add all new objects to canvas
-          newObjects.forEach(obj => canvas.add(obj));
+          // Add final objects to canvas
+          finalObjects.forEach(obj => canvas.add(obj));
+          canvas.renderAll();
           
-          if (newObjects.length > 0) {
-            setCurrentDrawingObjects(prev => [...prev, ...newObjects]);
-            setUndoStack(prev => [...prev, ...newObjects]);
-            setRedoStack([]); // Clear redo stack when new action is performed
+          if (finalObjects.length > 0) {
+            saveState();
+            console.log(`Added ${currentTool} with ${finalObjects.length} objects`);
           }
           
           setIsDrawing(false);
           setStartPoint(null);
-          canvas.selection = true;
-          canvas.defaultCursor = 'default';
-          
-          console.log(`Added ${currentTool} to canvas`);
         }
       });
 
-      // Save drawing when free drawing path is created
-      fabricCanvasRef.current.on('path:created', (e) => {
-        if (e.path) {
-          setCurrentDrawingObjects(prev => [...prev, e.path]);
-          setUndoStack(prev => [...prev, e.path]);
-          setRedoStack([]); // Clear redo stack when new action is performed
-        }
+      // Save state after free drawing
+      fabricCanvasRef.current.on('path:created', () => {
+        saveState();
+        console.log('Free drawing path created');
       });
-
-      // Handle window resize
-      const handleResize = () => {
-        if (fabricCanvasRef.current && parentElement) {
-          const newWidth = parentElement.clientWidth;
-          const newHeight = parentElement.clientHeight;
-          fabricCanvasRef.current.setDimensions({
-            width: newWidth,
-            height: newHeight
-          });
-        }
-      };
-
-      window.addEventListener('resize', handleResize);
 
       return () => {
-        window.removeEventListener('resize', handleResize);
+        if (fabricCanvasRef.current) {
+          fabricCanvasRef.current.dispose();
+          fabricCanvasRef.current = null;
+        }
       };
     }
-
-    return () => {
-      if (fabricCanvasRef.current) {
-        fabricCanvasRef.current.dispose();
-        fabricCanvasRef.current = null;
-      }
-    };
   }, []);
 
   // Update tool and color
@@ -262,50 +262,6 @@ export const DrawingCanvas = ({ currentTime = 0 }: DrawingCanvasProps) => {
     }
   }, [currentColor, currentTool]);
 
-  // Load drawings for current timestamp
-  useEffect(() => {
-    if (!fabricCanvasRef.current) return;
-
-    // Find drawing for current timestamp (within 0.5 seconds tolerance)
-    const currentDrawing = drawings.find(drawing => 
-      Math.abs(drawing.timestamp - currentTime) < 0.5
-    );
-
-    // Clear canvas
-    fabricCanvasRef.current.clear();
-    fabricCanvasRef.current.backgroundColor = 'transparent';
-    setCurrentDrawingObjects([]);
-
-    if (currentDrawing) {
-      // Load the drawing for this timestamp
-      fabricCanvasRef.current.loadFromJSON(currentDrawing.objects, () => {
-        fabricCanvasRef.current!.renderAll();
-        // Update current objects from loaded data
-        const objects = fabricCanvasRef.current!.getObjects();
-        setCurrentDrawingObjects(objects);
-      });
-    }
-  }, [currentTime, drawings]);
-
-  // Save current drawing when objects change
-  useEffect(() => {
-    if (currentDrawingObjects.length > 0 && fabricCanvasRef.current) {
-      const drawingData = fabricCanvasRef.current.toJSON();
-      
-      setDrawings(prev => {
-        // Remove any existing drawing for this timestamp
-        const filtered = prev.filter(d => Math.abs(d.timestamp - currentTime) >= 0.5);
-        // Add new drawing
-        return [...filtered, {
-          timestamp: currentTime,
-          objects: JSON.stringify(drawingData)
-        }];
-      });
-      
-      console.log(`Saved drawing at timestamp: ${currentTime}`);
-    }
-  }, [currentDrawingObjects, currentTime]);
-
   // Expose methods globally
   useEffect(() => {
     (window as any).drawingCanvas = {
@@ -313,8 +269,7 @@ export const DrawingCanvas = ({ currentTime = 0 }: DrawingCanvasProps) => {
         setCurrentTool(tool);
         if (fabricCanvasRef.current) {
           fabricCanvasRef.current.isDrawingMode = tool === "pen";
-          fabricCanvasRef.current.selection = tool !== "pen";
-          fabricCanvasRef.current.defaultCursor = tool === "pen" ? 'default' : 'crosshair';
+          fabricCanvasRef.current.selection = false;
         }
         console.log(`Drawing tool changed to: ${tool}`);
       },
@@ -327,34 +282,36 @@ export const DrawingCanvas = ({ currentTime = 0 }: DrawingCanvasProps) => {
           fabricCanvasRef.current.clear();
           fabricCanvasRef.current.backgroundColor = 'transparent';
           fabricCanvasRef.current.renderAll();
-          setCurrentDrawingObjects([]);
           setUndoStack([]);
           setRedoStack([]);
-          
-          // Remove drawing for current timestamp
-          setDrawings(prev => prev.filter(d => Math.abs(d.timestamp - currentTime) >= 0.5));
-          
-          console.log('Drawing canvas cleared for current timestamp');
+          console.log('Drawing canvas cleared');
         }
       },
       undo: () => {
-        if (fabricCanvasRef.current && undoStack.length > 0) {
-          const lastObject = undoStack[undoStack.length - 1];
-          fabricCanvasRef.current.remove(lastObject);
-          setCurrentDrawingObjects(prev => prev.filter(obj => obj !== lastObject));
+        if (fabricCanvasRef.current && undoStack.length > 1) {
+          const currentState = undoStack[undoStack.length - 1];
+          const previousState = undoStack[undoStack.length - 2];
+          
+          setRedoStack(prev => [...prev, currentState]);
           setUndoStack(prev => prev.slice(0, -1));
-          setRedoStack(prev => [...prev, lastObject]);
-          console.log('Undo drawing action');
+          
+          fabricCanvasRef.current.loadFromJSON(previousState, () => {
+            fabricCanvasRef.current!.renderAll();
+            console.log('Undo action performed');
+          });
         }
       },
       redo: () => {
         if (fabricCanvasRef.current && redoStack.length > 0) {
-          const objectToRedo = redoStack[redoStack.length - 1];
-          fabricCanvasRef.current.add(objectToRedo);
-          setCurrentDrawingObjects(prev => [...prev, objectToRedo]);
+          const stateToRestore = redoStack[redoStack.length - 1];
+          
+          setUndoStack(prev => [...prev, stateToRestore]);
           setRedoStack(prev => prev.slice(0, -1));
-          setUndoStack(prev => [...prev, objectToRedo]);
-          console.log('Redo drawing action');
+          
+          fabricCanvasRef.current.loadFromJSON(stateToRestore, () => {
+            fabricCanvasRef.current!.renderAll();
+            console.log('Redo action performed');
+          });
         }
       }
     };
@@ -362,7 +319,7 @@ export const DrawingCanvas = ({ currentTime = 0 }: DrawingCanvasProps) => {
     return () => {
       delete (window as any).drawingCanvas;
     };
-  }, [undoStack, redoStack, currentDrawingObjects, currentTime]);
+  }, [undoStack, redoStack]);
 
   return (
     <canvas

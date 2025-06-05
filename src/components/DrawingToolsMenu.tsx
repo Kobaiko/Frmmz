@@ -29,9 +29,9 @@ export const DrawingToolsMenu = ({ onClose }: DrawingToolsMenuProps) => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        // Only close if clicking outside and not on drawing canvas
         const target = event.target as HTMLElement;
-        if (!target.closest('[data-drawing-menu]') && !target.closest('canvas')) {
+        // Don't close if clicking on canvas or drawing-related elements
+        if (!target.closest('[data-drawing-menu]') && !target.closest('canvas') && !target.closest('.drawing-area')) {
           onClose();
         }
       }
@@ -47,7 +47,6 @@ export const DrawingToolsMenu = ({ onClose }: DrawingToolsMenuProps) => {
     if ((window as any).drawingCanvas) {
       (window as any).drawingCanvas.setTool(toolId);
     }
-    // Don't close menu when selecting tools
   };
 
   const handleColorChange = (color: string) => {
@@ -56,7 +55,6 @@ export const DrawingToolsMenu = ({ onClose }: DrawingToolsMenuProps) => {
     if ((window as any).drawingCanvas) {
       (window as any).drawingCanvas.setColor(color);
     }
-    // Don't close menu when selecting colors
   };
 
   const handleUndo = () => {
