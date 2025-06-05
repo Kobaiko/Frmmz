@@ -41,7 +41,13 @@ export const DrawingCanvas = () => {
         if (isDrawing && startPoint && e.pointer && fabricCanvasRef.current) {
           const endPoint = { x: e.pointer.x, y: e.pointer.y };
           
-          if (currentTool === "square") {
+          if (currentTool === "line") {
+            const line = new Line([startPoint.x, startPoint.y, endPoint.x, endPoint.y], {
+              stroke: currentColor,
+              strokeWidth: 3,
+            });
+            fabricCanvasRef.current.add(line);
+          } else if (currentTool === "square") {
             const rect = new Rect({
               left: Math.min(startPoint.x, endPoint.x),
               top: Math.min(startPoint.y, endPoint.y),

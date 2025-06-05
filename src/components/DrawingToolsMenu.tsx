@@ -20,8 +20,9 @@ export const DrawingToolsMenu = ({ onClose }: DrawingToolsMenuProps) => {
   ];
 
   const tools = [
-    { id: "pen", label: "Pen", symbol: "/" },
-    { id: "square", label: "Square", symbol: "□" },
+    { id: "pen", label: "Free Doodle", symbol: "✏️" },
+    { id: "line", label: "Line", symbol: "—" },
+    { id: "square", label: "Rectangle", symbol: "▢" },
     { id: "arrow", label: "Arrow", symbol: "→" },
   ];
 
@@ -105,7 +106,7 @@ export const DrawingToolsMenu = ({ onClose }: DrawingToolsMenuProps) => {
             }`}
             title={tool.label}
           >
-            <span className="text-sm font-mono">{tool.symbol}</span>
+            <span className="text-sm">{tool.symbol}</span>
           </Button>
         ))}
 
