@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DrawingCanvas } from "./DrawingCanvas";
@@ -63,53 +62,53 @@ export const VideoPlayer = ({
     handleQualityChange
   } = useVideoPlayer({ src, currentTime, onTimeUpdate, onDurationChange });
 
-  // Force pause video when drawing mode is enabled
+  // Force pause video immediately when drawing mode is enabled
   useEffect(() => {
     if (isDrawingMode && videoRef.current) {
-      console.log('Drawing mode enabled - forcing video pause');
+      console.log('Drawing mode activated - forcing immediate video pause');
       const video = videoRef.current;
       
-      // Immediate pause
-      if (!video.paused) {
-        video.pause();
-        console.log('Video immediately paused for drawing mode');
-      }
-      
-      // Double-check with timeout to ensure it stays paused
-      const timeoutId = setTimeout(() => {
+      // Force pause immediately and repeatedly to ensure it sticks
+      const forcePause = () => {
         if (!video.paused) {
           video.pause();
-          console.log('Video pause enforced with timeout');
+          console.log('Video forcefully paused for drawing mode');
         }
-      }, 100);
+      };
+      
+      forcePause();
+      
+      // Set up multiple checks to ensure video stays paused
+      const timeouts = [
+        setTimeout(forcePause, 50),
+        setTimeout(forcePause, 100),
+        setTimeout(forcePause, 200),
+      ];
 
-      return () => clearTimeout(timeoutId);
+      return () => {
+        timeouts.forEach(clearTimeout);
+      };
     }
   }, [isDrawingMode]);
 
-  // Handle drawing mode change - ensure video is paused and handle cleanup
+  // Handle drawing mode change - always pause video when enabling
   const handleDrawingModeChange = (enabled: boolean) => {
-    console.log(`Drawing mode change requested: ${enabled ? 'enabled' : 'disabled'}`);
+    console.log(`Drawing mode change: ${enabled ? 'enabling' : 'disabling'}`);
     
     if (enabled && videoRef.current) {
-      console.log('Enabling drawing mode and pausing video');
+      console.log('Pausing video for drawing mode');
       const video = videoRef.current;
       
-      // Force pause immediately
-      if (!video.paused) {
-        video.pause();
-        console.log('Video paused due to drawing mode activation');
-      }
+      // Immediate pause
+      video.pause();
       
-      // Ensure it stays paused
+      // Additional safety pauses
       setTimeout(() => {
         if (!video.paused) {
           video.pause();
-          console.log('Video pause double-checked');
+          console.log('Safety pause executed');
         }
       }, 50);
-    } else if (!enabled) {
-      console.log('Disabling drawing mode');
     }
     
     if (onDrawingModeChange) {
@@ -117,17 +116,15 @@ export const VideoPlayer = ({
     }
   };
 
-  // Handle drawing start - pause video immediately and enable drawing mode
+  // Handle drawing start - pause video and enable drawing mode
   const handleDrawingStart = () => {
-    console.log('Drawing start requested - pausing video and enabling drawing mode');
+    console.log('Drawing start - pausing video immediately');
     
-    if (videoRef.current) {
-      const video = videoRef.current;
-      video.pause();
+    if (videoRef.current && !videoRef.current.paused) {
+      videoRef.current.pause();
       console.log('Video paused for drawing start');
     }
     
-    // Always enable drawing mode when starting to draw
     handleDrawingModeChange(true);
   };
 

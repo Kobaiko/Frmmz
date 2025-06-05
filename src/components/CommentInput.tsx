@@ -40,22 +40,31 @@ export const CommentInput = ({
   const [hasDrawing, setHasDrawing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Check for drawings on canvas when drawing mode changes
+  // Monitor canvas for drawings
   useEffect(() => {
-    if (!isDrawingMode && showDrawingTools) {
-      // Check if there are any drawings on the canvas
+    const checkForDrawings = () => {
       const canvas = (window as any).drawingCanvas;
-      if (canvas) {
-        // We'll set hasDrawing to true if drawing tools were used
-        setHasDrawing(true);
-        console.log('Drawing detected, setting hasDrawing to true');
+      if (canvas && canvas.getDrawingsForFrame) {
+        const currentFrame = Math.floor(currentTime * 30); // Assuming 30fps
+        const drawings = canvas.getDrawingsForFrame(currentFrame);
+        const hasAnyDrawings = drawings && drawings.length > 0;
+        
+        if (hasAnyDrawings !== hasDrawing) {
+          setHasDrawing(hasAnyDrawings);
+          console.log('Drawing detection updated:', hasAnyDrawings);
+        }
       }
+    };
+
+    if (isDrawingMode) {
+      const interval = setInterval(checkForDrawings, 500);
+      return () => clearInterval(interval);
     }
-  }, [isDrawingMode, showDrawingTools]);
+  }, [isDrawingMode, currentTime, hasDrawing]);
 
   // Reset drawing tools state when drawing mode is disabled externally
   useEffect(() => {
-    if (!isDrawingMode && showDrawingTools) {
+    if (!isDrawingMode) {
       console.log('Drawing mode disabled, closing drawing tools');
       setShowDrawingTools(false);
     }
@@ -123,19 +132,17 @@ export const CommentInput = ({
   const handleDrawingClick = () => {
     console.log('Drawing button clicked - current states:', { isDrawingMode, showDrawingTools });
     
-    if (isDrawingMode && showDrawingTools) {
-      // If already in drawing mode and tools are showing, we're turning it off
-      console.log('Turning off drawing mode');
-      setShowDrawingTools(false);
-      setHasDrawing(true); // Assume drawing was made
-      // Don't call onStartDrawing here as we're turning off drawing mode
-    } else {
-      // Starting drawing mode
+    if (!isDrawingMode) {
+      // Always start drawing mode when not in drawing mode
       console.log('Starting drawing mode');
       if (onStartDrawing) {
         onStartDrawing();
       }
       setShowDrawingTools(true);
+    } else {
+      // Toggle drawing tools when already in drawing mode
+      console.log('Toggling drawing tools');
+      setShowDrawingTools(!showDrawingTools);
     }
   };
 
@@ -245,7 +252,7 @@ export const CommentInput = ({
                   variant="ghost"
                   onClick={handleDrawingClick}
                   className={`p-2 rounded-lg ${
-                    (isDrawingMode && showDrawingTools) || hasDrawing
+                    showDrawingTools || hasDrawing
                       ? "text-blue-400 bg-blue-500/20" 
                       : "text-gray-400 hover:text-white hover:bg-gray-600"
                   }`}
@@ -334,7 +341,7 @@ export const CommentInput = ({
               className="border-gray-600 text-gray-300 hover:bg-gray-700"
             >
               Cancel
-            </Button>
+            </div>
           </div>
         )}
       </div>

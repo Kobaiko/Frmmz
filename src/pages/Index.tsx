@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { CommentPanel } from "@/components/CommentPanel";
@@ -42,6 +43,9 @@ const Index = () => {
       isInternal: isInternal || false,
       hasDrawing: hasDrawing || false,
     };
+    
+    console.log('Adding comment with hasDrawing:', hasDrawing);
+    
     setComments([...comments, newComment].sort((a, b) => {
       // Sort by timestamp, but put general comments (-1) at the end
       if (a.timestamp === -1 && b.timestamp === -1) return a.createdAt.getTime() - b.createdAt.getTime();
@@ -62,7 +66,7 @@ const Index = () => {
   };
 
   const handleStartDrawing = () => {
-    console.log('Start drawing requested from comment panel - pausing video and enabling drawing mode');
+    console.log('Start drawing requested - enabling drawing mode');
     setIsDrawingMode(true);
   };
 
