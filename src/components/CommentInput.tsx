@@ -76,22 +76,6 @@ export const CommentInput = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const renderPlaceholder = () => {
-    if (!attachTime) {
-      return placeholder;
-    }
-    
-    return (
-      <div className="flex items-center gap-2">
-        <div className="inline-flex items-center space-x-1 bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full text-sm font-medium">
-          <Clock size={12} />
-          <span>{formatTime(currentTime)}</span>
-        </div>
-        <span>{placeholder}</span>
-      </div>
-    );
-  };
-
   const handleSubmit = () => {
     if (comment.trim()) {
       console.log('Submitting comment with hasDrawing:', hasDrawing);
@@ -341,7 +325,7 @@ export const CommentInput = ({
               className="border-gray-600 text-gray-300 hover:bg-gray-700"
             >
               Cancel
-            </div>
+            </Button>
           </div>
         )}
       </div>
