@@ -189,7 +189,7 @@ export const VideoPlayer = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [src, onTimeUpdate, onDurationChange, isPlaying]);
+  }, [src, onTimeUpdate, onDurationChange]);
 
   // Simple loop effect - just set the loop attribute
   useEffect(() => {
