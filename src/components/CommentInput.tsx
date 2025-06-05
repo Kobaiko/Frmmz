@@ -79,6 +79,13 @@ export const CommentInput = ({
 
   const handleSubmit = () => {
     if (comment.trim()) {
+      // Force save drawings before submitting comment
+      const canvas = (window as any).drawingCanvas;
+      if (canvas && canvas.forceSave && hasDrawing) {
+        console.log('Force saving drawings before submitting comment');
+        canvas.forceSave();
+      }
+      
       console.log('Submitting comment with hasDrawing:', hasDrawing);
       onAddComment(comment.trim(), attachments, isInternal, attachTime, hasDrawing);
       

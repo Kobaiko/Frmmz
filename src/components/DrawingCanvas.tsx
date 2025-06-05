@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Canvas as FabricCanvas, PencilBrush, Rect, Line, Circle } from "fabric";
 
@@ -27,6 +26,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
   const lastFrameRef = useRef<number>(-1);
   const apiAttachedRef = useRef(false);
   const isLoadingRef = useRef(false);
+  const shouldSaveOnDrawingModeChangeRef = useRef(false);
 
   // Get current frame number (30fps)
   const getCurrentFrame = useCallback(() => Math.floor(currentTime * 30), [currentTime]);
@@ -46,6 +46,25 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     setRedoStack([]);
     
     // Save for current frame
+    setFrameDrawings(prev => {
+      const filtered = prev.filter(f => f.frame !== currentFrame);
+      if (canvas.getObjects().length > 0) {
+        return [...filtered, { frame: currentFrame, canvasData }];
+      }
+      return filtered;
+    });
+  }, [getCurrentFrame]);
+
+  // Force save current drawings to frame storage
+  const forceSaveCurrentFrame = useCallback(() => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+    
+    const currentFrame = getCurrentFrame();
+    const canvasData = JSON.stringify(canvas.toJSON());
+    
+    console.log(`Force saving ${canvas.getObjects().length} objects for frame ${currentFrame}`);
+    
     setFrameDrawings(prev => {
       const filtered = prev.filter(f => f.frame !== currentFrame);
       if (canvas.getObjects().length > 0) {
@@ -290,7 +309,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
       isInitializedRef.current = false;
       apiAttachedRef.current = false;
     };
-  }, []);
+  }, [saveState]);
 
   // Global API for drawing tools
   useEffect(() => {
@@ -378,6 +397,11 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
         const currentFrame = getCurrentFrame();
         const canvas = fabricCanvasRef.current;
         return canvas ? canvas.getObjects().length > 0 : false;
+      },
+      // Add new API method to force save before mode changes
+      forceSave: () => {
+        console.log('API: Force saving current frame');
+        forceSaveCurrentFrame();
       }
     };
 
@@ -391,9 +415,9 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
         apiAttachedRef.current = false;
       }
     };
-  }, [undoStack, redoStack, getCurrentFrame, frameDrawings]);
+  }, [undoStack, redoStack, getCurrentFrame, frameDrawings, forceSaveCurrentFrame]);
 
-  // Load frame-specific drawings when time changes - FIXED VERSION
+  // Load frame-specific drawings when time changes
   useEffect(() => {
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
