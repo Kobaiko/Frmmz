@@ -22,7 +22,8 @@ import {
   Repeat,
   Camera,
   ArrowDown,
-  Image
+  Image,
+  ChevronDown
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -93,6 +94,7 @@ export const VideoPlayer = ({
   const [isLooping, setIsLooping] = useState(false);
   const [isVolumeHovered, setIsVolumeHovered] = useState(false);
   const [isSpeedHovered, setIsSpeedHovered] = useState(false);
+  const [timeFormat, setTimeFormat] = useState<'timecode' | 'frames' | 'standard'>('timecode');
 
   useEffect(() => {
     const video = videoRef.current;
@@ -238,6 +240,28 @@ export const VideoPlayer = ({
     const milliseconds = Math.floor((seconds % 1) * 10);
     
     return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${milliseconds}`;
+  };
+
+  const formatTimeByFormat = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    const frames = Math.floor((seconds % 1) * 30); // Assuming 30fps
+    
+    switch (timeFormat) {
+      case 'timecode':
+        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}:${frames.toString().padStart(2, '0')}`;
+      case 'frames':
+        const totalFrames = Math.floor(seconds * 30); // Assuming 30fps
+        return `${totalFrames}`;
+      case 'standard':
+        if (hours > 0) {
+          return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+      default:
+        return formatTime(seconds);
+    }
   };
 
   const formatTimeSimple = (seconds: number) => {
@@ -824,9 +848,50 @@ export const VideoPlayer = ({
               </Popover>
             </div>
             
-            {/* Time Display */}
-            <div className="text-white text-sm font-mono">
-              {formatTime(currentTime)} / {formatTime(duration)}
+            {/* Time Display - Centered */}
+            <div className="flex items-center space-x-2 absolute left-1/2 transform -translate-x-1/2">
+              <div className="text-white text-sm font-mono">
+                {formatTimeByFormat(currentTime)} / {formatTimeByFormat(duration)}
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-white hover:text-white hover:bg-gray-800 p-1 border-0 focus:border-0 focus:ring-0 focus-visible:ring-0"
+                  >
+                    <ChevronDown size={14} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent 
+                  className="bg-gray-800 border-gray-600 text-white shadow-xl z-50"
+                  align="center"
+                  sideOffset={5}
+                >
+                  <div className="p-2 text-xs text-gray-300 font-medium">Time Format</div>
+                  <DropdownMenuItem
+                    className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 data-[highlighted]:bg-gray-700 px-3 py-2 cursor-pointer text-white"
+                    onClick={() => setTimeFormat('frames')}
+                  >
+                    <span className="text-white">Frames</span>
+                    {timeFormat === 'frames' && <Check size={16} className="text-white" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 data-[highlighted]:bg-gray-700 px-3 py-2 cursor-pointer text-white"
+                    onClick={() => setTimeFormat('standard')}
+                  >
+                    <span className="text-white">Standard</span>
+                    {timeFormat === 'standard' && <Check size={16} className="text-white" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 data-[highlighted]:bg-gray-700 px-3 py-2 cursor-pointer text-white"
+                    onClick={() => setTimeFormat('timecode')}
+                  >
+                    <span className="text-white">Timecode</span>
+                    {timeFormat === 'timecode' && <Check size={16} className="text-white" />}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             
             <div className="flex items-center space-x-3">
