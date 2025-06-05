@@ -97,35 +97,36 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
 
       // Mouse down event for shape drawing
       canvas.on('mouse:down', (e) => {
-        if (currentTool === "pen" || !e.pointer) return;
+        if (currentTool === "pen") return;
         
-        console.log(`Starting ${currentTool} drawing at`, e.pointer);
+        const pointer = canvas.getPointer(e.e);
+        console.log(`Starting ${currentTool} drawing at`, pointer);
+        
         drawingStateRef.current.isDrawing = true;
-        drawingStateRef.current.startPoint = { x: e.pointer.x, y: e.pointer.y };
+        drawingStateRef.current.startPoint = { x: pointer.x, y: pointer.y };
         
         // Disable selection during drawing
         canvas.selection = false;
         canvas.discardActiveObject();
-        canvas.renderAll();
       });
 
       // Mouse move event for shape preview
       canvas.on('mouse:move', (e) => {
-        if (!drawingStateRef.current.isDrawing || currentTool === "pen" || !drawingStateRef.current.startPoint || !e.pointer) return;
+        if (!drawingStateRef.current.isDrawing || currentTool === "pen" || !drawingStateRef.current.startPoint) return;
 
+        const pointer = canvas.getPointer(e.e);
+        
         // Remove previous preview shape
         if (drawingStateRef.current.currentShape) {
           canvas.remove(drawingStateRef.current.currentShape);
         }
 
         const startPoint = drawingStateRef.current.startPoint;
-        const currentPoint = e.pointer;
-
         let shape: any = null;
 
         try {
           if (currentTool === "line") {
-            shape = new Line([startPoint.x, startPoint.y, currentPoint.x, currentPoint.y], {
+            shape = new Line([startPoint.x, startPoint.y, pointer.x, pointer.y], {
               stroke: currentColor,
               strokeWidth: 3,
               selectable: false,
@@ -134,10 +135,10 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
             });
           } 
           else if (currentTool === "square") {
-            const left = Math.min(startPoint.x, currentPoint.x);
-            const top = Math.min(startPoint.y, currentPoint.y);
-            const width = Math.abs(currentPoint.x - startPoint.x);
-            const height = Math.abs(currentPoint.y - startPoint.y);
+            const left = Math.min(startPoint.x, pointer.x);
+            const top = Math.min(startPoint.y, pointer.y);
+            const width = Math.abs(pointer.x - startPoint.x);
+            const height = Math.abs(pointer.y - startPoint.y);
             
             shape = new Rect({
               left,
@@ -153,12 +154,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
             });
           }
           else if (currentTool === "arrow") {
-            // Calculate arrow angle and components
-            const angle = Math.atan2(currentPoint.y - startPoint.y, currentPoint.x - startPoint.x);
-            const headLength = 20;
-            
-            // Create arrow as a group would be complex, so just show the main line for preview
-            shape = new Line([startPoint.x, startPoint.y, currentPoint.x, currentPoint.y], {
+            shape = new Line([startPoint.x, startPoint.y, pointer.x, pointer.y], {
               stroke: currentColor,
               strokeWidth: 3,
               selectable: false,
@@ -179,9 +175,10 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
 
       // Mouse up event for finalizing shapes
       canvas.on('mouse:up', (e) => {
-        if (!drawingStateRef.current.isDrawing || currentTool === "pen" || !drawingStateRef.current.startPoint || !e.pointer) return;
+        if (!drawingStateRef.current.isDrawing || currentTool === "pen" || !drawingStateRef.current.startPoint) return;
 
-        console.log(`Finishing ${currentTool} drawing at`, e.pointer);
+        const pointer = canvas.getPointer(e.e);
+        console.log(`Finishing ${currentTool} drawing at`, pointer);
         
         // Remove preview shape
         if (drawingStateRef.current.currentShape) {
@@ -189,11 +186,10 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
         }
 
         const startPoint = drawingStateRef.current.startPoint;
-        const endPoint = e.pointer;
         
         try {
           if (currentTool === "line") {
-            const line = new Line([startPoint.x, startPoint.y, endPoint.x, endPoint.y], {
+            const line = new Line([startPoint.x, startPoint.y, pointer.x, pointer.y], {
               stroke: currentColor,
               strokeWidth: 3,
               selectable: false,
@@ -203,10 +199,10 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
             console.log('Line added to canvas');
           } 
           else if (currentTool === "square") {
-            const left = Math.min(startPoint.x, endPoint.x);
-            const top = Math.min(startPoint.y, endPoint.y);
-            const width = Math.abs(endPoint.x - startPoint.x);
-            const height = Math.abs(endPoint.y - startPoint.y);
+            const left = Math.min(startPoint.x, pointer.x);
+            const top = Math.min(startPoint.y, pointer.y);
+            const width = Math.abs(pointer.x - startPoint.x);
+            const height = Math.abs(pointer.y - startPoint.y);
             
             if (width > 5 && height > 5) { // Minimum size check
               const rect = new Rect({
@@ -226,11 +222,11 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
           }
           else if (currentTool === "arrow") {
             // Calculate arrow angle
-            const angle = Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x);
+            const angle = Math.atan2(pointer.y - startPoint.y, pointer.x - startPoint.x);
             const headLength = 20;
             
             // Main line
-            const mainLine = new Line([startPoint.x, startPoint.y, endPoint.x, endPoint.y], {
+            const mainLine = new Line([startPoint.x, startPoint.y, pointer.x, pointer.y], {
               stroke: currentColor,
               strokeWidth: 3,
               selectable: false,
@@ -239,10 +235,10 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
             
             // Arrow head lines
             const head1 = new Line([
-              endPoint.x,
-              endPoint.y,
-              endPoint.x - headLength * Math.cos(angle - Math.PI / 6),
-              endPoint.y - headLength * Math.sin(angle - Math.PI / 6)
+              pointer.x,
+              pointer.y,
+              pointer.x - headLength * Math.cos(angle - Math.PI / 6),
+              pointer.y - headLength * Math.sin(angle - Math.PI / 6)
             ], {
               stroke: currentColor,
               strokeWidth: 3,
@@ -251,10 +247,10 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
             });
             
             const head2 = new Line([
-              endPoint.x,
-              endPoint.y,
-              endPoint.x - headLength * Math.cos(angle + Math.PI / 6),
-              endPoint.y - headLength * Math.sin(angle + Math.PI / 6)
+              pointer.x,
+              pointer.y,
+              pointer.x - headLength * Math.cos(angle + Math.PI / 6),
+              pointer.y - headLength * Math.sin(angle + Math.PI / 6)
             ], {
               stroke: currentColor,
               strokeWidth: 3,
