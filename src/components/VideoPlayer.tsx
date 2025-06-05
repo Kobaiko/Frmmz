@@ -157,6 +157,9 @@ export const VideoPlayer = ({
 
     // Set video source
     video.src = src;
+    
+    // Set loop attribute on video element
+    video.loop = isLooping;
 
     return () => {
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
@@ -260,11 +263,15 @@ export const VideoPlayer = ({
     }
   };
 
-  const toggleLoop = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const toggleLoop = () => {
     const newLoopState = !isLooping;
     setIsLooping(newLoopState);
+    
+    // Update the video element's loop property
+    if (videoRef.current) {
+      videoRef.current.loop = newLoopState;
+    }
+    
     console.log(`Loop ${newLoopState ? 'enabled' : 'disabled'}`);
   };
 
@@ -717,14 +724,13 @@ export const VideoPlayer = ({
                 </TooltipContent>
               </Tooltip>
               
-              {/* Loop with tooltip - prevent event bubbling */}
+              {/* Loop with tooltip */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={toggleLoop}
-                    onMouseDown={(e) => e.stopPropagation()}
                     className={`hover:bg-gray-800 p-2 ${isLooping ? 'text-blue-400 hover:text-blue-400' : 'text-white hover:text-white'}`}
                   >
                     <Repeat size={16} />
