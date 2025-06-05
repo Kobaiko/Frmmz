@@ -24,6 +24,13 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
   const [currentTool, setCurrentTool] = useState("pen");
   const [currentColor, setCurrentColor] = useState("#ff6b35");
 
+  // Drawing state for shapes
+  const drawingStateRef = useRef({
+    isDrawing: false,
+    startPoint: null as { x: number; y: number } | null,
+    currentShape: null as any
+  });
+
   // Get current frame number (30fps)
   const getCurrentFrame = useCallback(() => Math.floor(currentTime * 30), [currentTime]);
 
@@ -77,137 +84,206 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     brush.width = 3;
     canvas.freeDrawingBrush = brush;
 
-    // Set initial drawing mode
-    canvas.isDrawingMode = currentTool === "pen";
-
     fabricCanvasRef.current = canvas;
     isInitializedRef.current = true;
 
-    // Event handlers
-    let isDrawing = false;
-    let startPoint: { x: number; y: number } | null = null;
+    // Set up event handlers
+    const setupEventHandlers = () => {
+      // Handle free drawing (pen tool) - path creation
+      canvas.on('path:created', (e) => {
+        console.log('Free drawing path created');
+        saveState();
+      });
 
-    // Handle free drawing (pen tool)
-    canvas.on('path:created', (e) => {
-      console.log('Free drawing path created');
-      saveState();
-    });
+      // Mouse down event for shape drawing
+      canvas.on('mouse:down', (e) => {
+        if (currentTool === "pen" || !e.pointer) return;
+        
+        console.log(`Starting ${currentTool} drawing at`, e.pointer);
+        drawingStateRef.current.isDrawing = true;
+        drawingStateRef.current.startPoint = { x: e.pointer.x, y: e.pointer.y };
+        
+        // Disable selection during drawing
+        canvas.selection = false;
+        canvas.discardActiveObject();
+        canvas.renderAll();
+      });
 
-    // Handle shape drawing
-    canvas.on('mouse:down', (e) => {
-      if (currentTool === "pen" || !e.pointer) return;
-      
-      console.log(`Starting ${currentTool} drawing at`, e.pointer);
-      isDrawing = true;
-      startPoint = { x: e.pointer.x, y: e.pointer.y };
-      
-      // Disable selection during drawing
-      canvas.selection = false;
-    });
+      // Mouse move event for shape preview
+      canvas.on('mouse:move', (e) => {
+        if (!drawingStateRef.current.isDrawing || currentTool === "pen" || !drawingStateRef.current.startPoint || !e.pointer) return;
 
-    canvas.on('mouse:up', (e) => {
-      if (currentTool === "pen" || !isDrawing || !startPoint || !e.pointer) return;
-
-      console.log(`Finishing ${currentTool} drawing at`, e.pointer);
-      
-      const endPoint = { x: e.pointer.x, y: e.pointer.y };
-      
-      try {
-        if (currentTool === "line") {
-          const line = new Line([startPoint.x, startPoint.y, endPoint.x, endPoint.y], {
-            stroke: currentColor,
-            strokeWidth: 3,
-            selectable: false,
-            evented: false,
-            hoverCursor: 'default',
-            moveCursor: 'default'
-          });
-          canvas.add(line);
-          console.log('Line added to canvas');
-        } 
-        else if (currentTool === "square") {
-          const left = Math.min(startPoint.x, endPoint.x);
-          const top = Math.min(startPoint.y, endPoint.y);
-          const width = Math.abs(endPoint.x - startPoint.x);
-          const height = Math.abs(endPoint.y - startPoint.y);
-          
-          const rect = new Rect({
-            left,
-            top,
-            width,
-            height,
-            fill: 'transparent',
-            stroke: currentColor,
-            strokeWidth: 3,
-            selectable: false,
-            evented: false,
-            hoverCursor: 'default',
-            moveCursor: 'default'
-          });
-          canvas.add(rect);
-          console.log('Rectangle added to canvas');
+        // Remove previous preview shape
+        if (drawingStateRef.current.currentShape) {
+          canvas.remove(drawingStateRef.current.currentShape);
         }
-        else if (currentTool === "arrow") {
-          // Calculate arrow angle
-          const angle = Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x);
-          const headLength = 20;
+
+        const startPoint = drawingStateRef.current.startPoint;
+        const currentPoint = e.pointer;
+
+        let shape: any = null;
+
+        try {
+          if (currentTool === "line") {
+            shape = new Line([startPoint.x, startPoint.y, currentPoint.x, currentPoint.y], {
+              stroke: currentColor,
+              strokeWidth: 3,
+              selectable: false,
+              evented: false,
+              opacity: 0.7
+            });
+          } 
+          else if (currentTool === "square") {
+            const left = Math.min(startPoint.x, currentPoint.x);
+            const top = Math.min(startPoint.y, currentPoint.y);
+            const width = Math.abs(currentPoint.x - startPoint.x);
+            const height = Math.abs(currentPoint.y - startPoint.y);
+            
+            shape = new Rect({
+              left,
+              top,
+              width,
+              height,
+              fill: 'transparent',
+              stroke: currentColor,
+              strokeWidth: 3,
+              selectable: false,
+              evented: false,
+              opacity: 0.7
+            });
+          }
+          else if (currentTool === "arrow") {
+            // Calculate arrow angle and components
+            const angle = Math.atan2(currentPoint.y - startPoint.y, currentPoint.x - startPoint.x);
+            const headLength = 20;
+            
+            // Create arrow as a group would be complex, so just show the main line for preview
+            shape = new Line([startPoint.x, startPoint.y, currentPoint.x, currentPoint.y], {
+              stroke: currentColor,
+              strokeWidth: 3,
+              selectable: false,
+              evented: false,
+              opacity: 0.7
+            });
+          }
+
+          if (shape) {
+            canvas.add(shape);
+            drawingStateRef.current.currentShape = shape;
+            canvas.renderAll();
+          }
+        } catch (error) {
+          console.error('Error creating preview shape:', error);
+        }
+      });
+
+      // Mouse up event for finalizing shapes
+      canvas.on('mouse:up', (e) => {
+        if (!drawingStateRef.current.isDrawing || currentTool === "pen" || !drawingStateRef.current.startPoint || !e.pointer) return;
+
+        console.log(`Finishing ${currentTool} drawing at`, e.pointer);
+        
+        // Remove preview shape
+        if (drawingStateRef.current.currentShape) {
+          canvas.remove(drawingStateRef.current.currentShape);
+        }
+
+        const startPoint = drawingStateRef.current.startPoint;
+        const endPoint = e.pointer;
+        
+        try {
+          if (currentTool === "line") {
+            const line = new Line([startPoint.x, startPoint.y, endPoint.x, endPoint.y], {
+              stroke: currentColor,
+              strokeWidth: 3,
+              selectable: false,
+              evented: false
+            });
+            canvas.add(line);
+            console.log('Line added to canvas');
+          } 
+          else if (currentTool === "square") {
+            const left = Math.min(startPoint.x, endPoint.x);
+            const top = Math.min(startPoint.y, endPoint.y);
+            const width = Math.abs(endPoint.x - startPoint.x);
+            const height = Math.abs(endPoint.y - startPoint.y);
+            
+            if (width > 5 && height > 5) { // Minimum size check
+              const rect = new Rect({
+                left,
+                top,
+                width,
+                height,
+                fill: 'transparent',
+                stroke: currentColor,
+                strokeWidth: 3,
+                selectable: false,
+                evented: false
+              });
+              canvas.add(rect);
+              console.log('Rectangle added to canvas');
+            }
+          }
+          else if (currentTool === "arrow") {
+            // Calculate arrow angle
+            const angle = Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x);
+            const headLength = 20;
+            
+            // Main line
+            const mainLine = new Line([startPoint.x, startPoint.y, endPoint.x, endPoint.y], {
+              stroke: currentColor,
+              strokeWidth: 3,
+              selectable: false,
+              evented: false
+            });
+            
+            // Arrow head lines
+            const head1 = new Line([
+              endPoint.x,
+              endPoint.y,
+              endPoint.x - headLength * Math.cos(angle - Math.PI / 6),
+              endPoint.y - headLength * Math.sin(angle - Math.PI / 6)
+            ], {
+              stroke: currentColor,
+              strokeWidth: 3,
+              selectable: false,
+              evented: false
+            });
+            
+            const head2 = new Line([
+              endPoint.x,
+              endPoint.y,
+              endPoint.x - headLength * Math.cos(angle + Math.PI / 6),
+              endPoint.y - headLength * Math.sin(angle + Math.PI / 6)
+            ], {
+              stroke: currentColor,
+              strokeWidth: 3,
+              selectable: false,
+              evented: false
+            });
+            
+            canvas.add(mainLine);
+            canvas.add(head1);
+            canvas.add(head2);
+            console.log('Arrow added to canvas');
+          }
           
-          // Main line
-          const mainLine = new Line([startPoint.x, startPoint.y, endPoint.x, endPoint.y], {
-            stroke: currentColor,
-            strokeWidth: 3,
-            selectable: false,
-            evented: false,
-            hoverCursor: 'default',
-            moveCursor: 'default'
-          });
-          
-          // Arrow head lines
-          const head1 = new Line([
-            endPoint.x,
-            endPoint.y,
-            endPoint.x - headLength * Math.cos(angle - Math.PI / 6),
-            endPoint.y - headLength * Math.sin(angle - Math.PI / 6)
-          ], {
-            stroke: currentColor,
-            strokeWidth: 3,
-            selectable: false,
-            evented: false,
-            hoverCursor: 'default',
-            moveCursor: 'default'
-          });
-          
-          const head2 = new Line([
-            endPoint.x,
-            endPoint.y,
-            endPoint.x - headLength * Math.cos(angle + Math.PI / 6),
-            endPoint.y - headLength * Math.sin(angle + Math.PI / 6)
-          ], {
-            stroke: currentColor,
-            strokeWidth: 3,
-            selectable: false,
-            evented: false,
-            hoverCursor: 'default',
-            moveCursor: 'default'
-          });
-          
-          canvas.add(mainLine);
-          canvas.add(head1);
-          canvas.add(head2);
-          console.log('Arrow added to canvas');
+          canvas.renderAll();
+          saveState();
+        } catch (error) {
+          console.error('Error adding shape to canvas:', error);
         }
         
-        canvas.renderAll();
-        saveState();
-      } catch (error) {
-        console.error('Error adding shape to canvas:', error);
-      }
-      
-      isDrawing = false;
-      startPoint = null;
-      canvas.selection = false;
-    });
+        // Reset drawing state
+        drawingStateRef.current.isDrawing = false;
+        drawingStateRef.current.startPoint = null;
+        drawingStateRef.current.currentShape = null;
+        canvas.selection = false;
+      });
+    };
 
+    setupEventHandlers();
+    
     console.log('Fabric.js canvas initialized successfully');
 
     return () => {
@@ -238,6 +314,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     
     // Disable selection for shape tools
     canvas.selection = false;
+    canvas.discardActiveObject();
     
     canvas.renderAll();
   }, [currentTool, currentColor]);
