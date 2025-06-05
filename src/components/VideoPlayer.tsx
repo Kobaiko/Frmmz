@@ -263,9 +263,11 @@ export const VideoPlayer = ({
   const toggleLoop = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
     const newLoopState = !isLooping;
     setIsLooping(newLoopState);
     console.log(`Loop ${newLoopState ? 'enabled' : 'disabled'}`);
+    return false;
   };
 
   const handleSpeedChange = (speeds: number[]) => {
@@ -720,14 +722,17 @@ export const VideoPlayer = ({
               {/* Loop with tooltip */}
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={toggleLoop}
-                    className={`hover:bg-gray-800 p-2 ${isLooping ? 'text-blue-400 hover:text-blue-400' : 'text-white hover:text-white'}`}
-                  >
-                    <Repeat size={16} />
-                  </Button>
+                  <div onClick={toggleLoop} onMouseDown={(e) => e.preventDefault()}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`hover:bg-gray-800 p-2 ${isLooping ? 'text-blue-400 hover:text-blue-400' : 'text-white hover:text-white'}`}
+                      onMouseDown={(e) => e.preventDefault()}
+                      style={{ pointerEvents: 'none' }}
+                    >
+                      <Repeat size={16} />
+                    </Button>
+                  </div>
                 </TooltipTrigger>
                 <TooltipContent className="bg-gray-800 text-white border-gray-600">
                   <span>{isLooping ? 'Disable Loop' : 'Enable Loop'}</span>
