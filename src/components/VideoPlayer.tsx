@@ -71,6 +71,7 @@ export const VideoPlayer = ({
   const timelineRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const animationFrameRef = useRef<number>();
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [duration, setDuration] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -95,6 +96,15 @@ export const VideoPlayer = ({
   const [isVolumeHovered, setIsVolumeHovered] = useState(false);
   const [isSpeedHovered, setIsSpeedHovered] = useState(false);
   const [timeFormat, setTimeFormat] = useState<'timecode' | 'frames' | 'standard'>('timecode');
+
+  // High-frequency time update for frame-accurate display
+  const updateTime = () => {
+    const video = videoRef.current;
+    if (video && !video.paused) {
+      onTimeUpdate(video.currentTime);
+      animationFrameRef.current = requestAnimationFrame(updateTime);
+    }
+  };
 
   useEffect(() => {
     const video = videoRef.current;
@@ -140,11 +150,25 @@ export const VideoPlayer = ({
     };
 
     const handleTimeUpdate = () => {
-      onTimeUpdate(video.currentTime);
+      // Only use this for fallback when not using high-frequency updates
+      if (!isPlaying) {
+        onTimeUpdate(video.currentTime);
+      }
     };
 
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
+    const handlePlay = () => {
+      setIsPlaying(true);
+      // Start high-frequency time updates for frame-accurate display
+      animationFrameRef.current = requestAnimationFrame(updateTime);
+    };
+    
+    const handlePause = () => {
+      setIsPlaying(false);
+      // Stop high-frequency updates
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
     
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('timeupdate', handleTimeUpdate);
@@ -159,8 +183,13 @@ export const VideoPlayer = ({
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
+      
+      // Clean up animation frame
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
     };
-  }, [src, onTimeUpdate, onDurationChange]);
+  }, [src, onTimeUpdate, onDurationChange, isPlaying]);
 
   // Simple loop effect - just set the loop attribute
   useEffect(() => {
