@@ -20,7 +20,7 @@ import {
   Shrink,
   Maximize2,
   Repeat,
-  FileImage,
+  Image,
   Download
 } from "lucide-react";
 import {
@@ -1084,7 +1084,7 @@ export const VideoPlayer = ({
                     onClick={handleSetFrameAsThumb}
                   >
                     <div className="flex items-center space-x-3">
-                      <FileImage size={16} className="text-gray-300" />
+                      <Image size={16} className="text-gray-300" />
                       <span className="text-white">Set Frame as Thumb</span>
                     </div>
                   </DropdownMenuItem>
