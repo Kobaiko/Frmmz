@@ -157,7 +157,7 @@ export const CommentInput = ({
               </Button>
               
               {/* Drawing tools button */}
-              <div className="relative">
+              <div className="relative" data-drawing-menu>
                 <Button
                   size="sm"
                   variant="ghost"

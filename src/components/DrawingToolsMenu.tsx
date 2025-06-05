@@ -29,7 +29,11 @@ export const DrawingToolsMenu = ({ onClose }: DrawingToolsMenuProps) => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
+        // Only close if clicking outside, not on the menu itself
+        const target = event.target as HTMLElement;
+        if (!target.closest('[data-drawing-menu]')) {
+          onClose();
+        }
       }
     };
 
@@ -43,6 +47,7 @@ export const DrawingToolsMenu = ({ onClose }: DrawingToolsMenuProps) => {
     if ((window as any).drawingCanvas) {
       (window as any).drawingCanvas.setTool(toolId);
     }
+    // Don't close menu when selecting tools
   };
 
   const handleColorChange = (color: string) => {
@@ -51,6 +56,7 @@ export const DrawingToolsMenu = ({ onClose }: DrawingToolsMenuProps) => {
     if ((window as any).drawingCanvas) {
       (window as any).drawingCanvas.setColor(color);
     }
+    // Don't close menu when selecting colors
   };
 
   const handleUndo = () => {
@@ -77,6 +83,7 @@ export const DrawingToolsMenu = ({ onClose }: DrawingToolsMenuProps) => {
   return (
     <div
       ref={menuRef}
+      data-drawing-menu
       className="absolute bottom-full right-0 mb-2 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 p-2"
     >
       <div className="flex items-center space-x-2">

@@ -9,6 +9,8 @@ export const DrawingCanvas = () => {
   const [currentColor, setCurrentColor] = useState("#ff6b35");
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
 
   useEffect(() => {
     if (canvasRef.current && !fabricCanvasRef.current) {
@@ -29,9 +31,15 @@ export const DrawingCanvas = () => {
       brush.width = 3;
       fabricCanvasRef.current.freeDrawingBrush = brush;
 
+      // Save initial state
+      const initialState = fabricCanvasRef.current.toJSON();
+      setHistory([JSON.stringify(initialState)]);
+      setHistoryIndex(0);
+
       // Add mouse event listeners for shapes
       fabricCanvasRef.current.on('mouse:down', (e) => {
         if (currentTool !== "pen" && e.pointer) {
+          fabricCanvasRef.current!.selection = false;
           setIsDrawing(true);
           setStartPoint({ x: e.pointer.x, y: e.pointer.y });
         }
@@ -93,9 +101,17 @@ export const DrawingCanvas = () => {
             fabricCanvasRef.current.add(line, head1, head2);
           }
           
+          // Save state after adding shape
+          saveState();
           setIsDrawing(false);
           setStartPoint(null);
+          fabricCanvasRef.current.selection = true;
         }
+      });
+
+      // Save state after free drawing
+      fabricCanvasRef.current.on('path:created', () => {
+        saveState();
       });
 
       // Listen for window resize to adjust canvas size
@@ -125,6 +141,16 @@ export const DrawingCanvas = () => {
     };
   }, []);
 
+  const saveState = () => {
+    if (!fabricCanvasRef.current) return;
+    
+    const currentState = JSON.stringify(fabricCanvasRef.current.toJSON());
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(currentState);
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  };
+
   useEffect(() => {
     if (fabricCanvasRef.current) {
       fabricCanvasRef.current.isDrawingMode = currentTool === "pen";
@@ -141,6 +167,7 @@ export const DrawingCanvas = () => {
         setCurrentTool(tool);
         if (fabricCanvasRef.current) {
           fabricCanvasRef.current.isDrawingMode = tool === "pen";
+          fabricCanvasRef.current.selection = tool === "pen" ? false : true;
         }
         console.log(`Drawing tool changed to: ${tool}`);
       },
@@ -151,29 +178,49 @@ export const DrawingCanvas = () => {
       clear: () => {
         if (fabricCanvasRef.current) {
           fabricCanvasRef.current.clear();
+          fabricCanvasRef.current.backgroundColor = 'transparent';
+          fabricCanvasRef.current.renderAll();
+          
+          // Reset history
+          const initialState = fabricCanvasRef.current.toJSON();
+          setHistory([JSON.stringify(initialState)]);
+          setHistoryIndex(0);
+          
           console.log('Drawing canvas cleared');
         }
       },
       undo: () => {
-        if (fabricCanvasRef.current) {
-          const objects = fabricCanvasRef.current.getObjects();
-          if (objects.length > 0) {
-            fabricCanvasRef.current.remove(objects[objects.length - 1]);
-            fabricCanvasRef.current.renderAll();
+        if (fabricCanvasRef.current && historyIndex > 0) {
+          const newIndex = historyIndex - 1;
+          const previousState = history[newIndex];
+          
+          fabricCanvasRef.current.loadFromJSON(JSON.parse(previousState), () => {
+            fabricCanvasRef.current!.renderAll();
+            setHistoryIndex(newIndex);
             console.log('Undo drawing action');
-          }
+          });
         }
       },
       redo: () => {
-        // Implement redo functionality
-        console.log('Redo drawing action');
+        if (fabricCanvasRef.current && historyIndex < history.length - 1) {
+          const newIndex = historyIndex + 1;
+          const nextState = history[newIndex];
+          
+          fabricCanvasRef.current.loadFromJSON(JSON.parse(nextState), () => {
+            fabricCanvasRef.current!.renderAll();
+            setHistoryIndex(newIndex);
+            console.log('Redo drawing action');
+          });
+        } else {
+          console.log('No more actions to redo');
+        }
       }
     };
 
     return () => {
       delete (window as any).drawingCanvas;
     };
-  }, []);
+  }, [history, historyIndex]);
 
   return (
     <canvas
