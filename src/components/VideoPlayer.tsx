@@ -701,7 +701,7 @@ export const VideoPlayer = ({
                     size="sm"
                     variant="ghost"
                     onClick={togglePlayPause}
-                    className="text-white hover:text-white hover:bg-gray-800 p-2"
+                    className="text-white hover:text-white hover:bg-gray-800 p-2 border-0 focus:border-0 focus:ring-0 focus-visible:ring-0"
                   >
                     {isPlaying ? <Pause size={20} /> : <Play size={20} />}
                   </Button>
@@ -721,7 +721,11 @@ export const VideoPlayer = ({
                     size="sm"
                     variant="ghost"
                     onClick={toggleLoop}
-                    className={`hover:bg-gray-800 p-2 ${isLooping ? 'text-blue-400 hover:text-blue-400' : 'text-white hover:text-white'}`}
+                    className={`p-2 border-0 focus:border-0 focus:ring-0 focus-visible:ring-0 ${
+                      isLooping 
+                        ? 'text-blue-400 hover:text-blue-400 hover:bg-gray-800' 
+                        : 'text-white hover:text-white hover:bg-gray-800'
+                    }`}
                   >
                     <Repeat size={16} />
                   </Button>
@@ -737,7 +741,7 @@ export const VideoPlayer = ({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="text-white hover:text-white hover:bg-gray-800 px-3 py-2 text-sm"
+                    className="text-white hover:text-white hover:bg-gray-800 px-3 py-2 text-sm border-0 focus:border-0 focus:ring-0 focus-visible:ring-0"
                     onMouseEnter={() => setIsSpeedHovered(true)}
                     onMouseLeave={() => setIsSpeedHovered(false)}
                   >
@@ -781,7 +785,7 @@ export const VideoPlayer = ({
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-white hover:text-white hover:bg-gray-800 p-2"
+                        className="text-white hover:text-white hover:bg-gray-800 p-2 border-0 focus:border-0 focus:ring-0 focus-visible:ring-0"
                         onMouseEnter={() => setIsVolumeHovered(true)}
                         onMouseLeave={() => setIsVolumeHovered(false)}
                         onClick={handleVolumeToggle}
@@ -830,7 +834,7 @@ export const VideoPlayer = ({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="text-white hover:text-white hover:bg-gray-800 p-2"
+                    className="text-white hover:text-white hover:bg-gray-800 p-2 border-0 focus:border-0 focus:ring-0 focus-visible:ring-0"
                   >
                     <Settings size={16} />
                   </Button>
@@ -1101,7 +1105,7 @@ export const VideoPlayer = ({
                 size="sm"
                 variant="ghost"
                 onClick={toggleFullscreen}
-                className="text-white hover:text-white hover:bg-gray-800 p-2"
+                className="text-white hover:text-white hover:bg-gray-800 p-2 border-0 focus:border-0 focus:ring-0 focus-visible:ring-0"
               >
                 <Maximize size={16} />
               </Button>
