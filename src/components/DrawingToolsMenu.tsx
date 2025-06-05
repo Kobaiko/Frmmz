@@ -29,9 +29,9 @@ export const DrawingToolsMenu = ({ onClose }: DrawingToolsMenuProps) => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        // Only close if clicking outside, not on the menu itself
+        // Only close if clicking outside and not on drawing canvas
         const target = event.target as HTMLElement;
-        if (!target.closest('[data-drawing-menu]')) {
+        if (!target.closest('[data-drawing-menu]') && !target.closest('canvas')) {
           onClose();
         }
       }
