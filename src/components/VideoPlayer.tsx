@@ -62,9 +62,10 @@ export const VideoPlayer = ({
     handleQualityChange
   } = useVideoPlayer({ src, currentTime, onTimeUpdate, onDurationChange });
 
-  // Handle drawing start - pause video
+  // Handle drawing start - pause video immediately
   const handleDrawingStart = () => {
-    if (isPlaying && videoRef.current) {
+    console.log('Drawing started - pausing video');
+    if (videoRef.current && !videoRef.current.paused) {
       videoRef.current.pause();
       console.log('Video paused for drawing');
     }
