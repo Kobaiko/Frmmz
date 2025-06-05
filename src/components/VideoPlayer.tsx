@@ -67,21 +67,33 @@ export const VideoPlayer = ({
   useEffect(() => {
     if (isDrawingMode && videoRef.current) {
       console.log('Drawing mode enabled - forcing video pause');
-      if (!videoRef.current.paused) {
-        videoRef.current.pause();
-      }
+      const video = videoRef.current;
+      // Use a small timeout to ensure the video element is ready
+      setTimeout(() => {
+        if (!video.paused) {
+          video.pause();
+          console.log('Video successfully paused for drawing mode');
+        }
+      }, 10);
     }
   }, [isDrawingMode]);
 
   // Handle drawing mode change - ensure video is paused
   const handleDrawingModeChange = (enabled: boolean) => {
     console.log(`Drawing mode ${enabled ? 'enabled' : 'disabled'}`);
-    if (enabled) {
-      // Force pause the video immediately when enabling drawing mode
-      if (videoRef.current) {
-        console.log('Pausing video due to drawing mode activation');
-        videoRef.current.pause();
+    if (enabled && videoRef.current) {
+      console.log('Immediately pausing video for drawing mode');
+      const video = videoRef.current;
+      if (!video.paused) {
+        video.pause();
       }
+      // Double-check with a small delay
+      setTimeout(() => {
+        if (!video.paused) {
+          video.pause();
+          console.log('Video pause enforced with timeout');
+        }
+      }, 50);
     }
     if (onDrawingModeChange) {
       onDrawingModeChange(enabled);
@@ -92,8 +104,9 @@ export const VideoPlayer = ({
   const handleDrawingStart = () => {
     console.log('Drawing started - pausing video and enabling drawing mode');
     if (videoRef.current) {
+      const video = videoRef.current;
+      video.pause();
       console.log('Video paused for drawing');
-      videoRef.current.pause();
     }
     // Enable drawing mode when starting to draw
     handleDrawingModeChange(true);
