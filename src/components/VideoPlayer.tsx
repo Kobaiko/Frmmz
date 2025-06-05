@@ -180,15 +180,29 @@ export const VideoPlayer = ({
         return; // Don't trigger shortcuts when typing in input fields
       }
 
+      const video = videoRef.current;
+      if (!video) return;
+
       switch (e.key.toLowerCase()) {
         case 'k':
         case ' ':
           e.preventDefault();
-          togglePlayPause();
+          if (video.paused) {
+            video.play();
+          } else {
+            video.pause();
+          }
           break;
         case 'm':
           e.preventDefault();
-          handleVolumeToggle();
+          if (video.muted || video.volume === 0) {
+            video.muted = false;
+            video.volume = volume || 0.5;
+            setVolume(video.volume);
+          } else {
+            video.muted = true;
+            setVolume(0);
+          }
           break;
         case 't':
           handleZoomChange('Fit');
@@ -213,7 +227,7 @@ export const VideoPlayer = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [volume]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -263,7 +277,7 @@ export const VideoPlayer = ({
     const video = videoRef.current;
     if (!video) return;
     
-    if (volume > 0) {
+    if (volume > 0 || !video.muted) {
       setVolume(0);
       video.volume = 0;
       video.muted = true;
@@ -687,7 +701,7 @@ export const VideoPlayer = ({
                     size="sm"
                     variant="ghost"
                     onClick={togglePlayPause}
-                    className="text-white hover:text-white hover:bg-gray-800 p-2 focus:ring-0 focus:outline-none"
+                    className="text-white hover:text-white hover:bg-gray-800 p-2 focus:ring-0 focus:outline-none focus:border-none focus-visible:ring-0 focus-visible:ring-offset-0"
                   >
                     {isPlaying ? <Pause size={20} /> : <Play size={20} />}
                   </Button>
@@ -707,7 +721,7 @@ export const VideoPlayer = ({
                     size="sm"
                     variant="ghost"
                     onClick={toggleLoop}
-                    className={`hover:bg-gray-800 p-2 ${isLooping ? 'text-blue-400 hover:text-blue-400' : 'text-white hover:text-white'}`}
+                    className={`hover:bg-gray-800 p-2 focus:ring-0 focus:outline-none focus:border-none focus-visible:ring-0 focus-visible:ring-offset-0 ${isLooping ? 'text-blue-400 hover:text-blue-400' : 'text-white hover:text-white'}`}
                   >
                     <Repeat size={16} />
                   </Button>
@@ -723,7 +737,7 @@ export const VideoPlayer = ({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="text-white hover:text-white hover:bg-gray-800 px-3 py-2 text-sm focus:ring-0 focus:outline-none"
+                    className="text-white hover:text-white hover:bg-gray-800 px-3 py-2 text-sm focus:ring-0 focus:outline-none focus:border-none focus-visible:ring-0 focus-visible:ring-offset-0"
                     onMouseEnter={() => setIsSpeedHovered(true)}
                     onMouseLeave={() => setIsSpeedHovered(false)}
                   >
@@ -739,20 +753,20 @@ export const VideoPlayer = ({
                 >
                   <div className="p-4">
                     <div className="text-white text-sm font-medium mb-3">Playback speed</div>
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       {getSpeedChoices().map((speed) => (
                         <div
                           key={speed}
-                          className="flex items-center justify-between cursor-pointer hover:bg-gray-700 px-3 py-2 rounded"
+                          className="flex items-center justify-between cursor-pointer hover:bg-gray-700 px-3 py-2 rounded group"
                           onClick={() => handleSpeedChange(speed)}
                         >
                           <div className="flex items-center space-x-3">
                             <div 
-                              className={`w-2 h-2 rounded-full ${playbackSpeed === speed ? 'bg-blue-500' : 'bg-gray-500'}`}
+                              className={`w-2 h-2 rounded-full transition-colors ${playbackSpeed === speed ? 'bg-blue-500' : 'bg-gray-500 group-hover:bg-gray-400'}`}
                             />
-                            <span className="text-white">{speed}</span>
+                            <span className="text-white text-sm">{speed}x</span>
                           </div>
-                          {speed === 1 && <span className="text-gray-400 text-sm">Normal</span>}
+                          {speed === 1 && <span className="text-gray-400 text-xs">Normal</span>}
                         </div>
                       ))}
                     </div>
@@ -768,7 +782,7 @@ export const VideoPlayer = ({
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-white hover:text-white hover:bg-gray-800 p-2 focus:ring-0 focus:outline-none"
+                        className="text-white hover:text-white hover:bg-gray-800 p-2 focus:ring-0 focus:outline-none focus:border-none focus-visible:ring-0 focus-visible:ring-offset-0"
                         onMouseEnter={() => setIsVolumeHovered(true)}
                         onMouseLeave={() => setIsVolumeHovered(false)}
                         onClick={handleVolumeToggle}
