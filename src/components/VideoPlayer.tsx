@@ -275,9 +275,9 @@ export const VideoPlayer = ({
               guides={guides}
             />
             
-            {/* Drawing Canvas - Only show when annotations are enabled */}
+            {/* Drawing Canvas - Always render when annotations are enabled */}
             {annotations && (
-              <div className="absolute inset-0 pointer-events-auto">
+              <div className="absolute inset-0">
                 <DrawingCanvas 
                   currentTime={currentTime} 
                   videoRef={videoRef}

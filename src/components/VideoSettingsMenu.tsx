@@ -1,4 +1,3 @@
-
 import { 
   Settings,
   Play,
@@ -7,8 +6,6 @@ import {
   ZoomOut,
   Shrink,
   Maximize2,
-  MessageSquare,
-  Pencil,
   Image,
   ArrowDown
 } from "lucide-react";
@@ -251,53 +248,6 @@ export const VideoSettingsMenu = ({
               <div className="flex items-center space-x-4">
                 <span className="bg-gray-700 px-1.5 py-0.5 rounded text-xs font-mono">⌘0</span>
                 {zoom === '100%' && <Check size={16} className="text-white" />}
-              </div>
-            </DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-        
-        {/* View on Asset Sub-menu */}
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 data-[state=open]:bg-gray-700 px-4 py-3 cursor-pointer border-none text-white">
-            <div className="flex items-center space-x-3">
-              <div className="w-4 h-4 border border-gray-300 rounded-sm" />
-              <span className="text-white">View on Asset</span>
-            </div>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="bg-gray-800 border-gray-600 text-white shadow-xl z-50">
-            {/* Encode Comments */}
-            <DropdownMenuItem className="hover:bg-gray-700 focus:bg-gray-700 data-[highlighted]:bg-gray-700 cursor-pointer p-0">
-              <div className="flex items-center justify-between w-full px-4 py-3">
-                <div className="flex items-center space-x-3">
-                  <MessageSquare size={16} className="text-gray-300" />
-                  <span className="text-white">Encode Comments</span>
-                </div>
-                <Switch
-                  checked={encodeComments}
-                  onCheckedChange={(checked) => {
-                    setEncodeComments(checked);
-                    console.log(`Encode Comments ${checked ? 'enabled' : 'disabled'}`);
-                  }}
-                  className="data-[state=checked]:bg-blue-600 scale-75"
-                />
-              </div>
-            </DropdownMenuItem>
-
-            {/* Annotations */}
-            <DropdownMenuItem className="hover:bg-gray-700 focus:bg-gray-700 data-[highlighted]:bg-gray-700 cursor-pointer p-0">
-              <div className="flex items-center justify-between w-full px-4 py-3">
-                <div className="flex items-center space-x-3">
-                  <Pencil size={16} className="text-gray-300" />
-                  <span className="text-white">Annotations</span>
-                </div>
-                <Switch
-                  checked={annotations}
-                  onCheckedChange={(checked) => {
-                    setAnnotations(checked);
-                    console.log(`Annotations ${checked ? 'enabled' : 'disabled'}`);
-                  }}
-                  className="data-[state=checked]:bg-blue-600 scale-75"
-                />
               </div>
             </DropdownMenuItem>
           </DropdownMenuSubContent>

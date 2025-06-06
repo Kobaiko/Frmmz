@@ -420,19 +420,11 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     };
   }, [currentTool, currentColor, getCurrentFrame, frameDrawings, addPathToFrame]);
 
-  // Don't render canvas if not in drawing mode and no existing drawings
-  const currentFrame = getCurrentFrame();
-  const frameData = frameDrawings.find(f => f.frame === currentFrame);
-  const hasDrawings = frameData && frameData.paths.length > 0;
-
-  if (!isDrawingMode && !hasDrawings) {
-    return null;
-  }
-
+  // Always render the canvas - visibility is controlled by parent
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 pointer-events-auto cursor-crosshair"
+      className={`absolute inset-0 ${isDrawingMode ? 'pointer-events-auto cursor-crosshair' : 'pointer-events-none'}`}
       style={{ zIndex: 10 }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
