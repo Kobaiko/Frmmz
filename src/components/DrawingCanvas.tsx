@@ -32,6 +32,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
   const lastFrameRef = useRef<number>(-1);
   const pendingPathRef = useRef<DrawingPath | null>(null);
   const isInitializedRef = useRef(false);
+  const redrawTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get current frame number (30fps)
   const getCurrentFrame = useCallback(() => Math.floor(currentTime * 30), [currentTime]);
@@ -249,7 +250,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     });
   }, [getCurrentFrame]);
 
-  // Handle frame changes
+  // Handle frame changes with improved timing
   useEffect(() => {
     const currentFrame = getCurrentFrame();
     
@@ -260,19 +261,53 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
       // Clear any pending path
       pendingPathRef.current = null;
       
-      // Redraw canvas for new frame
-      setTimeout(() => {
+      // Clear any existing timeout
+      if (redrawTimeoutRef.current) {
+        clearTimeout(redrawTimeoutRef.current);
+      }
+      
+      // Redraw canvas for new frame with multiple attempts for timestamp seeking
+      const attemptRedraw = (attempt = 1) => {
         redrawCanvas();
-      }, 50);
+        
+        // For timestamp seeking, try multiple times to ensure drawings appear
+        if (attempt < 3) {
+          redrawTimeoutRef.current = setTimeout(() => {
+            attemptRedraw(attempt + 1);
+          }, 50 * attempt); // Increasing delays: 50ms, 100ms
+        }
+      };
+      
+      attemptRedraw();
     }
   }, [currentTime, getCurrentFrame, redrawCanvas]);
 
   // Redraw when frameDrawings change OR annotations toggle
   useEffect(() => {
     if (isInitializedRef.current) {
+      // Clear any existing timeout
+      if (redrawTimeoutRef.current) {
+        clearTimeout(redrawTimeoutRef.current);
+      }
+      
+      // Immediate redraw
       redrawCanvas();
+      
+      // Additional redraw after a short delay to ensure persistence
+      redrawTimeoutRef.current = setTimeout(() => {
+        redrawCanvas();
+      }, 100);
     }
   }, [frameDrawings, redrawCanvas, annotations]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (redrawTimeoutRef.current) {
+        clearTimeout(redrawTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Mouse event handlers - Only work in drawing mode
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {

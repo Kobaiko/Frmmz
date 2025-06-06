@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 
 interface UseVideoPlayerProps {
@@ -6,19 +5,22 @@ interface UseVideoPlayerProps {
   currentTime: number;
   onTimeUpdate: (time: number) => void;
   onDurationChange?: (duration: number) => void;
+  isPlaying: boolean;
+  onPlayingStateChange: (playing: boolean) => void;
 }
 
 export const useVideoPlayer = ({ 
   src, 
   currentTime, 
   onTimeUpdate, 
-  onDurationChange 
+  onDurationChange,
+  isPlaying,
+  onPlayingStateChange
 }: UseVideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
   const animationFrameRef = useRef<number>();
   const [duration, setDuration] = useState<number>(0);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [quality, setQuality] = useState('1080p');
@@ -87,13 +89,13 @@ export const useVideoPlayer = ({
     };
 
     const handlePlay = () => {
-      setIsPlaying(true);
+      onPlayingStateChange(true);
       // Start high-frequency time updates for frame-accurate display
       animationFrameRef.current = requestAnimationFrame(updateTime);
     };
     
     const handlePause = () => {
-      setIsPlaying(false);
+      onPlayingStateChange(false);
       // Stop high-frequency updates
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -119,7 +121,7 @@ export const useVideoPlayer = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [src, onTimeUpdate, onDurationChange]);
+  }, [src, onTimeUpdate, onDurationChange, onPlayingStateChange]);
 
   // Simple loop effect - just set the loop attribute
   useEffect(() => {
@@ -130,12 +132,32 @@ export const useVideoPlayer = ({
     }
   }, [isLooping]);
 
+  // Handle external time changes (like seeking from timestamp clicks)
   useEffect(() => {
     const video = videoRef.current;
     if (video && Math.abs(video.currentTime - currentTime) > 0.5) {
+      console.log(`🎯 Seeking video from ${video.currentTime} to ${currentTime}`);
       video.currentTime = currentTime;
+      
+      // If we're seeking due to timestamp click, ensure video is paused
+      if (!isPlaying && !video.paused) {
+        video.pause();
+        console.log('📹 Video paused after timestamp seek');
+      }
     }
-  }, [currentTime]);
+  }, [currentTime, isPlaying]);
+
+  // Sync video play/pause state with external state
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (isPlaying && video.paused) {
+      video.play();
+    } else if (!isPlaying && !video.paused) {
+      video.pause();
+    }
+  }, [isPlaying]);
 
   const togglePlayPause = () => {
     const video = videoRef.current;
@@ -197,7 +219,6 @@ export const useVideoPlayer = ({
     videoRef,
     previewVideoRef,
     duration,
-    isPlaying,
     volume,
     playbackSpeed,
     quality,

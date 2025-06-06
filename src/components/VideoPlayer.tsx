@@ -20,6 +20,8 @@ interface VideoPlayerProps {
   onDrawingModeChange?: (enabled: boolean) => void;
   annotations: boolean;
   setAnnotations: (value: boolean) => void;
+  isPlaying: boolean;
+  onPlayingStateChange: (playing: boolean) => void;
 }
 
 export const VideoPlayer = ({ 
@@ -32,7 +34,9 @@ export const VideoPlayer = ({
   isDrawingMode = false,
   onDrawingModeChange,
   annotations,
-  setAnnotations
+  setAnnotations,
+  isPlaying,
+  onPlayingStateChange
 }: VideoPlayerProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [guides, setGuides] = useState({
@@ -48,7 +52,6 @@ export const VideoPlayer = ({
     videoRef,
     previewVideoRef,
     duration,
-    isPlaying,
     volume,
     playbackSpeed,
     quality,
@@ -63,7 +66,14 @@ export const VideoPlayer = ({
     handleVolumeToggle,
     handleVolumeChange,
     handleQualityChange
-  } = useVideoPlayer({ src, currentTime, onTimeUpdate, onDurationChange });
+  } = useVideoPlayer({ 
+    src, 
+    currentTime, 
+    onTimeUpdate, 
+    onDurationChange,
+    isPlaying,
+    onPlayingStateChange
+  });
 
   // Force pause video immediately when drawing mode is enabled
   useEffect(() => {
