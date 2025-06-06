@@ -39,7 +39,7 @@ export const CommentInput = ({
   const [hasDrawing, setHasDrawing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Monitor canvas for drawings - improved detection
+  // Monitor canvas for drawings
   useEffect(() => {
     const checkForDrawings = () => {
       const canvas = (window as any).drawingCanvas;
@@ -54,15 +54,12 @@ export const CommentInput = ({
     };
 
     if (isDrawingMode) {
-      // Check immediately
       checkForDrawings();
-      // Then check periodically
       const interval = setInterval(checkForDrawings, 500);
       return () => clearInterval(interval);
     }
   }, [isDrawingMode, currentTime, hasDrawing]);
 
-  // Reset drawing tools state when drawing mode is disabled externally
   useEffect(() => {
     if (!isDrawingMode) {
       console.log('Drawing mode disabled, closing drawing tools');
@@ -78,27 +75,16 @@ export const CommentInput = ({
 
   const handleSubmit = () => {
     if (comment.trim()) {
-      // CRITICAL: Save drawings before submitting comment
+      // Force save drawings before submitting
       const canvas = (window as any).drawingCanvas;
       if (canvas && hasDrawing) {
-        console.log('CRITICAL: Saving drawings before comment submission');
+        console.log('CRITICAL: Force saving drawings before comment submission');
+        canvas.forceSave();
         
-        // Multiple save attempts to ensure data persistence
-        if (canvas.saveBeforeDisposal) {
-          canvas.saveBeforeDisposal();
-        }
-        
-        if (canvas.forceSave) {
-          canvas.forceSave();
-        }
-
-        // Additional backup save with delay
+        // Double-check with a small delay
         setTimeout(() => {
-          if (canvas.forceSave) {
-            canvas.forceSave();
-            console.log('Backup save completed');
-          }
-        }, 100);
+          canvas.forceSave();
+        }, 50);
       }
       
       console.log('Submitting comment with hasDrawing:', hasDrawing);
@@ -106,18 +92,17 @@ export const CommentInput = ({
       // Submit the comment
       onAddComment(comment.trim(), attachments, isInternal, attachTime, hasDrawing);
       
-      // Reset states after a delay to ensure drawings are saved
-      setTimeout(() => {
-        setComment("");
-        setAttachments([]);
-        setIsInternal(false);
-        setAttachTime(true);
-        setHasDrawing(false);
-        setShowDrawingTools(false);
-        setShowEmojiPicker(false);
-        
-        if (onCancel) onCancel();
-      }, 200);
+      // Reset states
+      setComment("");
+      setAttachments([]);
+      setIsInternal(false);
+      setAttachTime(true);
+      setHasDrawing(false);
+      setShowDrawingTools(false);
+      setShowEmojiPicker(false);
+      
+      // Only call onCancel if provided - don't force drawing mode off
+      if (onCancel) onCancel();
     }
   };
 
@@ -144,14 +129,12 @@ export const CommentInput = ({
     console.log('Drawing button clicked - current states:', { isDrawingMode, showDrawingTools });
     
     if (!isDrawingMode) {
-      // Always start drawing mode when not in drawing mode
       console.log('Starting drawing mode');
       if (onStartDrawing) {
         onStartDrawing();
       }
       setShowDrawingTools(true);
     } else {
-      // Toggle drawing tools when already in drawing mode
       console.log('Toggling drawing tools');
       setShowDrawingTools(!showDrawingTools);
     }
