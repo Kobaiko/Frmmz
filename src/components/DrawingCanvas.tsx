@@ -32,6 +32,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
   const lastFrameRef = useRef<number>(-1);
   const pendingPathRef = useRef<DrawingPath | null>(null);
   const isInitializedRef = useRef(false);
+  const isSeekingRef = useRef(false);
 
   // Get current frame number (30fps)
   const getCurrentFrame = useCallback(() => Math.floor(currentTime * 30), [currentTime]);
@@ -110,6 +111,41 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
       video.removeEventListener('canplay', handleVideoReady);
     };
   }, [videoRef, initializeCanvas]);
+
+  // 🔥 FIXED: Listen for video seeking events to handle timestamp clicks properly
+  useEffect(() => {
+    const video = videoRef?.current;
+    if (!video) return;
+
+    const handleSeeking = () => {
+      isSeekingRef.current = true;
+      console.log('🎯 Video seeking started...');
+    };
+
+    const handleSeeked = () => {
+      isSeekingRef.current = false;
+      console.log('🎯 Video seeking finished - NOW REDRAW!');
+      
+      // Force immediate redraw when seeking is complete
+      const currentFrame = getCurrentFrame();
+      lastFrameRef.current = currentFrame;
+      
+      if (isInitializedRef.current) {
+        // Small delay to ensure video frame is rendered
+        setTimeout(() => {
+          redrawCanvas();
+        }, 50);
+      }
+    };
+
+    video.addEventListener('seeking', handleSeeking);
+    video.addEventListener('seeked', handleSeeked);
+
+    return () => {
+      video.removeEventListener('seeking', handleSeeking);
+      video.removeEventListener('seeked', handleSeeked);
+    };
+  }, [videoRef, getCurrentFrame]);
 
   // Draw a single path on canvas
   const drawPath = useCallback((path: DrawingPath, context: CanvasRenderingContext2D, isPreview = false) => {
@@ -243,18 +279,24 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     });
   }, [getCurrentFrame]);
 
-  // 🔥 FIXED: Immediate frame change handling - NO DELAYS!
+  // Handle frame changes - BUT ONLY when NOT seeking
   useEffect(() => {
+    // Skip if video is currently seeking (timestamp click in progress)
+    if (isSeekingRef.current) {
+      console.log('⏸️ Skipping frame change - video is seeking');
+      return;
+    }
+
     const currentFrame = getCurrentFrame();
     
     if (currentFrame !== lastFrameRef.current) {
-      console.log(`🎬 Frame changed from ${lastFrameRef.current} to ${currentFrame} - IMMEDIATE REDRAW`);
+      console.log(`🎬 Frame changed from ${lastFrameRef.current} to ${currentFrame} - SAFE REDRAW`);
       lastFrameRef.current = currentFrame;
       
       // Clear any pending path
       pendingPathRef.current = null;
       
-      // 🚀 IMMEDIATE redraw - no setTimeout delays!
+      // Immediate redraw for natural playback
       if (isInitializedRef.current) {
         redrawCanvas();
       }
