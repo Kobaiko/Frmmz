@@ -90,54 +90,53 @@ export const CommentInput = ({
     if (comment.trim()) {
       const canvas = (window as any).drawingCanvas;
       
-      // Enhanced force save process with multiple attempts
+      // Enhanced force save process with verification
       if (canvas && hasDrawing) {
-        console.log('CRITICAL: Enhanced force save process starting');
+        console.log('CRITICAL: Starting enhanced save process for drawing comment');
         
-        // Multiple force saves with increasing delays
-        const performForceSave = () => {
-          canvas.forceSave();
-          console.log('Force save executed');
+        // Force save multiple times to ensure persistence
+        const performMultipleSaves = () => {
+          for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+              canvas.forceSave();
+              console.log(`Force save attempt ${i + 1}`);
+            }, i * 50);
+          }
         };
         
-        // Immediate save
-        performForceSave();
+        performMultipleSaves();
         
-        // Additional saves with delays to ensure persistence
-        setTimeout(performForceSave, 50);
-        setTimeout(performForceSave, 100);
-        setTimeout(performForceSave, 200);
-        
-        // Final verification and submission
+        // Wait for saves to complete, then verify and submit
         setTimeout(() => {
-          performForceSave();
-          
-          // Verify the save worked
+          // Final verification
           const allDrawings = canvas.getAllFrameDrawings ? canvas.getAllFrameDrawings() : [];
           const currentFrame = Math.floor(currentTime * 30);
-          const frameHasDrawing = allDrawings.some((d: any) => d.frame === currentFrame);
+          const frameDrawing = allDrawings.find((d: any) => d.frame === currentFrame);
           
-          console.log('Final verification - frame has drawing:', frameHasDrawing);
-          console.log('All frame drawings:', allDrawings.length);
+          console.log('Final verification:');
+          console.log('- Current frame:', currentFrame);
+          console.log('- Frame has drawing data:', !!frameDrawing);
+          console.log('- Total stored frames:', allDrawings.length);
           
-          // Submit after ensuring saves are complete
-          setTimeout(() => {
-            console.log('Submitting comment with hasDrawing:', hasDrawing);
-            
-            onAddComment(comment.trim(), attachments, isInternal, attachTime, hasDrawing);
-            
-            // Reset states but DON'T clear the canvas - let it persist
-            setComment("");
-            setAttachments([]);
-            setIsInternal(false);
-            setAttachTime(true);
-            setHasDrawing(false);
-            setShowDrawingTools(false);
-            setShowEmojiPicker(false);
-            
-            if (onCancel) onCancel();
-          }, 100);
-        }, 300);
+          if (frameDrawing) {
+            console.log('- Drawing data length:', frameDrawing.canvasData?.length || 0);
+          }
+          
+          // Submit the comment
+          console.log('Submitting comment with hasDrawing:', hasDrawing);
+          onAddComment(comment.trim(), attachments, isInternal, attachTime, hasDrawing);
+          
+          // Reset states but DON'T clear the canvas - let it persist
+          setComment("");
+          setAttachments([]);
+          setIsInternal(false);
+          setAttachTime(true);
+          setHasDrawing(false);
+          setShowDrawingTools(false);
+          setShowEmojiPicker(false);
+          
+          if (onCancel) onCancel();
+        }, 500); // Increased wait time for saves to complete
       } else {
         // No drawings, submit immediately
         console.log('Submitting comment without drawings');
