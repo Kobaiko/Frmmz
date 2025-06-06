@@ -18,6 +18,8 @@ interface VideoPlayerProps {
   onTimeClick: (time: number) => void;
   isDrawingMode?: boolean;
   onDrawingModeChange?: (enabled: boolean) => void;
+  annotations: boolean;
+  setAnnotations: (value: boolean) => void;
 }
 
 export const VideoPlayer = ({ 
@@ -28,7 +30,9 @@ export const VideoPlayer = ({
   comments, 
   onTimeClick,
   isDrawingMode = false,
-  onDrawingModeChange
+  onDrawingModeChange,
+  annotations,
+  setAnnotations
 }: VideoPlayerProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [guides, setGuides] = useState({
@@ -39,7 +43,6 @@ export const VideoPlayer = ({
   const [zoom, setZoom] = useState('Fit');
   const [zoomLevel, setZoomLevel] = useState(1);
   const [encodeComments, setEncodeComments] = useState(false);
-  const [annotations, setAnnotations] = useState(false);
 
   const {
     videoRef,
@@ -272,11 +275,13 @@ export const VideoPlayer = ({
               guides={guides}
             />
             
-            {isDrawingMode && (
+            {/* Drawing Canvas - Only show when annotations are enabled */}
+            {annotations && (
               <div className="absolute inset-0 pointer-events-auto">
                 <DrawingCanvas 
                   currentTime={currentTime} 
                   videoRef={videoRef}
+                  isDrawingMode={isDrawingMode}
                 />
               </div>
             )}

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -10,7 +9,8 @@ import {
   Repeat,
   Maximize,
   ChevronDown,
-  Check
+  Check,
+  Pencil
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -317,6 +317,27 @@ export const VideoControls = ({
       </div>
       
       <div className="flex items-center space-x-3">
+        {/* Annotations Toggle - Prominent Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setAnnotations(!annotations)}
+              className={`p-2 border-0 focus:border-0 focus:ring-0 focus-visible:ring-0 ${
+                annotations 
+                  ? 'text-blue-400 hover:text-blue-400 hover:bg-gray-800' 
+                  : 'text-white hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              <Pencil size={16} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent className="bg-gray-800 text-white border-gray-600">
+            <span>{annotations ? 'Hide Annotations' : 'Show Annotations'}</span>
+          </TooltipContent>
+        </Tooltip>
+
         {/* Settings Dropdown */}
         <VideoSettingsMenu
           quality={quality}

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { CommentPanel } from "@/components/CommentPanel";
@@ -23,6 +22,7 @@ const Index = () => {
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [isDrawingMode, setIsDrawingMode] = useState<boolean>(false);
+  const [annotations, setAnnotations] = useState<boolean>(true); // Default to ON
   const [projectId] = useState<string>(() => 
     window.location.hash.slice(1) || Math.random().toString(36).substr(2, 9)
   );
@@ -112,6 +112,8 @@ const Index = () => {
             onTimeClick={handleCommentClick}
             isDrawingMode={isDrawingMode}
             onDrawingModeChange={handleDrawingModeChange}
+            annotations={annotations}
+            setAnnotations={setAnnotations}
           />
         </div>
         <div className="w-96 border-l border-gray-700 flex flex-col">

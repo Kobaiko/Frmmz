@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 interface DrawingCanvasProps {
   currentTime?: number;
   videoRef?: React.RefObject<HTMLVideoElement>;
+  isDrawingMode?: boolean;
 }
 
 interface DrawingPath {
@@ -18,7 +19,7 @@ interface FrameDrawing {
   timestamp: number;
 }
 
-export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps) => {
+export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false }: DrawingCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -155,7 +156,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     }
   }, [getCurrentFrame, frameDrawings, drawPath]);
 
-  // Add path to current frame
+  // Add path to current frame - PERSISTENT STORAGE
   const addPathToFrame = useCallback((path: DrawingPath) => {
     const currentFrame = getCurrentFrame();
     
@@ -170,21 +171,24 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
           paths: [...newFrameDrawings[existingFrameIndex].paths, path],
           timestamp: Date.now()
         };
+        console.log(`Added ${path.type} to existing frame ${currentFrame}. Total paths: ${newFrameDrawings[existingFrameIndex].paths.length}`);
         return newFrameDrawings;
       } else {
         // Create new frame
-        return [...prev, {
+        const newFrameDrawing = {
           frame: currentFrame,
           paths: [path],
           timestamp: Date.now()
-        }];
+        };
+        console.log(`Created new frame ${currentFrame} with ${path.type}. Total frames: ${prev.length + 1}`);
+        return [...prev, newFrameDrawing];
       }
     });
 
-    console.log(`Added ${path.type} to frame ${currentFrame}`);
+    console.log(`PERSISTENT: Added ${path.type} to frame ${currentFrame}`);
   }, [getCurrentFrame]);
 
-  // Handle frame changes
+  // Handle frame changes - PRESERVE DRAWINGS
   useEffect(() => {
     const currentFrame = getCurrentFrame();
     
@@ -195,20 +199,22 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
       // Clear any pending path
       pendingPathRef.current = null;
       
-      // Redraw canvas for new frame
+      // Redraw canvas for new frame - this will show existing drawings
       setTimeout(() => {
         redrawCanvas();
       }, 50);
     }
   }, [currentTime, getCurrentFrame, redrawCanvas]);
 
-  // Redraw when frameDrawings change
+  // Redraw when frameDrawings change - MAINTAIN PERSISTENCE
   useEffect(() => {
     redrawCanvas();
   }, [frameDrawings, redrawCanvas]);
 
-  // Mouse event handlers
+  // Mouse event handlers - Only work in drawing mode
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawingMode) return;
+    
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -227,6 +233,8 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawingMode) return;
+    
     const canvas = canvasRef.current;
     if (!canvas || !isDrawing || !startPoint) return;
 
@@ -282,7 +290,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
   };
 
   const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !startPoint) return;
+    if (!isDrawingMode || !isDrawing || !startPoint) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -337,10 +345,10 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     // Clear pending path
     pendingPathRef.current = null;
 
-    // Add final path if valid
+    // Add final path if valid - THIS MAKES IT PERSISTENT
     if (finalPath) {
       addPathToFrame(finalPath);
-      console.log(`Completed ${finalPath.type} drawing`);
+      console.log(`COMPLETED: ${finalPath.type} drawing - NOW PERSISTENT`);
     }
 
     // Reset drawing state
@@ -411,6 +419,15 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
       delete (window as any).drawingCanvas;
     };
   }, [currentTool, currentColor, getCurrentFrame, frameDrawings, addPathToFrame]);
+
+  // Don't render canvas if not in drawing mode and no existing drawings
+  const currentFrame = getCurrentFrame();
+  const frameData = frameDrawings.find(f => f.frame === currentFrame);
+  const hasDrawings = frameData && frameData.paths.length > 0;
+
+  if (!isDrawingMode && !hasDrawings) {
+    return null;
+  }
 
   return (
     <canvas
