@@ -4,6 +4,7 @@ interface DrawingCanvasProps {
   currentTime?: number;
   videoRef?: React.RefObject<HTMLVideoElement>;
   isDrawingMode?: boolean;
+  annotations?: boolean;
 }
 
 interface DrawingPath {
@@ -19,7 +20,7 @@ interface FrameDrawing {
   timestamp: number;
 }
 
-export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false }: DrawingCanvasProps) => {
+export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false, annotations = true }: DrawingCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -35,9 +36,9 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
   // Get current frame number (30fps)
   const getCurrentFrame = useCallback(() => Math.floor(currentTime * 30), [currentTime]);
 
-  // Initialize canvas
+  // Initialize canvas - ALWAYS when component mounts
   useEffect(() => {
-    if (!canvasRef.current || isInitializedRef.current) return;
+    if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
     const container = canvas.parentElement;
@@ -59,7 +60,12 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     contextRef.current = context;
     isInitializedRef.current = true;
 
-    console.log('Canvas initialized with size:', canvas.width, 'x', canvas.height);
+    console.log('Canvas INITIALIZED with size:', canvas.width, 'x', canvas.height);
+    
+    // Initial redraw to show any existing drawings
+    setTimeout(() => {
+      redrawCanvas();
+    }, 100);
   }, [currentColor]);
 
   // Draw a single path on canvas
@@ -131,14 +137,20 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     context.restore();
   }, []);
 
-  // Redraw all paths for current frame
+  // Redraw all paths for current frame - RESPECTS ANNOTATIONS TOGGLE
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const context = contextRef.current;
     if (!canvas || !context) return;
 
-    // Clear canvas
+    // Always clear canvas first
     context.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Only draw if annotations are enabled
+    if (!annotations) {
+      console.log('Annotations disabled - canvas cleared but drawings preserved in memory');
+      return;
+    }
 
     const currentFrame = getCurrentFrame();
     const frameData = frameDrawings.find(f => f.frame === currentFrame);
@@ -151,10 +163,10 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     }
 
     // Draw pending path if exists (for preview)
-    if (pendingPathRef.current) {
+    if (pendingPathRef.current && isDrawingMode) {
       drawPath(pendingPathRef.current, context, true);
     }
-  }, [getCurrentFrame, frameDrawings, drawPath]);
+  }, [getCurrentFrame, frameDrawings, drawPath, annotations, isDrawingMode]);
 
   // Add path to current frame - PERSISTENT STORAGE
   const addPathToFrame = useCallback((path: DrawingPath) => {
@@ -206,14 +218,14 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     }
   }, [currentTime, getCurrentFrame, redrawCanvas]);
 
-  // Redraw when frameDrawings change - MAINTAIN PERSISTENCE
+  // Redraw when frameDrawings change OR annotations toggle - MAINTAIN PERSISTENCE
   useEffect(() => {
     redrawCanvas();
-  }, [frameDrawings, redrawCanvas]);
+  }, [frameDrawings, redrawCanvas, annotations]);
 
   // Mouse event handlers - Only work in drawing mode
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawingMode) return;
+    if (!isDrawingMode || !annotations) return;
     
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -233,7 +245,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawingMode) return;
+    if (!isDrawingMode || !annotations) return;
     
     const canvas = canvasRef.current;
     if (!canvas || !isDrawing || !startPoint) return;
@@ -290,7 +302,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
   };
 
   const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawingMode || !isDrawing || !startPoint) return;
+    if (!isDrawingMode || !annotations || !isDrawing || !startPoint) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -420,12 +432,15 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     };
   }, [currentTool, currentColor, getCurrentFrame, frameDrawings, addPathToFrame]);
 
-  // Always render the canvas - visibility is controlled by parent
+  // Always render the canvas - visibility controlled by annotations prop
   return (
     <canvas
       ref={canvasRef}
-      className={`absolute inset-0 ${isDrawingMode ? 'pointer-events-auto cursor-crosshair' : 'pointer-events-none'}`}
-      style={{ zIndex: 10 }}
+      className={`absolute inset-0 ${isDrawingMode && annotations ? 'pointer-events-auto cursor-crosshair' : 'pointer-events-none'}`}
+      style={{ 
+        zIndex: 10,
+        opacity: annotations ? 1 : 0 // Smooth hide/show instead of removing from DOM
+      }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}

@@ -275,16 +275,15 @@ export const VideoPlayer = ({
               guides={guides}
             />
             
-            {/* Drawing Canvas - Always render when annotations are enabled */}
-            {annotations && (
-              <div className="absolute inset-0">
-                <DrawingCanvas 
-                  currentTime={currentTime} 
-                  videoRef={videoRef}
-                  isDrawingMode={isDrawingMode}
-                />
-              </div>
-            )}
+            {/* Drawing Canvas - Always render, controlled by annotations prop */}
+            <div className="absolute inset-0">
+              <DrawingCanvas 
+                currentTime={currentTime} 
+                videoRef={videoRef}
+                isDrawingMode={isDrawingMode}
+                annotations={annotations}
+              />
+            </div>
           </div>
         </div>
         
