@@ -178,13 +178,30 @@ export const CommentInput = ({
     console.log('Drawing button clicked - current states:', { isDrawingMode, showDrawingTools });
     
     if (!isDrawingMode) {
-      console.log('Starting drawing mode');
+      console.log('Starting drawing mode - pausing video and enabling drawing');
+      
+      // CRITICAL: Always pause video when starting drawing mode
+      const video = document.querySelector('video');
+      if (video && !video.paused) {
+        video.pause();
+        console.log('Video paused for drawing mode');
+      }
+      
       if (onStartDrawing) {
         onStartDrawing();
       }
       setShowDrawingTools(true);
     } else {
-      console.log('Toggling drawing tools');
+      console.log('Drawing mode already active - toggling tools menu');
+      
+      // If drawing mode is already active, just toggle the tools menu
+      // But ensure video stays paused
+      const video = document.querySelector('video');
+      if (video && !video.paused) {
+        video.pause();
+        console.log('Video re-paused to maintain drawing mode');
+      }
+      
       setShowDrawingTools(!showDrawingTools);
     }
   };
