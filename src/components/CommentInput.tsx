@@ -38,8 +38,9 @@ export const CommentInput = ({
   const [showDrawingTools, setShowDrawingTools] = useState(false);
   const [hasDrawing, setHasDrawing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const drawingCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Monitor canvas for drawings
+  // Monitor canvas for drawings more aggressively
   useEffect(() => {
     const checkForDrawings = () => {
       const canvas = (window as any).drawingCanvas;
@@ -55,9 +56,21 @@ export const CommentInput = ({
 
     if (isDrawingMode) {
       checkForDrawings();
-      const interval = setInterval(checkForDrawings, 500);
-      return () => clearInterval(interval);
+      // More frequent checks when in drawing mode
+      drawingCheckIntervalRef.current = setInterval(checkForDrawings, 200);
+    } else {
+      if (drawingCheckIntervalRef.current) {
+        clearInterval(drawingCheckIntervalRef.current);
+        drawingCheckIntervalRef.current = null;
+      }
     }
+
+    return () => {
+      if (drawingCheckIntervalRef.current) {
+        clearInterval(drawingCheckIntervalRef.current);
+        drawingCheckIntervalRef.current = null;
+      }
+    };
   }, [isDrawingMode, currentTime, hasDrawing]);
 
   useEffect(() => {
@@ -75,34 +88,58 @@ export const CommentInput = ({
 
   const handleSubmit = () => {
     if (comment.trim()) {
-      // Force save drawings before submitting
       const canvas = (window as any).drawingCanvas;
+      
+      // Multiple force saves to ensure persistence
       if (canvas && hasDrawing) {
-        console.log('CRITICAL: Force saving drawings before comment submission');
+        console.log('CRITICAL: Multiple force saves before comment submission');
+        
+        // Force save immediately
         canvas.forceSave();
         
-        // Double-check with a small delay
+        // Additional saves with delays
+        setTimeout(() => canvas.forceSave(), 25);
+        setTimeout(() => canvas.forceSave(), 50);
+        setTimeout(() => canvas.forceSave(), 100);
+        
+        // Final save before submission
         setTimeout(() => {
           canvas.forceSave();
-        }, 50);
+          console.log('Final force save completed');
+          
+          // Submit after ensuring saves are complete
+          setTimeout(() => {
+            console.log('Submitting comment with hasDrawing:', hasDrawing);
+            
+            onAddComment(comment.trim(), attachments, isInternal, attachTime, hasDrawing);
+            
+            // Reset states
+            setComment("");
+            setAttachments([]);
+            setIsInternal(false);
+            setAttachTime(true);
+            setHasDrawing(false);
+            setShowDrawingTools(false);
+            setShowEmojiPicker(false);
+            
+            if (onCancel) onCancel();
+          }, 50);
+        }, 150);
+      } else {
+        // No drawings, submit immediately
+        console.log('Submitting comment without drawings');
+        onAddComment(comment.trim(), attachments, isInternal, attachTime, hasDrawing);
+        
+        setComment("");
+        setAttachments([]);
+        setIsInternal(false);
+        setAttachTime(true);
+        setHasDrawing(false);
+        setShowDrawingTools(false);
+        setShowEmojiPicker(false);
+        
+        if (onCancel) onCancel();
       }
-      
-      console.log('Submitting comment with hasDrawing:', hasDrawing);
-      
-      // Submit the comment
-      onAddComment(comment.trim(), attachments, isInternal, attachTime, hasDrawing);
-      
-      // Reset states
-      setComment("");
-      setAttachments([]);
-      setIsInternal(false);
-      setAttachTime(true);
-      setHasDrawing(false);
-      setShowDrawingTools(false);
-      setShowEmojiPicker(false);
-      
-      // Only call onCancel if provided - don't force drawing mode off
-      if (onCancel) onCancel();
     }
   };
 
