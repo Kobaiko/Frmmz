@@ -33,6 +33,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
   const pendingPathRef = useRef<DrawingPath | null>(null);
   const isInitializedRef = useRef(false);
   const isSeekingRef = useRef(false);
+  const lastRedrawTime = useRef<number>(0);
 
   // Get current frame number (30fps)
   const getCurrentFrame = useCallback(() => Math.floor(currentTime * 30), [currentTime]);
@@ -112,30 +113,34 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     };
   }, [videoRef, initializeCanvas]);
 
-  // 🔥 FIXED: Listen for video seeking events to handle timestamp clicks properly
+  // 🔥 FIXED: Bulletproof seeking detection - NO MORE RACE CONDITIONS!
   useEffect(() => {
     const video = videoRef?.current;
     if (!video) return;
 
     const handleSeeking = () => {
       isSeekingRef.current = true;
-      console.log('🎯 Video seeking started...');
+      console.log('🎯 SEEKING STARTED - Blocking frame changes');
     };
 
     const handleSeeked = () => {
-      isSeekingRef.current = false;
-      console.log('🎯 Video seeking finished - NOW REDRAW!');
+      console.log('🎯 SEEKING FINISHED - Authoritative redraw NOW!');
       
-      // Force immediate redraw when seeking is complete
+      // Update frame tracking immediately
       const currentFrame = getCurrentFrame();
       lastFrameRef.current = currentFrame;
       
+      // IMMEDIATE redraw - no delays!
       if (isInitializedRef.current) {
-        // Small delay to ensure video frame is rendered
-        setTimeout(() => {
-          redrawCanvas();
-        }, 50);
+        redrawCanvas();
+        lastRedrawTime.current = Date.now();
       }
+      
+      // Clear seeking flag AFTER redraw
+      setTimeout(() => {
+        isSeekingRef.current = false;
+        console.log('🎯 Seeking flag cleared - Normal operation resumed');
+      }, 100);
     };
 
     video.addEventListener('seeking', handleSeeking);
@@ -279,33 +284,40 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     });
   }, [getCurrentFrame]);
 
-  // Handle frame changes - BUT ONLY when NOT seeking
+  // 🔥 FIXED: Smart frame change detection - PREVENTS RACE CONDITIONS!
   useEffect(() => {
-    // Skip if video is currently seeking (timestamp click in progress)
+    // 🚫 CRITICAL: Never interfere when seeking is in progress!
     if (isSeekingRef.current) {
-      console.log('⏸️ Skipping frame change - video is seeking');
+      console.log('⏸️ BLOCKED: Frame change during seek - preventing race condition');
       return;
     }
 
     const currentFrame = getCurrentFrame();
+    const now = Date.now();
+    
+    // Prevent rapid redraws (debounce)
+    if (now - lastRedrawTime.current < 50) {
+      return;
+    }
     
     if (currentFrame !== lastFrameRef.current) {
-      console.log(`🎬 Frame changed from ${lastFrameRef.current} to ${currentFrame} - SAFE REDRAW`);
+      console.log(`🎬 SAFE Frame change: ${lastFrameRef.current} → ${currentFrame}`);
       lastFrameRef.current = currentFrame;
       
-      // Clear any pending path
+      // Clear any pending preview path
       pendingPathRef.current = null;
       
-      // Immediate redraw for natural playback
+      // Redraw for natural playback
       if (isInitializedRef.current) {
         redrawCanvas();
+        lastRedrawTime.current = now;
       }
     }
   }, [currentTime, getCurrentFrame, redrawCanvas]);
 
   // Redraw when frameDrawings change OR annotations toggle
   useEffect(() => {
-    if (isInitializedRef.current) {
+    if (isInitializedRef.current && !isSeekingRef.current) {
       redrawCanvas();
     }
   }, [frameDrawings, redrawCanvas, annotations]);
