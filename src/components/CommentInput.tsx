@@ -90,22 +90,35 @@ export const CommentInput = ({
     if (comment.trim()) {
       const canvas = (window as any).drawingCanvas;
       
-      // Multiple force saves to ensure persistence
+      // Enhanced force save process with multiple attempts
       if (canvas && hasDrawing) {
-        console.log('CRITICAL: Multiple force saves before comment submission');
+        console.log('CRITICAL: Enhanced force save process starting');
         
-        // Force save immediately
-        canvas.forceSave();
-        
-        // Additional saves with delays
-        setTimeout(() => canvas.forceSave(), 25);
-        setTimeout(() => canvas.forceSave(), 50);
-        setTimeout(() => canvas.forceSave(), 100);
-        
-        // Final save before submission
-        setTimeout(() => {
+        // Multiple force saves with increasing delays
+        const performForceSave = () => {
           canvas.forceSave();
-          console.log('Final force save completed');
+          console.log('Force save executed');
+        };
+        
+        // Immediate save
+        performForceSave();
+        
+        // Additional saves with delays to ensure persistence
+        setTimeout(performForceSave, 50);
+        setTimeout(performForceSave, 100);
+        setTimeout(performForceSave, 200);
+        
+        // Final verification and submission
+        setTimeout(() => {
+          performForceSave();
+          
+          // Verify the save worked
+          const allDrawings = canvas.getAllFrameDrawings ? canvas.getAllFrameDrawings() : [];
+          const currentFrame = Math.floor(currentTime * 30);
+          const frameHasDrawing = allDrawings.some((d: any) => d.frame === currentFrame);
+          
+          console.log('Final verification - frame has drawing:', frameHasDrawing);
+          console.log('All frame drawings:', allDrawings.length);
           
           // Submit after ensuring saves are complete
           setTimeout(() => {
@@ -113,7 +126,7 @@ export const CommentInput = ({
             
             onAddComment(comment.trim(), attachments, isInternal, attachTime, hasDrawing);
             
-            // Reset states
+            // Reset states but DON'T clear the canvas - let it persist
             setComment("");
             setAttachments([]);
             setIsInternal(false);
@@ -123,8 +136,8 @@ export const CommentInput = ({
             setShowEmojiPicker(false);
             
             if (onCancel) onCancel();
-          }, 50);
-        }, 150);
+          }, 100);
+        }, 300);
       } else {
         // No drawings, submit immediately
         console.log('Submitting comment without drawings');

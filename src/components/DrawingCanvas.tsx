@@ -1,6 +1,5 @@
-
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Canvas as FabricCanvas, PencilBrush, Rect, Line, Circle, Triangle } from "fabric";
+import { Canvas as FabricCanvas, PencilBrush, Rect, Line, Circle, Triangle, Path } from "fabric";
 
 interface DrawingCanvasProps {
   currentTime?: number;
@@ -341,6 +340,8 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
         }
         
         canvas.renderAll();
+        // Save state after adding shape
+        setTimeout(() => saveState(), 50);
       } catch (error) {
         console.error('Error adding shape to canvas:', error);
       }
@@ -482,22 +483,41 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
       },
       forceSave: () => {
         console.log('API: Force saving current frame');
-        debouncedSave();
-        // Also immediately save without debounce for critical moments
+        
+        // Clear any pending debounced saves
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current);
+          saveTimeoutRef.current = null;
+        }
+        
+        // Immediately save without debounce for critical moments
         const canvas = fabricCanvasRef.current;
         if (!canvas || isLoadingRef.current) return;
         
         const currentFrame = getCurrentFrame();
         const objects = canvas.getObjects();
         
+        console.log(`Force saving frame ${currentFrame} with ${objects.length} objects`);
+        
         if (objects.length > 0) {
           const canvasData = JSON.stringify(canvas.toJSON());
           setFrameDrawings(prev => {
             const filtered = prev.filter(f => f.frame !== currentFrame);
-            return [...filtered, { frame: currentFrame, canvasData, timestamp: Date.now() }];
+            const newDrawing = { frame: currentFrame, canvasData, timestamp: Date.now() };
+            console.log('Force save completed for frame', currentFrame, 'with data length:', canvasData.length);
+            return [...filtered, newDrawing];
           });
-          console.log('Force save completed for frame', currentFrame);
+        } else {
+          // If no objects, remove the frame from storage
+          setFrameDrawings(prev => {
+            const filtered = prev.filter(f => f.frame !== currentFrame);
+            console.log('Force save - removed empty frame', currentFrame);
+            return filtered;
+          });
         }
+      },
+      getAllFrameDrawings: () => {
+        return frameDrawings;
       }
     };
 
