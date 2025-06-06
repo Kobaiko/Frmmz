@@ -243,21 +243,21 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     });
   }, [getCurrentFrame]);
 
-  // Handle frame changes - SIMPLE approach for timestamp seeking
+  // 🔥 FIXED: Immediate frame change handling - NO DELAYS!
   useEffect(() => {
     const currentFrame = getCurrentFrame();
     
     if (currentFrame !== lastFrameRef.current) {
-      console.log(`🎬 Frame changed from ${lastFrameRef.current} to ${currentFrame}`);
+      console.log(`🎬 Frame changed from ${lastFrameRef.current} to ${currentFrame} - IMMEDIATE REDRAW`);
       lastFrameRef.current = currentFrame;
       
       // Clear any pending path
       pendingPathRef.current = null;
       
-      // Simple redraw with short delay for timestamp seeking
-      setTimeout(() => {
+      // 🚀 IMMEDIATE redraw - no setTimeout delays!
+      if (isInitializedRef.current) {
         redrawCanvas();
-      }, 100);
+      }
     }
   }, [currentTime, getCurrentFrame, redrawCanvas]);
 
