@@ -5,14 +5,17 @@ interface DrawingCanvasProps {
   videoRef?: React.RefObject<HTMLVideoElement>;
 }
 
-interface DrawingData {
+interface DrawingPath {
+  type: 'pen' | 'line' | 'rectangle' | 'arrow';
+  points: number[];
+  color: string;
+  strokeWidth: number;
+}
+
+interface FrameDrawing {
   frame: number;
-  paths: Array<{
-    type: 'pen' | 'line' | 'rectangle' | 'arrow';
-    points: number[];
-    color: string;
-    strokeWidth: number;
-  }>;
+  paths: DrawingPath[];
+  timestamp: number;
 }
 
 export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps) => {
@@ -22,10 +25,11 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
   const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
   const [currentTool, setCurrentTool] = useState("pen");
   const [currentColor, setCurrentColor] = useState("#ff6b35");
-  const [frameDrawings, setFrameDrawings] = useState<DrawingData[]>([]);
+  const [frameDrawings, setFrameDrawings] = useState<FrameDrawing[]>([]);
   const [currentPath, setCurrentPath] = useState<number[]>([]);
   const lastFrameRef = useRef<number>(-1);
   const isInitializedRef = useRef(false);
+  const pendingPathRef = useRef<DrawingPath | null>(null);
 
   // Get current frame number (30fps)
   const getCurrentFrame = useCallback(() => Math.floor(currentTime * 30), [currentTime]);
@@ -57,79 +61,44 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     console.log('Canvas initialized with size:', canvas.width, 'x', canvas.height);
   }, [currentColor]);
 
-  // Save current frame drawings
-  const saveCurrentFrame = useCallback(() => {
-    const currentFrame = getCurrentFrame();
-    const existingFrame = frameDrawings.find(f => f.frame === currentFrame);
+  // Draw a single path on canvas
+  const drawPath = useCallback((path: DrawingPath, context: CanvasRenderingContext2D, isPreview = false) => {
+    context.save();
+    context.strokeStyle = path.color;
+    context.lineWidth = path.strokeWidth;
     
-    if (existingFrame && existingFrame.paths.length > 0) {
-      console.log(`Frame ${currentFrame} already has ${existingFrame.paths.length} paths saved`);
-      return;
+    if (isPreview) {
+      context.globalAlpha = 0.7;
     }
 
-    // Get current frame data from canvas or existing data
-    const currentFrameData = existingFrame || { frame: currentFrame, paths: [] };
-    
-    setFrameDrawings(prev => {
-      const filtered = prev.filter(f => f.frame !== currentFrame);
-      if (currentFrameData.paths.length > 0) {
-        return [...filtered, currentFrameData];
-      }
-      return filtered;
-    });
-
-    console.log(`Saved frame ${currentFrame} with ${currentFrameData.paths.length} paths`);
-  }, [getCurrentFrame, frameDrawings]);
-
-  // Load drawings for frame
-  const loadDrawingsForFrame = useCallback((frame: number) => {
-    const canvas = canvasRef.current;
-    const context = contextRef.current;
-    if (!canvas || !context) return;
-
-    // Clear canvas
-    context.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Find frame data
-    const frameData = frameDrawings.find(f => f.frame === frame);
-    if (!frameData || frameData.paths.length === 0) {
-      console.log(`No drawings found for frame ${frame}`);
-      return;
-    }
-
-    console.log(`Loading ${frameData.paths.length} paths for frame ${frame}`);
-
-    // Draw all paths for this frame
-    frameData.paths.forEach(path => {
-      context.strokeStyle = path.color;
-      context.lineWidth = path.strokeWidth;
-
-      if (path.type === 'pen') {
-        // Draw freehand path
+    if (path.type === 'pen') {
+      // Draw freehand path
+      if (path.points.length >= 4) {
         context.beginPath();
-        for (let i = 0; i < path.points.length; i += 2) {
-          const x = path.points[i];
-          const y = path.points[i + 1];
-          if (i === 0) {
-            context.moveTo(x, y);
-          } else {
-            context.lineTo(x, y);
-          }
+        context.moveTo(path.points[0], path.points[1]);
+        for (let i = 2; i < path.points.length; i += 2) {
+          context.lineTo(path.points[i], path.points[i + 1]);
         }
         context.stroke();
-      } else if (path.type === 'line') {
-        // Draw line
+      }
+    } else if (path.type === 'line') {
+      // Draw line
+      if (path.points.length >= 4) {
         context.beginPath();
         context.moveTo(path.points[0], path.points[1]);
         context.lineTo(path.points[2], path.points[3]);
         context.stroke();
-      } else if (path.type === 'rectangle') {
-        // Draw rectangle
+      }
+    } else if (path.type === 'rectangle') {
+      // Draw rectangle
+      if (path.points.length >= 4) {
         context.beginPath();
         context.rect(path.points[0], path.points[1], path.points[2], path.points[3]);
         context.stroke();
-      } else if (path.type === 'arrow') {
-        // Draw arrow
+      }
+    } else if (path.type === 'arrow') {
+      // Draw arrow
+      if (path.points.length >= 4) {
         const [x1, y1, x2, y2] = path.points;
         
         // Main line
@@ -156,36 +125,92 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
         );
         context.stroke();
       }
+    }
+
+    context.restore();
+  }, []);
+
+  // Redraw all paths for current frame
+  const redrawCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    const context = contextRef.current;
+    if (!canvas || !context) return;
+
+    // Clear canvas
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    const currentFrame = getCurrentFrame();
+    const frameData = frameDrawings.find(f => f.frame === currentFrame);
+    
+    if (frameData && frameData.paths.length > 0) {
+      console.log(`Redrawing ${frameData.paths.length} paths for frame ${currentFrame}`);
+      frameData.paths.forEach(path => {
+        drawPath(path, context);
+      });
+    }
+
+    // Draw pending path if exists (for preview)
+    if (pendingPathRef.current) {
+      drawPath(pendingPathRef.current, context, true);
+    }
+  }, [getCurrentFrame, frameDrawings, drawPath]);
+
+  // Add path to current frame
+  const addPathToFrame = useCallback((path: DrawingPath) => {
+    const currentFrame = getCurrentFrame();
+    
+    setFrameDrawings(prev => {
+      const existingFrameIndex = prev.findIndex(f => f.frame === currentFrame);
+      
+      if (existingFrameIndex >= 0) {
+        // Update existing frame
+        const newFrameDrawings = [...prev];
+        newFrameDrawings[existingFrameIndex] = {
+          ...newFrameDrawings[existingFrameIndex],
+          paths: [...newFrameDrawings[existingFrameIndex].paths, path],
+          timestamp: Date.now()
+        };
+        return newFrameDrawings;
+      } else {
+        // Create new frame
+        return [...prev, {
+          frame: currentFrame,
+          paths: [path],
+          timestamp: Date.now()
+        }];
+      }
     });
-  }, [frameDrawings]);
+
+    console.log(`Added ${path.type} to frame ${currentFrame}`);
+  }, [getCurrentFrame]);
 
   // Handle frame changes
   useEffect(() => {
     const currentFrame = getCurrentFrame();
     
-    if (currentFrame !== lastFrameRef.current && lastFrameRef.current >= 0) {
+    if (currentFrame !== lastFrameRef.current) {
       console.log(`Frame changed from ${lastFrameRef.current} to ${currentFrame}`);
-      
-      // Save current frame before switching
-      saveCurrentFrame();
-      
-      // Load new frame
-      setTimeout(() => {
-        loadDrawingsForFrame(currentFrame);
-        lastFrameRef.current = currentFrame;
-      }, 50);
-    } else if (lastFrameRef.current < 0) {
-      // Initial load
-      loadDrawingsForFrame(currentFrame);
       lastFrameRef.current = currentFrame;
+      
+      // Clear any pending path
+      pendingPathRef.current = null;
+      
+      // Redraw canvas for new frame
+      setTimeout(() => {
+        redrawCanvas();
+      }, 50);
     }
-  }, [currentTime, getCurrentFrame, saveCurrentFrame, loadDrawingsForFrame]);
+  }, [currentTime, getCurrentFrame, redrawCanvas]);
+
+  // Redraw when frameDrawings change
+  useEffect(() => {
+    redrawCanvas();
+  }, [frameDrawings, redrawCanvas]);
 
   // Mouse event handlers
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    const context = contextRef.current;
-    if (!canvas || !context) return;
+    if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -195,8 +220,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     setStartPoint({ x, y });
 
     if (currentTool === 'pen') {
-      context.beginPath();
-      context.moveTo(x, y);
       setCurrentPath([x, y]);
     }
 
@@ -205,74 +228,64 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    const context = contextRef.current;
-    if (!canvas || !context || !isDrawing || !startPoint) return;
+    if (!canvas || !isDrawing || !startPoint) return;
 
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
     if (currentTool === 'pen') {
-      // Draw freehand
-      context.lineTo(x, y);
-      context.stroke();
-      context.beginPath();
-      context.moveTo(x, y);
+      // For pen, add to current path and update preview
+      const newPath = [...currentPath, x, y];
+      setCurrentPath(newPath);
       
-      setCurrentPath(prev => [...prev, x, y]);
+      pendingPathRef.current = {
+        type: 'pen',
+        points: newPath,
+        color: currentColor,
+        strokeWidth: 3
+      };
     } else {
-      // For shapes, clear and redraw with preview
-      loadDrawingsForFrame(getCurrentFrame());
-      
-      context.strokeStyle = currentColor;
-      context.lineWidth = 3;
-      context.globalAlpha = 0.7;
+      // For shapes, create preview path
+      let previewPath: DrawingPath | null = null;
 
       if (currentTool === 'line') {
-        context.beginPath();
-        context.moveTo(startPoint.x, startPoint.y);
-        context.lineTo(x, y);
-        context.stroke();
+        previewPath = {
+          type: 'line',
+          points: [startPoint.x, startPoint.y, x, y],
+          color: currentColor,
+          strokeWidth: 3
+        };
       } else if (currentTool === 'square') {
         const width = x - startPoint.x;
         const height = y - startPoint.y;
-        context.beginPath();
-        context.rect(startPoint.x, startPoint.y, width, height);
-        context.stroke();
+        previewPath = {
+          type: 'rectangle',
+          points: [startPoint.x, startPoint.y, width, height],
+          color: currentColor,
+          strokeWidth: 3
+        };
       } else if (currentTool === 'arrow') {
-        // Draw arrow preview
-        context.beginPath();
-        context.moveTo(startPoint.x, startPoint.y);
-        context.lineTo(x, y);
-        context.stroke();
-        
-        // Arrow head
-        const angle = Math.atan2(y - startPoint.y, x - startPoint.x);
-        const headLength = 15;
-        const headAngle = Math.PI / 6;
-        
-        context.beginPath();
-        context.moveTo(x, y);
-        context.lineTo(
-          x - headLength * Math.cos(angle - headAngle),
-          y - headLength * Math.sin(angle - headAngle)
-        );
-        context.moveTo(x, y);
-        context.lineTo(
-          x - headLength * Math.cos(angle + headAngle),
-          y - headLength * Math.sin(angle + headAngle)
-        );
-        context.stroke();
+        previewPath = {
+          type: 'arrow',
+          points: [startPoint.x, startPoint.y, x, y],
+          color: currentColor,
+          strokeWidth: 3
+        };
       }
 
-      context.globalAlpha = 1.0;
+      pendingPathRef.current = previewPath;
     }
+
+    // Redraw with preview
+    redrawCanvas();
   };
 
   const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || !startPoint) return;
+
     const canvas = canvasRef.current;
-    const context = contextRef.current;
-    if (!canvas || !context || !isDrawing || !startPoint) return;
+    if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -280,21 +293,20 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
 
     setIsDrawing(false);
 
-    const currentFrame = getCurrentFrame();
-    let newPath: any = null;
+    let finalPath: DrawingPath | null = null;
 
     if (currentTool === 'pen') {
       if (currentPath.length >= 4) {
-        newPath = {
-          type: 'pen' as const,
+        finalPath = {
+          type: 'pen',
           points: [...currentPath, x, y],
           color: currentColor,
           strokeWidth: 3
         };
       }
     } else if (currentTool === 'line') {
-      newPath = {
-        type: 'line' as const,
+      finalPath = {
+        type: 'line',
         points: [startPoint.x, startPoint.y, x, y],
         color: currentColor,
         strokeWidth: 3
@@ -303,8 +315,8 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
       const width = x - startPoint.x;
       const height = y - startPoint.y;
       if (Math.abs(width) > 5 && Math.abs(height) > 5) {
-        newPath = {
-          type: 'rectangle' as const,
+        finalPath = {
+          type: 'rectangle',
           points: [startPoint.x, startPoint.y, width, height],
           color: currentColor,
           strokeWidth: 3
@@ -313,8 +325,8 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     } else if (currentTool === 'arrow') {
       const distance = Math.sqrt(Math.pow(x - startPoint.x, 2) + Math.pow(y - startPoint.y, 2));
       if (distance > 10) {
-        newPath = {
-          type: 'arrow' as const,
+        finalPath = {
+          type: 'arrow',
           points: [startPoint.x, startPoint.y, x, y],
           color: currentColor,
           strokeWidth: 3
@@ -322,26 +334,16 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
       }
     }
 
-    if (newPath) {
-      setFrameDrawings(prev => {
-        const existingFrame = prev.find(f => f.frame === currentFrame);
-        if (existingFrame) {
-          return prev.map(f => 
-            f.frame === currentFrame 
-              ? { ...f, paths: [...f.paths, newPath] }
-              : f
-          );
-        } else {
-          return [...prev, { frame: currentFrame, paths: [newPath] }];
-        }
-      });
+    // Clear pending path
+    pendingPathRef.current = null;
 
-      console.log(`Added ${currentTool} to frame ${currentFrame}`);
-      
-      // Redraw the frame with the new path
-      setTimeout(() => loadDrawingsForFrame(currentFrame), 50);
+    // Add final path if valid
+    if (finalPath) {
+      addPathToFrame(finalPath);
+      console.log(`Completed ${finalPath.type} drawing`);
     }
 
+    // Reset drawing state
     setCurrentPath([]);
     setStartPoint(null);
   };
@@ -356,20 +358,12 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
       setColor: (color: string) => {
         console.log(`Setting color to ${color}`);
         setCurrentColor(color);
-        if (contextRef.current) {
-          contextRef.current.strokeStyle = color;
-        }
       },
       clear: () => {
-        const canvas = canvasRef.current;
-        const context = contextRef.current;
-        if (!canvas || !context) return;
-        
         console.log('Clearing canvas');
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        
         const currentFrame = getCurrentFrame();
         setFrameDrawings(prev => prev.filter(f => f.frame !== currentFrame));
+        pendingPathRef.current = null;
       },
       undo: () => {
         const currentFrame = getCurrentFrame();
@@ -380,7 +374,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
             if (newPaths.length > 0) {
               return prev.map(f => 
                 f.frame === currentFrame 
-                  ? { ...f, paths: newPaths }
+                  ? { ...f, paths: newPaths, timestamp: Date.now() }
                   : f
               );
             } else {
@@ -389,8 +383,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
           }
           return prev;
         });
-        
-        setTimeout(() => loadDrawingsForFrame(currentFrame), 50);
         console.log('Undo performed');
       },
       redo: () => {
@@ -404,8 +396,8 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
         return result;
       },
       forceSave: () => {
-        console.log('Force saving current frame');
-        saveCurrentFrame();
+        console.log('Force save - drawings are automatically saved');
+        // Drawings are automatically saved when completed, no action needed
       },
       getAllFrameDrawings: () => {
         return frameDrawings;
@@ -418,7 +410,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     return () => {
       delete (window as any).drawingCanvas;
     };
-  }, [currentTool, currentColor, getCurrentFrame, frameDrawings, saveCurrentFrame, loadDrawingsForFrame]);
+  }, [currentTool, currentColor, getCurrentFrame, frameDrawings, addPathToFrame]);
 
   return (
     <canvas
@@ -433,6 +425,8 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
           setIsDrawing(false);
           setCurrentPath([]);
           setStartPoint(null);
+          pendingPathRef.current = null;
+          redrawCanvas();
         }
       }}
     />
