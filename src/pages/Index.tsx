@@ -32,9 +32,19 @@ const Index = () => {
   };
 
   const handleAddComment = (text: string, timestamp: number, parentId?: string, attachments?: string[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
+    // If the comment has a drawing, calculate the exact frame timestamp
+    let finalTimestamp = timestamp;
+    if (hasDrawing && attachTime) {
+      // Get the current frame number (30fps)
+      const currentFrame = Math.floor(timestamp * 30);
+      // Convert back to exact frame timestamp (beginning of frame)
+      finalTimestamp = currentFrame / 30;
+      console.log(`🎯 Drawing comment: Original time ${timestamp.toFixed(3)}s → Frame ${currentFrame} → Exact time ${finalTimestamp.toFixed(3)}s`);
+    }
+    
     const newComment: Comment = {
       id: Math.random().toString(36).substr(2, 9),
-      timestamp: attachTime ? timestamp : -1, // Use -1 for general comments without timestamp
+      timestamp: attachTime ? finalTimestamp : -1, // Use exact frame timestamp for drawings
       text,
       author: "User",
       createdAt: new Date(),
@@ -44,7 +54,7 @@ const Index = () => {
       hasDrawing: hasDrawing || false,
     };
     
-    console.log('Adding comment with hasDrawing:', hasDrawing);
+    console.log('Adding comment with hasDrawing:', hasDrawing, 'at timestamp:', finalTimestamp);
     
     setComments([...comments, newComment].sort((a, b) => {
       // Sort by timestamp, but put general comments (-1) at the end
@@ -65,7 +75,7 @@ const Index = () => {
 
   const handleCommentClick = (timestamp: number) => {
     if (timestamp >= 0) { // Only seek if it's a timestamped comment
-      console.log(`🎯 Seeking to timestamp: ${timestamp} and pausing video`);
+      console.log(`🎯 Seeking to EXACT timestamp: ${timestamp.toFixed(3)}s and pausing video`);
       
       // Pause the video first
       const video = document.querySelector('video') as HTMLVideoElement;
@@ -74,7 +84,7 @@ const Index = () => {
         console.log('📹 Video paused for timestamp navigation');
       }
       
-      // Then set the time
+      // Then set the exact time
       setCurrentTime(timestamp);
     }
   };
