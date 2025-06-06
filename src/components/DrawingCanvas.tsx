@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Canvas as FabricCanvas, PencilBrush, Rect, Line, Circle, Triangle, Path } from "fabric";
+import { Canvas as FabricCanvas, PencilBrush, Rect, Line } from "fabric";
 
 interface DrawingCanvasProps {
   currentTime?: number;
@@ -16,26 +16,21 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<FabricCanvas | null>(null);
   const [frameDrawings, setFrameDrawings] = useState<FrameDrawing[]>([]);
-  const [undoStack, setUndoStack] = useState<string[]>([]);
-  const [redoStack, setRedoStack] = useState<string[]>([]);
   const isInitializedRef = useRef(false);
   const currentToolRef = useRef("pen");
   const currentColorRef = useRef("#ff6b35");
   const isDrawingRef = useRef(false);
   const startPointRef = useRef<{ x: number; y: number } | null>(null);
-  const currentShapeRef = useRef<any>(null);
   const lastFrameRef = useRef<number>(-1);
   const apiAttachedRef = useRef(false);
-  const isLoadingRef = useRef(false);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get current frame number (30fps)
   const getCurrentFrame = useCallback(() => Math.floor(currentTime * 30), [currentTime]);
 
-  // Immediate save function (no debounce)
+  // Save current frame immediately
   const saveCurrentFrame = useCallback(() => {
     const canvas = fabricCanvasRef.current;
-    if (!canvas || isLoadingRef.current) return;
+    if (!canvas) return;
     
     const currentFrame = getCurrentFrame();
     const objects = canvas.getObjects();
@@ -52,28 +47,12 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
           canvasData, 
           timestamp: Date.now() 
         };
-        const newDrawings = [...filtered, newDrawing];
-        console.log(`Frame ${currentFrame} saved. Total frames:`, newDrawings.length);
-        return newDrawings;
+        return [...filtered, newDrawing];
       });
     } else {
-      setFrameDrawings(prev => {
-        const filtered = prev.filter(f => f.frame !== currentFrame);
-        console.log(`Frame ${currentFrame} cleared. Total frames:`, filtered.length);
-        return filtered;
-      });
+      setFrameDrawings(prev => prev.filter(f => f.frame !== currentFrame));
     }
   }, [getCurrentFrame]);
-
-  // Debounced save function
-  const debouncedSave = useCallback(() => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-    saveTimeoutRef.current = setTimeout(() => {
-      saveCurrentFrame();
-    }, 100);
-  }, [saveCurrentFrame]);
 
   // Load drawings for a specific frame
   const loadDrawingsForFrame = useCallback((frame: number) => {
@@ -87,22 +66,14 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     if (frameDrawing && frameDrawing.canvasData) {
       console.log(`Found saved drawings for frame ${frame}`);
       try {
-        isLoadingRef.current = true;
         canvas.loadFromJSON(frameDrawing.canvasData).then(() => {
           canvas.renderAll();
-          isLoadingRef.current = false;
           console.log(`Successfully loaded ${canvas.getObjects().length} objects for frame ${frame}`);
-        }).catch((error) => {
-          console.error('Error loading frame drawings:', error);
-          canvas.clear();
-          canvas.renderAll();
-          isLoadingRef.current = false;
         });
       } catch (error) {
-        console.error('Error parsing frame drawings:', error);
+        console.error('Error loading frame drawings:', error);
         canvas.clear();
         canvas.renderAll();
-        isLoadingRef.current = false;
       }
     } else {
       console.log(`No drawings found for frame ${frame}, clearing canvas`);
@@ -110,20 +81,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
       canvas.renderAll();
     }
   }, [frameDrawings]);
-
-  // Save state for undo/redo
-  const saveState = useCallback(() => {
-    if (!fabricCanvasRef.current || isLoadingRef.current) return;
-    
-    const canvas = fabricCanvasRef.current;
-    const canvasData = JSON.stringify(canvas.toJSON());
-    
-    setUndoStack(prev => [...prev.slice(-19), canvasData]);
-    setRedoStack([]);
-    
-    // Save to frame storage immediately
-    saveCurrentFrame();
-  }, [saveCurrentFrame]);
 
   // Initialize Fabric.js canvas - ONLY ONCE
   useEffect(() => {
@@ -158,14 +115,12 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     // Event handlers
     const handlePathCreated = () => {
       console.log('Free drawing path created');
-      setTimeout(() => saveState(), 50);
+      setTimeout(() => saveCurrentFrame(), 100);
     };
 
     const handleObjectAdded = () => {
-      if (!isLoadingRef.current) {
-        console.log('Object added to canvas');
-        setTimeout(() => saveState(), 50);
-      }
+      console.log('Object added to canvas');
+      setTimeout(() => saveCurrentFrame(), 100);
     };
 
     const handleMouseDown = (e: any) => {
@@ -181,97 +136,23 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
       canvas.discardActiveObject();
     };
 
-    const handleMouseMove = (e: any) => {
-      if (!isDrawingRef.current || currentToolRef.current === "pen" || !startPointRef.current) return;
-
-      const pointer = canvas.getPointer(e.e);
-      
-      // Remove previous preview shape
-      if (currentShapeRef.current) {
-        canvas.remove(currentShapeRef.current);
-        currentShapeRef.current = null;
-      }
-
-      const startPoint = startPointRef.current;
-      let shape: any = null;
-
-      try {
-        if (currentToolRef.current === "line") {
-          shape = new Line([startPoint.x, startPoint.y, pointer.x, pointer.y], {
-            stroke: currentColorRef.current,
-            strokeWidth: 3,
-            selectable: false,
-            evented: false,
-            opacity: 0.7
-          });
-        } 
-        else if (currentToolRef.current === "square") {
-          const left = Math.min(startPoint.x, pointer.x);
-          const top = Math.min(startPoint.y, pointer.y);
-          const width = Math.abs(pointer.x - startPoint.x);
-          const height = Math.abs(pointer.y - startPoint.y);
-          
-          shape = new Rect({
-            left,
-            top,
-            width,
-            height,
-            fill: 'transparent',
-            stroke: currentColorRef.current,
-            strokeWidth: 3,
-            selectable: false,
-            evented: false,
-            opacity: 0.7
-          });
-        }
-        else if (currentToolRef.current === "arrow") {
-          const arrowLength = Math.sqrt(Math.pow(pointer.x - startPoint.x, 2) + Math.pow(pointer.y - startPoint.y, 2));
-          
-          if (arrowLength > 10) {
-            // Main line for preview
-            shape = new Line([startPoint.x, startPoint.y, pointer.x, pointer.y], {
-              stroke: currentColorRef.current,
-              strokeWidth: 3,
-              selectable: false,
-              evented: false,
-              opacity: 0.7
-            });
-          }
-        }
-
-        if (shape) {
-          canvas.add(shape);
-          currentShapeRef.current = shape;
-          canvas.renderAll();
-        }
-      } catch (error) {
-        console.error('Error creating preview shape:', error);
-      }
-    };
-
     const handleMouseUp = (e: any) => {
       if (!isDrawingRef.current || currentToolRef.current === "pen" || !startPointRef.current) return;
 
       const pointer = canvas.getPointer(e.e);
       console.log(`Finishing ${currentToolRef.current} drawing at`, pointer);
       
-      // Remove preview shape
-      if (currentShapeRef.current) {
-        canvas.remove(currentShapeRef.current);
-        currentShapeRef.current = null;
-      }
-
       const startPoint = startPointRef.current;
       
       try {
         if (currentToolRef.current === "line") {
-          const finalLine = new Line([startPoint.x, startPoint.y, pointer.x, pointer.y], {
+          const line = new Line([startPoint.x, startPoint.y, pointer.x, pointer.y], {
             stroke: currentColorRef.current,
             strokeWidth: 3,
             selectable: false,
             evented: false
           });
-          canvas.add(finalLine);
+          canvas.add(line);
           console.log('Line added to canvas');
         } 
         else if (currentToolRef.current === "square") {
@@ -281,7 +162,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
           const height = Math.abs(pointer.y - startPoint.y);
           
           if (width > 5 && height > 5) {
-            const finalRect = new Rect({
+            const rect = new Rect({
               left,
               top,
               width,
@@ -292,7 +173,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
               selectable: false,
               evented: false
             });
-            canvas.add(finalRect);
+            canvas.add(rect);
             console.log('Rectangle added to canvas');
           }
         }
@@ -346,8 +227,8 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
         
         canvas.renderAll();
         
-        // Save state after adding shape
-        setTimeout(() => saveState(), 50);
+        // Save immediately after adding shape
+        setTimeout(() => saveCurrentFrame(), 100);
       } catch (error) {
         console.error('Error adding shape to canvas:', error);
       }
@@ -360,7 +241,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     canvas.on('path:created', handlePathCreated);
     canvas.on('object:added', handleObjectAdded);
     canvas.on('mouse:down', handleMouseDown);
-    canvas.on('mouse:move', handleMouseMove);
     canvas.on('mouse:up', handleMouseUp);
 
     console.log('Fabric.js canvas initialized successfully');
@@ -374,9 +254,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
 
     return () => {
       console.log('Component unmounting - disposing Fabric canvas');
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
       if (fabricCanvasRef.current) {
         fabricCanvasRef.current.dispose();
         fabricCanvasRef.current = null;
@@ -384,7 +261,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
       isInitializedRef.current = false;
       apiAttachedRef.current = false;
     };
-  }, [getCurrentFrame, loadDrawingsForFrame, saveState]);
+  }, [getCurrentFrame, loadDrawingsForFrame, saveCurrentFrame]);
 
   // Handle frame changes
   useEffect(() => {
@@ -396,7 +273,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
     if (currentFrame !== lastFrameRef.current) {
       console.log(`Frame changed from ${lastFrameRef.current} to ${currentFrame}`);
       
-      // Force save current frame before switching
+      // Save current frame before switching
       if (lastFrameRef.current >= 0) {
         saveCurrentFrame();
       }
@@ -444,40 +321,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
         const currentFrame = getCurrentFrame();
         setFrameDrawings(prev => prev.filter(f => f.frame !== currentFrame));
       },
-      undo: () => {
-        const canvas = fabricCanvasRef.current;
-        if (!canvas || undoStack.length === 0) return;
-        
-        console.log('API: Undo');
-        const currentState = JSON.stringify(canvas.toJSON());
-        const previousState = undoStack[undoStack.length - 1];
-        
-        setRedoStack(prev => [...prev, currentState]);
-        setUndoStack(prev => prev.slice(0, -1));
-        
-        isLoadingRef.current = true;
-        canvas.loadFromJSON(previousState).then(() => {
-          canvas.renderAll();
-          isLoadingRef.current = false;
-        });
-      },
-      redo: () => {
-        const canvas = fabricCanvasRef.current;
-        if (!canvas || redoStack.length === 0) return;
-        
-        console.log('API: Redo');
-        const currentState = JSON.stringify(canvas.toJSON());
-        const nextState = redoStack[redoStack.length - 1];
-        
-        setUndoStack(prev => [...prev, currentState]);
-        setRedoStack(prev => prev.slice(0, -1));
-        
-        isLoadingRef.current = true;
-        canvas.loadFromJSON(nextState).then(() => {
-          canvas.renderAll();
-          isLoadingRef.current = false;
-        });
-      },
       hasDrawingsForCurrentFrame: () => {
         const currentFrame = getCurrentFrame();
         const canvas = fabricCanvasRef.current;
@@ -489,14 +332,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
       },
       forceSave: () => {
         console.log('API: Force saving current frame');
-        
-        // Clear any pending debounced saves
-        if (saveTimeoutRef.current) {
-          clearTimeout(saveTimeoutRef.current);
-          saveTimeoutRef.current = null;
-        }
-        
-        // Immediately save without debounce for critical moments
         saveCurrentFrame();
       },
       getAllFrameDrawings: () => {
@@ -514,7 +349,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
         apiAttachedRef.current = false;
       }
     };
-  }, [undoStack, redoStack, getCurrentFrame, frameDrawings, saveCurrentFrame]);
+  }, [getCurrentFrame, frameDrawings, saveCurrentFrame]);
 
   return (
     <canvas
