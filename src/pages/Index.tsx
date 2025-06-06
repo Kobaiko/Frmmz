@@ -23,7 +23,6 @@ const Index = () => {
   const [duration, setDuration] = useState<number>(0);
   const [isDrawingMode, setIsDrawingMode] = useState<boolean>(false);
   const [annotations, setAnnotations] = useState<boolean>(true); // Default to ON
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [projectId] = useState<string>(() => 
     window.location.hash.slice(1) || Math.random().toString(36).substr(2, 9)
   );
@@ -68,10 +67,14 @@ const Index = () => {
     if (timestamp >= 0) { // Only seek if it's a timestamped comment
       console.log(`🎯 Seeking to timestamp: ${timestamp} and pausing video`);
       
-      // Always pause when clicking on timestamp
-      setIsPlaying(false);
+      // Pause the video first
+      const video = document.querySelector('video') as HTMLVideoElement;
+      if (video && !video.paused) {
+        video.pause();
+        console.log('📹 Video paused for timestamp navigation');
+      }
       
-      // Set the time
+      // Then set the time
       setCurrentTime(timestamp);
     }
   };
@@ -84,10 +87,6 @@ const Index = () => {
   const handleDrawingModeChange = (enabled: boolean) => {
     console.log(`Drawing mode changed to: ${enabled}`);
     setIsDrawingMode(enabled);
-  };
-
-  const handlePlayingStateChange = (playing: boolean) => {
-    setIsPlaying(playing);
   };
 
   if (!videoUrl) {
@@ -125,8 +124,6 @@ const Index = () => {
             onDrawingModeChange={handleDrawingModeChange}
             annotations={annotations}
             setAnnotations={setAnnotations}
-            isPlaying={isPlaying}
-            onPlayingStateChange={handlePlayingStateChange}
           />
         </div>
         <div className="w-96 border-l border-gray-700 flex flex-col">

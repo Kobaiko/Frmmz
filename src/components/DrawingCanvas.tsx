@@ -32,7 +32,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
   const lastFrameRef = useRef<number>(-1);
   const pendingPathRef = useRef<DrawingPath | null>(null);
   const isInitializedRef = useRef(false);
-  const redrawTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get current frame number (30fps)
   const getCurrentFrame = useCallback(() => Math.floor(currentTime * 30), [currentTime]);
@@ -43,13 +42,11 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     const video = videoRef?.current;
     
     if (!canvas || !video) {
-      console.log('❌ Canvas or video not ready for initialization');
       return false;
     }
 
     // Wait for video to have dimensions
     if (video.videoWidth === 0 || video.videoHeight === 0) {
-      console.log('⏳ Video dimensions not ready yet');
       return false;
     }
 
@@ -69,7 +66,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
 
     const context = canvas.getContext('2d');
     if (!context) {
-      console.log('❌ Could not get canvas context');
       return false;
     }
 
@@ -96,7 +92,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     if (!video) return;
 
     const handleVideoReady = () => {
-      console.log('🎬 Video ready, initializing canvas...');
       setTimeout(() => {
         initializeCanvas();
       }, 100);
@@ -191,7 +186,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     const context = contextRef.current;
     
     if (!canvas || !context || !isInitializedRef.current) {
-      console.log('❌ Cannot redraw - canvas not initialized');
       return;
     }
 
@@ -200,7 +194,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
 
     // Only draw if annotations are enabled
     if (!annotations) {
-      console.log('🔇 Annotations disabled - canvas cleared');
       return;
     }
 
@@ -250,7 +243,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     });
   }, [getCurrentFrame]);
 
-  // Handle frame changes with improved timing
+  // Handle frame changes - SIMPLE approach for timestamp seeking
   useEffect(() => {
     const currentFrame = getCurrentFrame();
     
@@ -261,53 +254,19 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
       // Clear any pending path
       pendingPathRef.current = null;
       
-      // Clear any existing timeout
-      if (redrawTimeoutRef.current) {
-        clearTimeout(redrawTimeoutRef.current);
-      }
-      
-      // Redraw canvas for new frame with multiple attempts for timestamp seeking
-      const attemptRedraw = (attempt = 1) => {
+      // Simple redraw with short delay for timestamp seeking
+      setTimeout(() => {
         redrawCanvas();
-        
-        // For timestamp seeking, try multiple times to ensure drawings appear
-        if (attempt < 3) {
-          redrawTimeoutRef.current = setTimeout(() => {
-            attemptRedraw(attempt + 1);
-          }, 50 * attempt); // Increasing delays: 50ms, 100ms
-        }
-      };
-      
-      attemptRedraw();
+      }, 100);
     }
   }, [currentTime, getCurrentFrame, redrawCanvas]);
 
   // Redraw when frameDrawings change OR annotations toggle
   useEffect(() => {
     if (isInitializedRef.current) {
-      // Clear any existing timeout
-      if (redrawTimeoutRef.current) {
-        clearTimeout(redrawTimeoutRef.current);
-      }
-      
-      // Immediate redraw
       redrawCanvas();
-      
-      // Additional redraw after a short delay to ensure persistence
-      redrawTimeoutRef.current = setTimeout(() => {
-        redrawCanvas();
-      }, 100);
     }
   }, [frameDrawings, redrawCanvas, annotations]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (redrawTimeoutRef.current) {
-        clearTimeout(redrawTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // Mouse event handlers - Only work in drawing mode
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
