@@ -186,7 +186,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
 
       const pointer = canvas.getPointer(e.e);
       
-      // Remove preview shape if it exists
+      // Remove previous preview shape
       if (currentShapeRef.current) {
         canvas.remove(currentShapeRef.current);
         currentShapeRef.current = null;
@@ -225,12 +225,10 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
           });
         }
         else if (currentToolRef.current === "arrow") {
-          // Create arrow as a group of line + arrowhead
-          const angle = Math.atan2(pointer.y - startPoint.y, pointer.x - startPoint.x);
           const arrowLength = Math.sqrt(Math.pow(pointer.x - startPoint.x, 2) + Math.pow(pointer.y - startPoint.y, 2));
           
           if (arrowLength > 10) {
-            // Main line
+            // Main line for preview
             shape = new Line([startPoint.x, startPoint.y, pointer.x, pointer.y], {
               stroke: currentColorRef.current,
               strokeWidth: 3,
@@ -266,15 +264,15 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
       const startPoint = startPointRef.current;
       
       try {
-        let finalShape: any = null;
-
         if (currentToolRef.current === "line") {
-          finalShape = new Line([startPoint.x, startPoint.y, pointer.x, pointer.y], {
+          const finalLine = new Line([startPoint.x, startPoint.y, pointer.x, pointer.y], {
             stroke: currentColorRef.current,
             strokeWidth: 3,
             selectable: false,
             evented: false
           });
+          canvas.add(finalLine);
+          console.log('Line added to canvas');
         } 
         else if (currentToolRef.current === "square") {
           const left = Math.min(startPoint.x, pointer.x);
@@ -283,7 +281,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
           const height = Math.abs(pointer.y - startPoint.y);
           
           if (width > 5 && height > 5) {
-            finalShape = new Rect({
+            const finalRect = new Rect({
               left,
               top,
               width,
@@ -294,6 +292,8 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
               selectable: false,
               evented: false
             });
+            canvas.add(finalRect);
+            console.log('Rectangle added to canvas');
           }
         }
         else if (currentToolRef.current === "arrow") {
@@ -342,11 +342,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef }: DrawingCanvasProps)
             canvas.add(arrowHead2);
             console.log('Arrow added to canvas');
           }
-        }
-        
-        if (finalShape) {
-          canvas.add(finalShape);
-          console.log(`${currentToolRef.current} added to canvas`);
         }
         
         canvas.renderAll();
