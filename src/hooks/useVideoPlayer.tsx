@@ -129,9 +129,11 @@ export const useVideoPlayer = ({
     }
   }, [isLooping]);
 
+  // 🔥 FIXED: Frame-accurate seeking for drawings! Changed threshold from 0.5 to 0.016 (1 frame at 60fps)
   useEffect(() => {
     const video = videoRef.current;
-    if (video && Math.abs(video.currentTime - currentTime) > 0.5) {
+    if (video && Math.abs(video.currentTime - currentTime) > 0.016) {
+      console.log(`🎯 FRAME-ACCURATE SEEK: ${video.currentTime.toFixed(3)}s → ${currentTime.toFixed(3)}s (diff: ${Math.abs(video.currentTime - currentTime).toFixed(3)}s)`);
       video.currentTime = currentTime;
     }
   }, [currentTime]);
