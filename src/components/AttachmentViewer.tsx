@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,8 +38,6 @@ export const AttachmentViewer = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(false);
   const [showDownloadOnly, setShowDownloadOnly] = useState(false);
-  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Enhanced file type detection
   const getFileType = (attachment: AttachmentWithType) => {
@@ -108,12 +107,6 @@ export const AttachmentViewer = ({
       setIsLoading(false);
       setShowDownloadOnly(false);
       
-      // Clear any existing timeout
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-        loadingTimeoutRef.current = null;
-      }
-      
       const fileType = getFileType(attachment);
       console.log('📋 Final detected file type:', fileType);
       
@@ -129,28 +122,10 @@ export const AttachmentViewer = ({
         return;
       }
       
-      // For previewable files, start loading
+      // For previewable files, show loading initially
       console.log('🚀 Starting preview loading for', fileType);
       setIsLoading(true);
-      
-      // Set reasonable timeout for different file types
-      const timeoutDuration = fileType === 'pdf' || fileType === 'text' ? 15000 : 30000;
-      console.log(`⏱️ Setting ${timeoutDuration/1000} second timeout for ${fileType} file`);
-      
-      loadingTimeoutRef.current = setTimeout(() => {
-        console.log('⏰ TIMEOUT: File took too long to load - switching to download mode');
-        setIsLoading(false);
-        setError(true);
-        setShowDownloadOnly(true);
-      }, timeoutDuration);
     }
-    
-    return () => {
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-        loadingTimeoutRef.current = null;
-      }
-    };
   }, [attachment]);
 
   if (!attachment) return null;
@@ -202,12 +177,6 @@ export const AttachmentViewer = ({
     console.log('✅ Content loaded successfully for:', fileType);
     setIsLoading(false);
     setError(false);
-    
-    // Clear timeout since loading succeeded
-    if (loadingTimeoutRef.current) {
-      clearTimeout(loadingTimeoutRef.current);
-      loadingTimeoutRef.current = null;
-    }
   };
 
   const handleLoadError = (errorMessage?: string) => {
@@ -215,12 +184,6 @@ export const AttachmentViewer = ({
     setError(true);
     setIsLoading(false);
     setShowDownloadOnly(true);
-    
-    // Clear timeout
-    if (loadingTimeoutRef.current) {
-      clearTimeout(loadingTimeoutRef.current);
-      loadingTimeoutRef.current = null;
-    }
   };
 
   const renderContent = () => {
@@ -296,7 +259,6 @@ export const AttachmentViewer = ({
         return (
           <div className="flex items-center justify-center max-h-[70vh]">
             <video
-              ref={videoRef}
               src={attachment.url}
               controls
               className="max-w-full max-h-full rounded-lg"
@@ -358,7 +320,7 @@ export const AttachmentViewer = ({
         return (
           <div className="h-[70vh] w-full">
             <iframe
-              src={`${attachment.url}#toolbar=1&view=FitH`}
+              src={attachment.url}
               className="w-full h-full rounded-lg border border-gray-600"
               title={getFullFileName()}
               onLoad={() => {
