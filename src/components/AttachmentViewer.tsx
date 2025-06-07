@@ -40,10 +40,74 @@ export const AttachmentViewer = ({
   const [showDownloadOnly, setShowDownloadOnly] = useState(false);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Enhanced file type detection with better fallbacks
+  const getFileType = (attachment: AttachmentWithType) => {
+    const { type, name } = attachment;
+    
+    console.log('🔍 Detecting file type for:', { name, type });
+    
+    // Get extension for fallback
+    const extension = name?.split('.').pop()?.toLowerCase() || '';
+    console.log('📄 File extension:', extension);
+    
+    // Use MIME type first (most reliable)
+    if (type) {
+      console.log('🏷️ Using MIME type:', type);
+      if (type.startsWith('image/')) {
+        console.log('✅ Detected as IMAGE via MIME');
+        return 'image';
+      }
+      if (type.startsWith('video/')) {
+        console.log('✅ Detected as VIDEO via MIME');
+        return 'video';
+      }
+      if (type.startsWith('audio/')) {
+        console.log('✅ Detected as AUDIO via MIME');
+        return 'audio';
+      }
+      if (type === 'application/pdf') {
+        console.log('✅ Detected as PDF via MIME');
+        return 'pdf';
+      }
+      if (type.includes('text')) {
+        console.log('✅ Detected as TEXT via MIME');
+        return 'text';
+      }
+    }
+    
+    // Enhanced fallback to extension with more types
+    console.log('🔄 Falling back to extension detection');
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'tiff', 'tif'].includes(extension)) {
+      console.log('✅ Detected as IMAGE via extension');
+      return 'image';
+    }
+    if (['mp4', 'avi', 'mov', 'webm', 'mkv', 'ogv', 'flv', 'wmv', 'm4v'].includes(extension)) {
+      console.log('✅ Detected as VIDEO via extension');
+      return 'video';
+    }
+    if (['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'wma'].includes(extension)) {
+      console.log('✅ Detected as AUDIO via extension');
+      return 'audio';
+    }
+    if (extension === 'pdf') {
+      console.log('✅ Detected as PDF via extension');
+      return 'pdf';
+    }
+    if (['txt', 'md', 'json', 'xml', 'csv', 'log', 'rtf'].includes(extension)) {
+      console.log('✅ Detected as TEXT via extension');
+      return 'text';
+    }
+    
+    console.log('❌ Unknown file type - defaulting to FILE');
+    return 'file';
+  };
+
   // Reset state when attachment changes
   useEffect(() => {
     if (attachment) {
-      console.log('📎 Loading attachment:', attachment);
+      console.log('📎 AttachmentViewer: Loading new attachment:', attachment);
+      
+      // Reset all states
       setError(false);
       setIsLoading(false);
       setShowDownloadOnly(false);
@@ -55,29 +119,35 @@ export const AttachmentViewer = ({
       }
       
       const fileType = getFileType(attachment);
-      console.log('📎 File type detected:', fileType);
+      console.log('📋 Final detected file type:', fileType);
       
-      // Check if file is previewable
-      const previewableTypes = ['image', 'video', 'audio', 'pdf'];
+      // List of types that can be previewed
+      const previewableTypes = ['image', 'video', 'audio', 'pdf', 'text'];
+      const isPreviewable = previewableTypes.includes(fileType);
       
-      if (!previewableTypes.includes(fileType)) {
-        console.log('📄 Non-previewable file type - showing download only');
+      console.log('🔍 Is previewable?', isPreviewable, '(type:', fileType, ')');
+      
+      if (!isPreviewable) {
+        console.log('⭐ Non-previewable file - showing download interface');
         setShowDownloadOnly(true);
         return;
       }
       
-      // For previewable files, start loading
-      console.log('🖼️ Starting to load previewable file:', fileType);
+      // For previewable files, start loading process
+      console.log('🚀 Starting preview loading for', fileType);
       setIsLoading(true);
       
-      // Set timeout only for media files that might hang
+      // Set a timeout for media files that might hang (but not for PDFs/text)
       if (['image', 'video', 'audio'].includes(fileType)) {
+        console.log('⏱️ Setting 10 second timeout for media file');
         loadingTimeoutRef.current = setTimeout(() => {
-          console.log('⏰ Loading timeout - switching to download mode');
+          console.log('⏰ TIMEOUT: Media file took too long to load - switching to download mode');
           setIsLoading(false);
           setError(true);
           setShowDownloadOnly(true);
-        }, 8000); // 8 second timeout for media files
+        }, 10000); // 10 second timeout for media files
+      } else {
+        console.log('📄 No timeout for PDF/text file');
       }
     }
     
@@ -90,30 +160,6 @@ export const AttachmentViewer = ({
   }, [attachment]);
 
   if (!attachment) return null;
-
-  // Enhanced file type detection
-  const getFileType = (attachment: AttachmentWithType) => {
-    const { type, name } = attachment;
-    
-    // Use MIME type first
-    if (type) {
-      if (type.startsWith('image/')) return 'image';
-      if (type.startsWith('video/')) return 'video';
-      if (type.startsWith('audio/')) return 'audio';
-      if (type === 'application/pdf') return 'pdf';
-      if (type.includes('text')) return 'text';
-    }
-    
-    // Fallback to extension
-    const extension = name.split('.').pop()?.toLowerCase();
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(extension || '')) return 'image';
-    if (['mp4', 'avi', 'mov', 'webm', 'mkv', 'ogv'].includes(extension || '')) return 'video';
-    if (['mp3', 'wav', 'ogg', 'aac', 'flac'].includes(extension || '')) return 'audio';
-    if (extension === 'pdf') return 'pdf';
-    if (['txt', 'md', 'json', 'xml', 'csv'].includes(extension || '')) return 'text';
-    
-    return 'file';
-  };
 
   const fileType = getFileType(attachment);
 
@@ -160,7 +206,7 @@ export const AttachmentViewer = ({
   };
 
   const handleLoadSuccess = () => {
-    console.log('✅ Content loaded successfully');
+    console.log('✅ Content loaded successfully for:', fileType);
     setIsLoading(false);
     setError(false);
     
@@ -185,8 +231,11 @@ export const AttachmentViewer = ({
   };
 
   const renderContent = () => {
+    console.log('🎨 Rendering content - isLoading:', isLoading, 'error:', error, 'showDownloadOnly:', showDownloadOnly, 'fileType:', fileType);
+    
     // Show loading spinner for previewable content
     if (isLoading && !error && !showDownloadOnly) {
+      console.log('⏳ Showing loading spinner');
       return (
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -197,6 +246,7 @@ export const AttachmentViewer = ({
 
     // Show download-only interface
     if (showDownloadOnly || error) {
+      console.log('📥 Showing download interface');
       return (
         <div className="flex flex-col items-center justify-center h-64 space-y-6">
           <div className="p-4 bg-gray-700 rounded-full">
@@ -225,8 +275,10 @@ export const AttachmentViewer = ({
     }
 
     // Show preview for supported file types
+    console.log('🖼️ Rendering preview for type:', fileType);
     switch (fileType) {
       case 'image':
+        console.log('🖼️ Rendering image preview');
         return (
           <div className="flex items-center justify-center max-h-[70vh] overflow-hidden">
             <img
@@ -247,6 +299,7 @@ export const AttachmentViewer = ({
         );
       
       case 'video':
+        console.log('📹 Rendering video preview');
         return (
           <div className="flex items-center justify-center max-h-[70vh]">
             <video
@@ -274,6 +327,7 @@ export const AttachmentViewer = ({
         );
       
       case 'audio':
+        console.log('🎵 Rendering audio preview');
         return (
           <div className="flex flex-col items-center justify-center p-8 space-y-6">
             <div className="flex items-center space-x-3">
@@ -306,10 +360,11 @@ export const AttachmentViewer = ({
         );
       
       case 'pdf':
+        console.log('📄 Rendering PDF preview');
         return (
           <div className="h-[70vh] w-full">
             <iframe
-              src={attachment.url}
+              src={`${attachment.url}#toolbar=0`}
               className="w-full h-full rounded-lg border border-gray-600"
               title={getFullFileName()}
               onLoad={() => {
@@ -325,6 +380,7 @@ export const AttachmentViewer = ({
         );
       
       case 'text':
+        console.log('📝 Rendering text preview');
         return (
           <div className="max-h-[70vh] overflow-auto bg-gray-800 rounded-lg p-4">
             <iframe
@@ -344,7 +400,9 @@ export const AttachmentViewer = ({
         );
       
       default:
-        // Should not reach here for previewable files
+        console.log('❓ Unknown file type for preview:', fileType);
+        // Fallback to download interface for unknown types
+        setShowDownloadOnly(true);
         return null;
     }
   };
