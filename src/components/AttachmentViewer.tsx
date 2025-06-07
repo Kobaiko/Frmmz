@@ -42,13 +42,24 @@ export const AttachmentViewer = ({
   useEffect(() => {
     if (attachment) {
       console.log('📎 Loading attachment:', attachment);
-      setIsLoading(true);
       setError(false);
       
-      // For non-previewable files, set loading to false immediately
       const fileType = getFileType(attachment);
-      if (!['image', 'video', 'audio', 'pdf'].includes(fileType)) {
-        setTimeout(() => setIsLoading(false), 100);
+      
+      // For blob URLs (uploaded files), we need different handling
+      if (attachment.url.startsWith('blob:')) {
+        if (['image', 'video', 'audio'].includes(fileType)) {
+          setIsLoading(true);
+        } else {
+          // For PDFs and other files with blob URLs, don't try to preview
+          setIsLoading(false);
+          if (fileType === 'pdf') {
+            setError(true); // PDFs from blob URLs often don't work in iframes
+          }
+        }
+      } else {
+        // For regular URLs, try to load if it's a previewable type
+        setIsLoading(['image', 'video', 'audio', 'pdf'].includes(fileType));
       }
     }
   }, [attachment]);
@@ -146,21 +157,27 @@ export const AttachmentViewer = ({
       );
     }
 
-    if (error) {
+    if (error || (!isLoading && !['image', 'video', 'audio'].includes(fileType))) {
       return (
         <div className="flex flex-col items-center justify-center h-64 space-y-4">
-          <File size={48} className="text-gray-500" />
+          <div className="p-4 bg-gray-700 rounded-full">
+            {getFileIcon()}
+          </div>
           <div className="text-center">
-            <h3 className="text-lg font-medium text-white mb-2">Unable to preview</h3>
+            <h3 className="text-lg font-medium text-white mb-2">{getFileName()}</h3>
             <p className="text-gray-400 text-sm mb-4">
-              This file type cannot be previewed in the browser.
+              {error ? 'Unable to preview this file in the browser.' : 
+               fileType === 'pdf' ? 'PDF file' :
+               fileType === 'archive' ? 'Archive file' : 
+               fileType === 'document' ? 'Document file' : 
+               'File attachment'}
             </p>
             <Button
               onClick={handleDownload}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg"
+              className="bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2 px-4 py-2"
             >
-              <Download size={16} className="mr-2" />
-              Download File
+              <Download size={16} />
+              <span>Download File</span>
             </Button>
           </div>
         </div>
@@ -212,53 +229,15 @@ export const AttachmentViewer = ({
           </div>
         );
       
-      case 'pdf':
-        return (
-          <div className="w-full h-[70vh]">
-            <iframe
-              src={attachment.url}
-              className="w-full h-full rounded-lg border border-gray-600"
-              title={`PDF: ${getFileName()}`}
-              onLoad={handleLoadSuccess}
-              onError={handleLoadError}
-            />
-          </div>
-        );
-      
       default:
-        // For other file types, show file info and download option
-        return (
-          <div className="flex flex-col items-center justify-center p-12 space-y-6">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="p-4 bg-gray-700 rounded-full">
-                {getFileIcon()}
-              </div>
-              <div className="text-center">
-                <h3 className="text-lg font-medium text-white mb-2">{getFileName()}</h3>
-                <p className="text-gray-400 text-sm">
-                  {fileType === 'archive' ? 'Archive file' : 
-                   fileType === 'document' ? 'Document file' : 
-                   'File attachment'}
-                </p>
-              </div>
-            </div>
-            <Button
-              onClick={handleDownload}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg"
-            >
-              <Download size={16} className="mr-2" />
-              Download File
-            </Button>
-          </div>
-        );
+        return null;
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
-        className="max-w-4xl max-h-[90vh] bg-gray-900 border-gray-600 text-white p-0"
-        showCloseButton={false}
+        className="max-w-4xl max-h-[90vh] bg-gray-900 border-gray-600 text-white p-0 [&>button]:hidden"
       >
         {/* Accessible title for screen readers */}
         <DialogTitle className="sr-only">
@@ -266,21 +245,23 @@ export const AttachmentViewer = ({
         </DialogTitle>
         
         {/* Custom Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
+        <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <div className="flex items-center space-x-3">
             {getFileIcon()}
-            <span className="text-lg font-medium">Attachment {attachmentIndex + 1}</span>
-            <span className="text-sm text-gray-400">({getFileName()})</span>
+            <div className="flex flex-col">
+              <span className="text-lg font-medium">Attachment {attachmentIndex + 1}</span>
+              <span className="text-sm text-gray-400">{getFileName()}</span>
+            </div>
           </div>
           <div className="flex items-center space-x-2">
             <Button
               onClick={handleDownload}
               variant="outline"
               size="sm"
-              className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white px-4 py-2"
+              className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-gray-500 flex items-center space-x-2 px-3 py-2"
             >
-              <Download size={16} className="mr-2" />
-              Download
+              <Download size={14} />
+              <span>Download</span>
             </Button>
             <Button
               onClick={onClose}
@@ -288,7 +269,7 @@ export const AttachmentViewer = ({
               size="sm"
               className="text-gray-400 hover:text-white hover:bg-gray-700 p-2"
             >
-              <X size={20} />
+              <X size={18} />
             </Button>
           </div>
         </div>
