@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Clock, MessageSquare, Reply, Trash2, Paperclip, Smile, Send, Search, ExternalLink } from "lucide-react";
+import { Clock, MessageSquare, Reply, Trash2, Paperclip, Smile, Send, Search, Eye } from "lucide-react";
 import { CommentInput } from "@/components/CommentInput";
 import { Textarea } from "@/components/ui/textarea";
 import { CommentContextMenu } from "@/components/CommentContextMenu";
@@ -10,6 +10,7 @@ import { CommentFilterMenu, type CommentFilters } from "@/components/CommentFilt
 import { CommentSortMenu, type SortOption } from "@/components/CommentSortMenu";
 import { CommentActionsMenu } from "@/components/CommentActionsMenu";
 import { CommentTypeFilter, type CommentType } from "@/components/CommentTypeFilter";
+import { AttachmentViewer } from "@/components/AttachmentViewer";
 import type { Comment } from "@/pages/Index";
 
 interface CommentPanelProps {
@@ -46,6 +47,11 @@ export const CommentPanel = ({
     unread: false,
     mentionsAndReactions: false,
   });
+
+  // 🆕 NEW: Attachment viewer state
+  const [selectedAttachment, setSelectedAttachment] = useState<string | null>(null);
+  const [selectedAttachmentIndex, setSelectedAttachmentIndex] = useState(0);
+  const [isAttachmentViewerOpen, setIsAttachmentViewerOpen] = useState(false);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -192,37 +198,29 @@ export const CommentPanel = ({
     }
   };
 
-  // 📎 ENHANCED: Handle attachment clicks with video pausing
-  const handleAttachmentClick = (attachment: string, event: React.MouseEvent) => {
+  // 📎 ENHANCED: Handle attachment clicks with modal viewer and video pausing
+  const handleAttachmentClick = (attachment: string, attachmentIndex: number, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent comment navigation
     
-    // 🎬 NEW: Pause video when clicking attachment
+    // 🎬 Pause video when viewing attachment
     const video = document.querySelector('video') as HTMLVideoElement;
     if (video && !video.paused) {
       video.pause();
       console.log('📹 Video paused for attachment viewing');
     }
     
-    // Determine if it's an image based on URL or blob type
-    const isImage = attachment.includes('image/') || 
-                   attachment.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i) ||
-                   attachment.startsWith('data:image/');
-    
-    if (isImage) {
-      // Open image in new tab
-      window.open(attachment, '_blank');
-      console.log('📸 Opened image attachment in new tab');
-    } else {
-      // For other files, create download link
-      const link = document.createElement('a');
-      link.href = attachment;
-      link.download = `attachment-${Date.now()}`;
-      link.target = '_blank';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      console.log('📁 Downloaded file attachment');
-    }
+    // 🆕 Open attachment in modal viewer
+    setSelectedAttachment(attachment);
+    setSelectedAttachmentIndex(attachmentIndex);
+    setIsAttachmentViewerOpen(true);
+    console.log('📎 Opening attachment viewer:', attachment);
+  };
+
+  // 🆕 Close attachment viewer
+  const handleCloseAttachmentViewer = () => {
+    setIsAttachmentViewerOpen(false);
+    setSelectedAttachment(null);
+    setSelectedAttachmentIndex(0);
   };
 
   return (
@@ -370,22 +368,22 @@ export const CommentPanel = ({
                     
                     <p className="text-gray-200 mb-3 leading-relaxed">{comment.text}</p>
                     
-                    {/* 📎 ENHANCED: Clickable Attachments that Pause Video */}
+                    {/* 📎 ENHANCED: Beautiful Clickable Attachments with Preview Icons */}
                     {comment.attachments && comment.attachments.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-3">
                         {comment.attachments.map((attachment, index) => (
                           <button
                             key={index}
-                            onClick={(e) => handleAttachmentClick(attachment, e)}
-                            className="flex items-center space-x-2 bg-gray-600 hover:bg-gray-500 rounded px-3 py-2 transition-colors cursor-pointer group"
+                            onClick={(e) => handleAttachmentClick(attachment, index, e)}
+                            className="flex items-center space-x-2 bg-gray-600 hover:bg-blue-600/20 border border-gray-500 hover:border-blue-500/50 rounded-lg px-3 py-2 transition-all duration-200 cursor-pointer group"
                             data-interactive="true"
-                            title="Click to open attachment (pauses video)"
+                            title="Click to preview attachment"
                           >
-                            <Paperclip size={12} className="text-gray-400 group-hover:text-gray-300" />
+                            <Paperclip size={12} className="text-gray-400 group-hover:text-blue-400" />
                             <span className="text-xs text-gray-300 group-hover:text-white">
                               Attachment {index + 1}
                             </span>
-                            <ExternalLink size={10} className="text-gray-500 group-hover:text-gray-400" />
+                            <Eye size={10} className="text-gray-500 group-hover:text-blue-400" />
                           </button>
                         ))}
                       </div>
@@ -527,22 +525,22 @@ export const CommentPanel = ({
                       
                       <p className="text-gray-200 text-sm mb-2">{reply.text}</p>
                       
-                      {/* 📎 ENHANCED: Clickable Attachments for Replies that Pause Video */}
+                      {/* 📎 ENHANCED: Clickable Attachments for Replies with Preview */}
                       {reply.attachments && reply.attachments.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-2">
                           {reply.attachments.map((attachment, index) => (
                             <button
                               key={index}
-                              onClick={(e) => handleAttachmentClick(attachment, e)}
-                              className="flex items-center space-x-1 bg-gray-600 hover:bg-gray-500 rounded px-2 py-1 transition-colors cursor-pointer group"
+                              onClick={(e) => handleAttachmentClick(attachment, index, e)}
+                              className="flex items-center space-x-1 bg-gray-600 hover:bg-blue-600/20 border border-gray-500 hover:border-blue-500/50 rounded px-2 py-1 transition-all duration-200 cursor-pointer group"
                               data-interactive="true"
-                              title="Click to open attachment (pauses video)"
+                              title="Click to preview attachment"
                             >
-                              <Paperclip size={10} className="text-gray-400 group-hover:text-gray-300" />
+                              <Paperclip size={10} className="text-gray-400 group-hover:text-blue-400" />
                               <span className="text-xs text-gray-300 group-hover:text-white">
                                 File {index + 1}
                               </span>
-                              <ExternalLink size={8} className="text-gray-500 group-hover:text-gray-400" />
+                              <Eye size={8} className="text-gray-500 group-hover:text-blue-400" />
                             </button>
                           ))}
                         </div>
@@ -578,6 +576,14 @@ export const CommentPanel = ({
           isDrawingMode={isDrawingMode}
         />
       </div>
+
+      {/* 🆕 NEW: Attachment Viewer Modal */}
+      <AttachmentViewer
+        attachment={selectedAttachment}
+        attachmentIndex={selectedAttachmentIndex}
+        isOpen={isAttachmentViewerOpen}
+        onClose={handleCloseAttachmentViewer}
+      />
     </div>
   );
 };
