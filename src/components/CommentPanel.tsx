@@ -192,9 +192,16 @@ export const CommentPanel = ({
     }
   };
 
-  // 📎 NEW: Handle attachment clicks
+  // 📎 ENHANCED: Handle attachment clicks with video pausing
   const handleAttachmentClick = (attachment: string, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent comment navigation
+    
+    // 🎬 NEW: Pause video when clicking attachment
+    const video = document.querySelector('video') as HTMLVideoElement;
+    if (video && !video.paused) {
+      video.pause();
+      console.log('📹 Video paused for attachment viewing');
+    }
     
     // Determine if it's an image based on URL or blob type
     const isImage = attachment.includes('image/') || 
@@ -363,7 +370,7 @@ export const CommentPanel = ({
                     
                     <p className="text-gray-200 mb-3 leading-relaxed">{comment.text}</p>
                     
-                    {/* 📎 ENHANCED: Clickable Attachments */}
+                    {/* 📎 ENHANCED: Clickable Attachments that Pause Video */}
                     {comment.attachments && comment.attachments.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-3">
                         {comment.attachments.map((attachment, index) => (
@@ -372,7 +379,7 @@ export const CommentPanel = ({
                             onClick={(e) => handleAttachmentClick(attachment, e)}
                             className="flex items-center space-x-2 bg-gray-600 hover:bg-gray-500 rounded px-3 py-2 transition-colors cursor-pointer group"
                             data-interactive="true"
-                            title="Click to open attachment"
+                            title="Click to open attachment (pauses video)"
                           >
                             <Paperclip size={12} className="text-gray-400 group-hover:text-gray-300" />
                             <span className="text-xs text-gray-300 group-hover:text-white">
@@ -520,7 +527,7 @@ export const CommentPanel = ({
                       
                       <p className="text-gray-200 text-sm mb-2">{reply.text}</p>
                       
-                      {/* 📎 ENHANCED: Clickable Attachments for Replies */}
+                      {/* 📎 ENHANCED: Clickable Attachments for Replies that Pause Video */}
                       {reply.attachments && reply.attachments.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-2">
                           {reply.attachments.map((attachment, index) => (
@@ -529,7 +536,7 @@ export const CommentPanel = ({
                               onClick={(e) => handleAttachmentClick(attachment, e)}
                               className="flex items-center space-x-1 bg-gray-600 hover:bg-gray-500 rounded px-2 py-1 transition-colors cursor-pointer group"
                               data-interactive="true"
-                              title="Click to open attachment"
+                              title="Click to open attachment (pauses video)"
                             >
                               <Paperclip size={10} className="text-gray-400 group-hover:text-gray-300" />
                               <span className="text-xs text-gray-300 group-hover:text-white">
