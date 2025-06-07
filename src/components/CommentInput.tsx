@@ -86,6 +86,15 @@ export const CommentInput = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // 🎬 HELPER: Pause video function
+  const pauseVideo = (reason: string) => {
+    const video = document.querySelector('video') as HTMLVideoElement;
+    if (video && !video.paused) {
+      video.pause();
+      console.log(`📹 Video paused for ${reason}`);
+    }
+  };
+
   const handleSubmit = () => {
     if (comment.trim()) {
       const canvas = (window as any).drawingCanvas;
@@ -155,6 +164,12 @@ export const CommentInput = ({
     }
   };
 
+  // 📎 ENHANCED: Handle attachment button with video pausing
+  const handleAttachmentClick = () => {
+    pauseVideo('attachment selection');
+    fileInputRef.current?.click();
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const fileUrls = files.map(file => URL.createObjectURL(file));
@@ -168,6 +183,12 @@ export const CommentInput = ({
   const addEmoji = (emoji: string) => {
     setComment(comment + emoji);
     setShowEmojiPicker(false);
+  };
+
+  // 😊 ENHANCED: Handle emoji button with video pausing
+  const handleEmojiClick = () => {
+    pauseVideo('emoji picker');
+    setShowEmojiPicker(!showEmojiPicker);
   };
 
   const toggleAttachTime = () => {
@@ -294,13 +315,13 @@ export const CommentInput = ({
                 <Clock size={18} />
               </Button>
               
-              {/* Attachment button */}
+              {/* 📎 ENHANCED: Attachment button with video pausing */}
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={handleAttachmentClick}
                 className="text-gray-400 hover:text-white hover:bg-gray-600 p-2 rounded-lg"
-                title="Attach files"
+                title="Attach files (pauses video)"
               >
                 <Paperclip size={18} />
               </Button>
@@ -330,14 +351,14 @@ export const CommentInput = ({
                 )}
               </div>
               
-              {/* Emoji button */}
+              {/* 😊 ENHANCED: Emoji button with video pausing */}
               <div className="relative">
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  onClick={handleEmojiClick}
                   className="text-gray-400 hover:text-white hover:bg-gray-600 p-2 rounded-lg"
-                  title="Add emoji"
+                  title="Add emoji (pauses video)"
                 >
                   <Smile size={18} />
                 </Button>
