@@ -50,67 +50,51 @@ export const AttachmentViewer = ({
       const fileType = getFileType(attachment);
       console.log('📎 File type detected:', fileType);
       
-      // For PDFs from blob URLs (uploaded files), show download only
-      // Regular URL PDFs can sometimes be previewed
-      if (fileType === 'pdf' && attachment.url.startsWith('blob:')) {
-        console.log('📄 PDF blob URL detected - showing download only');
-        setShowDownloadOnly(true);
-        return;
-      }
-      
-      // For non-previewable files, show download only
-      if (!['image', 'video', 'audio', 'pdf'].includes(fileType)) {
+      // Immediately show download for non-previewable files
+      if (!['image', 'video', 'audio'].includes(fileType)) {
         console.log('📄 Non-previewable file type - showing download only');
         setShowDownloadOnly(true);
         return;
       }
       
-      // For previewable files, start with loading state
-      if (['image', 'video', 'audio'].includes(fileType)) {
-        console.log('🖼️ Previewable file - starting to load');
-        setIsLoading(true);
-      }
+      // For previewable files, try to load with timeout
+      console.log('🖼️ Starting to load previewable file');
+      setIsLoading(true);
+      
+      // Set a timeout to prevent infinite loading
+      const loadingTimeout = setTimeout(() => {
+        console.log('⏰ Loading timeout - switching to download mode');
+        setIsLoading(false);
+        setError(true);
+        setShowDownloadOnly(true);
+      }, 5000); // 5 second timeout
+      
+      return () => {
+        clearTimeout(loadingTimeout);
+      };
     }
   }, [attachment]);
 
   if (!attachment) return null;
 
-  // Enhanced file type detection using MIME type and extension
+  // Enhanced file type detection
   const getFileType = (attachment: AttachmentWithType) => {
-    const { type, url, name } = attachment;
+    const { type, name } = attachment;
     
-    // Use MIME type first (most reliable for uploaded files)
+    // Use MIME type first
     if (type) {
       if (type.startsWith('image/')) return 'image';
       if (type.startsWith('video/')) return 'video';
       if (type.startsWith('audio/')) return 'audio';
       if (type === 'application/pdf') return 'pdf';
-      if (type.includes('zip') || type.includes('rar') || type.includes('archive')) return 'archive';
-      if (type.includes('text') || type.includes('document')) return 'document';
     }
     
-    // Fallback to extension detection
-    const fileName = name || url;
-    const extension = fileName.split('.').pop()?.toLowerCase();
-    
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(extension || '')) {
-      return 'image';
-    }
-    if (['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'].includes(extension || '')) {
-      return 'video';
-    }
-    if (['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'].includes(extension || '')) {
-      return 'audio';
-    }
-    if (extension === 'pdf') {
-      return 'pdf';
-    }
-    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(extension || '')) {
-      return 'archive';
-    }
-    if (['txt', 'md', 'rtf', 'doc', 'docx'].includes(extension || '')) {
-      return 'document';
-    }
+    // Fallback to extension
+    const extension = name.split('.').pop()?.toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension || '')) return 'image';
+    if (['mp4', 'avi', 'mov', 'webm', 'mkv'].includes(extension || '')) return 'video';
+    if (['mp3', 'wav', 'ogg', 'aac'].includes(extension || '')) return 'audio';
+    if (extension === 'pdf') return 'pdf';
     
     return 'file';
   };
@@ -129,19 +113,34 @@ export const AttachmentViewer = ({
     }
   };
 
-  const getFileName = () => {
+  // Truncate filename with ellipsis
+  const getTruncatedFileName = (maxLength = 40) => {
+    const name = attachment.name || `attachment-${attachmentIndex + 1}`;
+    if (name.length <= maxLength) return name;
+    
+    const extension = name.split('.').pop();
+    const nameWithoutExt = name.substring(0, name.lastIndexOf('.'));
+    const maxNameLength = maxLength - (extension ? extension.length + 4 : 3); // Account for "..." and "."
+    
+    if (extension) {
+      return `${nameWithoutExt.substring(0, maxNameLength)}...${extension}`;
+    }
+    return `${name.substring(0, maxLength - 3)}...`;
+  };
+
+  const getFullFileName = () => {
     return attachment.name || `attachment-${attachmentIndex + 1}`;
   };
 
   const handleDownload = () => {
     const link = document.createElement('a');
     link.href = attachment.url;
-    link.download = getFileName();
+    link.download = getFullFileName();
     link.target = '_blank';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    console.log('📁 Downloaded attachment:', getFileName());
+    console.log('📁 Downloaded attachment:', getFullFileName());
   };
 
   const handleLoadSuccess = () => {
@@ -163,26 +162,26 @@ export const AttachmentViewer = ({
       return (
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-          <span className="ml-3 text-gray-400">Loading...</span>
+          <span className="ml-3 text-gray-400">Loading preview...</span>
         </div>
       );
     }
 
     // Show download-only interface
-    if (showDownloadOnly || error || (!isLoading && !['image', 'video', 'audio', 'pdf'].includes(fileType))) {
+    if (showDownloadOnly || error) {
       return (
         <div className="flex flex-col items-center justify-center h-64 space-y-6">
           <div className="p-4 bg-gray-700 rounded-full">
             {getFileIcon()}
           </div>
-          <div className="text-center">
-            <h3 className="text-lg font-medium text-white mb-2">{getFileName()}</h3>
+          <div className="text-center max-w-md">
+            <h3 className="text-lg font-medium text-white mb-2 break-words">
+              {getTruncatedFileName(50)}
+            </h3>
             <p className="text-gray-400 text-sm mb-6">
               {error ? 'Unable to preview this file in the browser.' : 
                fileType === 'pdf' ? 'PDF file ready for download' :
-               fileType === 'archive' ? 'Archive file' : 
-               fileType === 'document' ? 'Document file' : 
-               'File attachment'}
+               'File ready for download'}
             </p>
             <div className="flex justify-center">
               <Button
@@ -205,7 +204,7 @@ export const AttachmentViewer = ({
           <div className="flex items-center justify-center max-h-[70vh] overflow-hidden">
             <img
               src={attachment.url}
-              alt={getFileName()}
+              alt={getFullFileName()}
               className="max-w-full max-h-full object-contain rounded-lg"
               onLoad={handleLoadSuccess}
               onError={handleLoadError}
@@ -222,6 +221,7 @@ export const AttachmentViewer = ({
               className="max-w-full max-h-full rounded-lg"
               onLoadedData={handleLoadSuccess}
               onError={handleLoadError}
+              onLoadStart={() => console.log('📹 Video started loading')}
               style={{ backgroundColor: 'black' }}
             >
               Your browser does not support the video tag.
@@ -234,7 +234,9 @@ export const AttachmentViewer = ({
           <div className="flex flex-col items-center justify-center p-8 space-y-6">
             <div className="flex items-center space-x-3">
               {getFileIcon()}
-              <span className="text-lg font-medium text-white">{getFileName()}</span>
+              <span className="text-lg font-medium text-white break-words max-w-md">
+                {getTruncatedFileName(40)}
+              </span>
             </div>
             <audio
               src={attachment.url}
@@ -245,19 +247,6 @@ export const AttachmentViewer = ({
             >
               Your browser does not support the audio tag.
             </audio>
-          </div>
-        );
-      
-      case 'pdf':
-        return (
-          <div className="h-[70vh] w-full">
-            <iframe
-              src={attachment.url}
-              className="w-full h-full rounded-lg"
-              title={getFileName()}
-              onLoad={handleLoadSuccess}
-              onError={handleLoadError}
-            />
           </div>
         );
       
@@ -273,19 +262,24 @@ export const AttachmentViewer = ({
       >
         {/* Accessible title for screen readers */}
         <DialogTitle className="sr-only">
-          Attachment Viewer - {getFileName()}
+          Attachment Viewer - {getFullFileName()}
         </DialogTitle>
         
         {/* Custom Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 min-w-0 flex-1">
             {getFileIcon()}
-            <div className="flex flex-col">
+            <div className="flex flex-col min-w-0 flex-1">
               <span className="text-lg font-medium">Attachment {attachmentIndex + 1}</span>
-              <span className="text-sm text-gray-400">{getFileName()}</span>
+              <span 
+                className="text-sm text-gray-400 truncate"
+                title={getFullFileName()}
+              >
+                {getTruncatedFileName(60)}
+              </span>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 flex-shrink-0">
             <Button
               onClick={handleDownload}
               className="bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2 px-4 py-2"

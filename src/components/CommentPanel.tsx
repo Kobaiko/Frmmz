@@ -85,6 +85,20 @@ export const CommentPanel = ({
     return <File size={size} className="text-gray-400" />;
   };
 
+  // 📎 Truncate attachment names
+  const truncateFileName = (name: string, maxLength = 20) => {
+    if (name.length <= maxLength) return name;
+    
+    const extension = name.split('.').pop();
+    const nameWithoutExt = name.substring(0, name.lastIndexOf('.'));
+    const maxNameLength = maxLength - (extension ? extension.length + 4 : 3);
+    
+    if (extension && nameWithoutExt.length > maxNameLength) {
+      return `${nameWithoutExt.substring(0, maxNameLength)}...${extension}`;
+    }
+    return `${name.substring(0, maxLength - 3)}...`;
+  };
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -407,15 +421,15 @@ export const CommentPanel = ({
                           <button
                             key={index}
                             onClick={(e) => handleAttachmentClick(attachment, index, e)}
-                            className="flex items-center space-x-2 bg-gray-600 hover:bg-blue-600/20 border border-gray-500 hover:border-blue-500/50 rounded-lg px-3 py-2 transition-all duration-200 cursor-pointer group"
+                            className="flex items-center space-x-2 bg-gray-600 hover:bg-blue-600/20 border border-gray-500 hover:border-blue-500/50 rounded-lg px-3 py-2 transition-all duration-200 cursor-pointer group max-w-full"
                             data-interactive="true"
                             title={`Click to preview ${attachment.name}`}
                           >
                             {getFileTypeIcon(attachment, 14)}
-                            <span className="text-xs text-gray-300 group-hover:text-white">
-                              {attachment.name}
+                            <span className="text-xs text-gray-300 group-hover:text-white truncate">
+                              {truncateFileName(attachment.name)}
                             </span>
-                            <Eye size={10} className="text-gray-500 group-hover:text-blue-400" />
+                            <Eye size={10} className="text-gray-500 group-hover:text-blue-400 flex-shrink-0" />
                           </button>
                         ))}
                       </div>
@@ -564,15 +578,15 @@ export const CommentPanel = ({
                             <button
                               key={index}
                               onClick={(e) => handleAttachmentClick(attachment, index, e)}
-                              className="flex items-center space-x-1 bg-gray-600 hover:bg-blue-600/20 border border-gray-500 hover:border-blue-500/50 rounded px-2 py-1 transition-all duration-200 cursor-pointer group"
+                              className="flex items-center space-x-1 bg-gray-600 hover:bg-blue-600/20 border border-gray-500 hover:border-blue-500/50 rounded px-2 py-1 transition-all duration-200 cursor-pointer group max-w-full"
                               data-interactive="true"
                               title={`Click to preview ${attachment.name}`}
                             >
                               {getFileTypeIcon(attachment, 10)}
-                              <span className="text-xs text-gray-300 group-hover:text-white">
-                                {attachment.name}
+                              <span className="text-xs text-gray-300 group-hover:text-white truncate">
+                                {truncateFileName(attachment.name, 15)}
                               </span>
-                              <Eye size={8} className="text-gray-500 group-hover:text-blue-400" />
+                              <Eye size={8} className="text-gray-500 group-hover:text-blue-400 flex-shrink-0" />
                             </button>
                           ))}
                         </div>
