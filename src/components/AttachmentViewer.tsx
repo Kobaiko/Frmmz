@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { 
   Download, 
@@ -259,6 +260,11 @@ export const AttachmentViewer = ({
         className="max-w-4xl max-h-[90vh] bg-gray-900 border-gray-600 text-white p-0"
         showCloseButton={false}
       >
+        {/* Accessible title for screen readers */}
+        <DialogTitle className="sr-only">
+          Attachment Viewer - {getFileName()}
+        </DialogTitle>
+        
         {/* Custom Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <div className="flex items-center space-x-3">
