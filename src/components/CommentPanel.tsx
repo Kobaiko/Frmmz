@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Clock, MessageSquare, Reply, Trash2, Paperclip, Smile, Send, Search } from "lucide-react";
+import { Clock, MessageSquare, Reply, Trash2, Paperclip, Smile, Send, Search, ExternalLink } from "lucide-react";
 import { CommentInput } from "@/components/CommentInput";
 import { Textarea } from "@/components/ui/textarea";
 import { CommentContextMenu } from "@/components/CommentContextMenu";
@@ -192,6 +192,32 @@ export const CommentPanel = ({
     }
   };
 
+  // 📎 NEW: Handle attachment clicks
+  const handleAttachmentClick = (attachment: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent comment navigation
+    
+    // Determine if it's an image based on URL or blob type
+    const isImage = attachment.includes('image/') || 
+                   attachment.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i) ||
+                   attachment.startsWith('data:image/');
+    
+    if (isImage) {
+      // Open image in new tab
+      window.open(attachment, '_blank');
+      console.log('📸 Opened image attachment in new tab');
+    } else {
+      // For other files, create download link
+      const link = document.createElement('a');
+      link.href = attachment;
+      link.download = `attachment-${Date.now()}`;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      console.log('📁 Downloaded file attachment');
+    }
+  };
+
   return (
     <div className="h-full bg-gray-800 flex flex-col">
       <div className="p-6 border-b border-gray-700">
@@ -337,13 +363,23 @@ export const CommentPanel = ({
                     
                     <p className="text-gray-200 mb-3 leading-relaxed">{comment.text}</p>
                     
+                    {/* 📎 ENHANCED: Clickable Attachments */}
                     {comment.attachments && comment.attachments.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-3">
                         {comment.attachments.map((attachment, index) => (
-                          <div key={index} className="flex items-center space-x-1 bg-gray-600 rounded px-2 py-1">
-                            <Paperclip size={12} className="text-gray-400" />
-                            <span className="text-xs text-gray-300">Attachment {index + 1}</span>
-                          </div>
+                          <button
+                            key={index}
+                            onClick={(e) => handleAttachmentClick(attachment, e)}
+                            className="flex items-center space-x-2 bg-gray-600 hover:bg-gray-500 rounded px-3 py-2 transition-colors cursor-pointer group"
+                            data-interactive="true"
+                            title="Click to open attachment"
+                          >
+                            <Paperclip size={12} className="text-gray-400 group-hover:text-gray-300" />
+                            <span className="text-xs text-gray-300 group-hover:text-white">
+                              Attachment {index + 1}
+                            </span>
+                            <ExternalLink size={10} className="text-gray-500 group-hover:text-gray-400" />
+                          </button>
                         ))}
                       </div>
                     )}
@@ -484,13 +520,23 @@ export const CommentPanel = ({
                       
                       <p className="text-gray-200 text-sm mb-2">{reply.text}</p>
                       
+                      {/* 📎 ENHANCED: Clickable Attachments for Replies */}
                       {reply.attachments && reply.attachments.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-2">
                           {reply.attachments.map((attachment, index) => (
-                            <div key={index} className="flex items-center space-x-1 bg-gray-600 rounded px-1 py-0.5">
-                              <Paperclip size={10} className="text-gray-400" />
-                              <span className="text-xs text-gray-300">File {index + 1}</span>
-                            </div>
+                            <button
+                              key={index}
+                              onClick={(e) => handleAttachmentClick(attachment, e)}
+                              className="flex items-center space-x-1 bg-gray-600 hover:bg-gray-500 rounded px-2 py-1 transition-colors cursor-pointer group"
+                              data-interactive="true"
+                              title="Click to open attachment"
+                            >
+                              <Paperclip size={10} className="text-gray-400 group-hover:text-gray-300" />
+                              <span className="text-xs text-gray-300 group-hover:text-white">
+                                File {index + 1}
+                              </span>
+                              <ExternalLink size={8} className="text-gray-500 group-hover:text-gray-400" />
+                            </button>
                           ))}
                         </div>
                       )}
