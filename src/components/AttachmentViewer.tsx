@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -38,6 +38,7 @@ export const AttachmentViewer = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(false);
   const [showDownloadOnly, setShowDownloadOnly] = useState(false);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Reset state when attachment changes
   useEffect(() => {
@@ -47,32 +48,45 @@ export const AttachmentViewer = ({
       setIsLoading(false);
       setShowDownloadOnly(false);
       
+      // Clear any existing timeout
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+      
       const fileType = getFileType(attachment);
       console.log('📎 File type detected:', fileType);
       
-      // Immediately show download for non-previewable files
-      if (!['image', 'video', 'audio'].includes(fileType)) {
+      // Check if file is previewable
+      const previewableTypes = ['image', 'video', 'audio', 'pdf'];
+      
+      if (!previewableTypes.includes(fileType)) {
         console.log('📄 Non-previewable file type - showing download only');
         setShowDownloadOnly(true);
         return;
       }
       
-      // For previewable files, try to load with timeout
-      console.log('🖼️ Starting to load previewable file');
+      // For previewable files, start loading
+      console.log('🖼️ Starting to load previewable file:', fileType);
       setIsLoading(true);
       
-      // Set a timeout to prevent infinite loading
-      const loadingTimeout = setTimeout(() => {
-        console.log('⏰ Loading timeout - switching to download mode');
-        setIsLoading(false);
-        setError(true);
-        setShowDownloadOnly(true);
-      }, 5000); // 5 second timeout
-      
-      return () => {
-        clearTimeout(loadingTimeout);
-      };
+      // Set timeout only for media files that might hang
+      if (['image', 'video', 'audio'].includes(fileType)) {
+        loadingTimeoutRef.current = setTimeout(() => {
+          console.log('⏰ Loading timeout - switching to download mode');
+          setIsLoading(false);
+          setError(true);
+          setShowDownloadOnly(true);
+        }, 8000); // 8 second timeout for media files
+      }
     }
+    
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+    };
   }, [attachment]);
 
   if (!attachment) return null;
@@ -87,14 +101,16 @@ export const AttachmentViewer = ({
       if (type.startsWith('video/')) return 'video';
       if (type.startsWith('audio/')) return 'audio';
       if (type === 'application/pdf') return 'pdf';
+      if (type.includes('text')) return 'text';
     }
     
     // Fallback to extension
     const extension = name.split('.').pop()?.toLowerCase();
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension || '')) return 'image';
-    if (['mp4', 'avi', 'mov', 'webm', 'mkv'].includes(extension || '')) return 'video';
-    if (['mp3', 'wav', 'ogg', 'aac'].includes(extension || '')) return 'audio';
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(extension || '')) return 'image';
+    if (['mp4', 'avi', 'mov', 'webm', 'mkv', 'ogv'].includes(extension || '')) return 'video';
+    if (['mp3', 'wav', 'ogg', 'aac', 'flac'].includes(extension || '')) return 'audio';
     if (extension === 'pdf') return 'pdf';
+    if (['txt', 'md', 'json', 'xml', 'csv'].includes(extension || '')) return 'text';
     
     return 'file';
   };
@@ -107,7 +123,7 @@ export const AttachmentViewer = ({
       case 'video': return <Video size={20} className="text-purple-400" />;
       case 'audio': return <Music size={20} className="text-green-400" />;
       case 'pdf': return <FileText size={20} className="text-red-400" />;
-      case 'document': return <FileText size={20} className="text-blue-400" />;
+      case 'text': return <FileText size={20} className="text-blue-400" />;
       case 'archive': return <Archive size={20} className="text-orange-400" />;
       default: return <File size={20} className="text-gray-400" />;
     }
@@ -120,7 +136,7 @@ export const AttachmentViewer = ({
     
     const extension = name.split('.').pop();
     const nameWithoutExt = name.substring(0, name.lastIndexOf('.'));
-    const maxNameLength = maxLength - (extension ? extension.length + 4 : 3); // Account for "..." and "."
+    const maxNameLength = maxLength - (extension ? extension.length + 4 : 3);
     
     if (extension) {
       return `${nameWithoutExt.substring(0, maxNameLength)}...${extension}`;
@@ -147,22 +163,34 @@ export const AttachmentViewer = ({
     console.log('✅ Content loaded successfully');
     setIsLoading(false);
     setError(false);
+    
+    // Clear timeout since loading succeeded
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
+    }
   };
 
-  const handleLoadError = () => {
-    console.log('❌ Content failed to load - showing download option');
+  const handleLoadError = (errorMessage?: string) => {
+    console.log('❌ Content failed to load:', errorMessage || 'Unknown error');
     setError(true);
     setIsLoading(false);
     setShowDownloadOnly(true);
+    
+    // Clear timeout
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
+    }
   };
 
   const renderContent = () => {
-    // Show loading spinner
+    // Show loading spinner for previewable content
     if (isLoading && !error && !showDownloadOnly) {
       return (
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-          <span className="ml-3 text-gray-400">Loading preview...</span>
+          <span className="ml-3 text-gray-400">Loading {fileType} preview...</span>
         </div>
       );
     }
@@ -180,7 +208,6 @@ export const AttachmentViewer = ({
             </h3>
             <p className="text-gray-400 text-sm mb-6">
               {error ? 'Unable to preview this file in the browser.' : 
-               fileType === 'pdf' ? 'PDF file ready for download' :
                'File ready for download'}
             </p>
             <div className="flex justify-center">
@@ -206,8 +233,15 @@ export const AttachmentViewer = ({
               src={attachment.url}
               alt={getFullFileName()}
               className="max-w-full max-h-full object-contain rounded-lg"
-              onLoad={handleLoadSuccess}
-              onError={handleLoadError}
+              onLoad={() => {
+                console.log('🖼️ Image loaded successfully');
+                handleLoadSuccess();
+              }}
+              onError={(e) => {
+                console.log('❌ Image failed to load:', e);
+                handleLoadError('Image failed to load');
+              }}
+              style={{ maxWidth: '100%', maxHeight: '70vh' }}
             />
           </div>
         );
@@ -219,10 +253,20 @@ export const AttachmentViewer = ({
               src={attachment.url}
               controls
               className="max-w-full max-h-full rounded-lg"
-              onLoadedData={handleLoadSuccess}
-              onError={handleLoadError}
-              onLoadStart={() => console.log('📹 Video started loading')}
-              style={{ backgroundColor: 'black' }}
+              onLoadedData={() => {
+                console.log('📹 Video loaded successfully');
+                handleLoadSuccess();
+              }}
+              onError={(e) => {
+                console.log('❌ Video failed to load:', e);
+                handleLoadError('Video failed to load');
+              }}
+              onCanPlay={() => {
+                console.log('📹 Video can play');
+                handleLoadSuccess();
+              }}
+              style={{ backgroundColor: 'black', maxWidth: '100%', maxHeight: '70vh' }}
+              preload="metadata"
             >
               Your browser does not support the video tag.
             </video>
@@ -242,15 +286,65 @@ export const AttachmentViewer = ({
               src={attachment.url}
               controls
               className="w-full max-w-md"
-              onLoadedData={handleLoadSuccess}
-              onError={handleLoadError}
+              onLoadedData={() => {
+                console.log('🎵 Audio loaded successfully');
+                handleLoadSuccess();
+              }}
+              onError={(e) => {
+                console.log('❌ Audio failed to load:', e);
+                handleLoadError('Audio failed to load');
+              }}
+              onCanPlay={() => {
+                console.log('🎵 Audio can play');
+                handleLoadSuccess();
+              }}
+              preload="metadata"
             >
               Your browser does not support the audio tag.
             </audio>
           </div>
         );
       
+      case 'pdf':
+        return (
+          <div className="h-[70vh] w-full">
+            <iframe
+              src={attachment.url}
+              className="w-full h-full rounded-lg border border-gray-600"
+              title={getFullFileName()}
+              onLoad={() => {
+                console.log('📄 PDF loaded successfully');
+                handleLoadSuccess();
+              }}
+              onError={(e) => {
+                console.log('❌ PDF failed to load:', e);
+                handleLoadError('PDF failed to load');
+              }}
+            />
+          </div>
+        );
+      
+      case 'text':
+        return (
+          <div className="max-h-[70vh] overflow-auto bg-gray-800 rounded-lg p-4">
+            <iframe
+              src={attachment.url}
+              className="w-full min-h-[400px] bg-white rounded"
+              title={getFullFileName()}
+              onLoad={() => {
+                console.log('📝 Text file loaded successfully');
+                handleLoadSuccess();
+              }}
+              onError={(e) => {
+                console.log('❌ Text file failed to load:', e);
+                handleLoadError('Text file failed to load');
+              }}
+            />
+          </div>
+        );
+      
       default:
+        // Should not reach here for previewable files
         return null;
     }
   };
