@@ -32,8 +32,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
   const lastFrameRef = useRef<number>(-1);
   const pendingPathRef = useRef<DrawingPath | null>(null);
   const isInitializedRef = useRef(false);
-  const isSeekingRef = useRef(false);
-  const lastRedrawTime = useRef<number>(0);
 
   // Get current frame number (30fps)
   const getCurrentFrame = useCallback(() => Math.floor(currentTime * 30), [currentTime]);
@@ -80,11 +78,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     contextRef.current = context;
     isInitializedRef.current = true;
     
-    console.log('✅ Canvas initialized successfully:', canvas.width, 'x', canvas.height);
-    
-    // Immediately redraw any existing drawings
-    redrawCanvas();
-    
+    console.log('✅ Canvas initialized:', canvas.width, 'x', canvas.height);
     return true;
   }, [currentColor, videoRef]);
 
@@ -95,7 +89,10 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
 
     const handleVideoReady = () => {
       setTimeout(() => {
-        initializeCanvas();
+        if (initializeCanvas()) {
+          // Immediately redraw any existing drawings after initialization
+          redrawCanvas();
+        }
       }, 100);
     };
 
@@ -112,45 +109,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
       video.removeEventListener('canplay', handleVideoReady);
     };
   }, [videoRef, initializeCanvas]);
-
-  // 🔥 FIXED: Bulletproof seeking detection - NO MORE RACE CONDITIONS!
-  useEffect(() => {
-    const video = videoRef?.current;
-    if (!video) return;
-
-    const handleSeeking = () => {
-      isSeekingRef.current = true;
-      console.log('🎯 SEEKING STARTED - Blocking frame changes');
-    };
-
-    const handleSeeked = () => {
-      console.log('🎯 SEEKING FINISHED - Authoritative redraw NOW!');
-      
-      // Update frame tracking immediately
-      const currentFrame = getCurrentFrame();
-      lastFrameRef.current = currentFrame;
-      
-      // IMMEDIATE redraw - no delays!
-      if (isInitializedRef.current) {
-        redrawCanvas();
-        lastRedrawTime.current = Date.now();
-      }
-      
-      // Clear seeking flag AFTER redraw
-      setTimeout(() => {
-        isSeekingRef.current = false;
-        console.log('🎯 Seeking flag cleared - Normal operation resumed');
-      }, 100);
-    };
-
-    video.addEventListener('seeking', handleSeeking);
-    video.addEventListener('seeked', handleSeeked);
-
-    return () => {
-      video.removeEventListener('seeking', handleSeeking);
-      video.removeEventListener('seeked', handleSeeked);
-    };
-  }, [videoRef, getCurrentFrame]);
 
   // Draw a single path on canvas
   const drawPath = useCallback((path: DrawingPath, context: CanvasRenderingContext2D, isPreview = false) => {
@@ -242,7 +200,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     const frameData = frameDrawings.find(f => f.frame === currentFrame);
     
     if (frameData && frameData.paths.length > 0) {
-      console.log(`🎨 Redrawing ${frameData.paths.length} paths for frame ${currentFrame}`);
+      console.log(`🎨 Drawing ${frameData.paths.length} paths for frame ${currentFrame}`);
       frameData.paths.forEach(path => {
         drawPath(path, context);
       });
@@ -269,7 +227,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
           paths: [...newFrameDrawings[existingFrameIndex].paths, path],
           timestamp: Date.now()
         };
-        console.log(`✅ Added ${path.type} to existing frame ${currentFrame}. Total paths: ${newFrameDrawings[existingFrameIndex].paths.length}`);
+        console.log(`✅ Added ${path.type} to existing frame ${currentFrame}`);
         return newFrameDrawings;
       } else {
         // Create new frame
@@ -278,46 +236,36 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
           paths: [path],
           timestamp: Date.now()
         };
-        console.log(`✅ Created new frame ${currentFrame} with ${path.type}. Total frames: ${prev.length + 1}`);
+        console.log(`✅ Created new frame ${currentFrame} with ${path.type}`);
         return [...prev, newFrameDrawing];
       }
     });
   }, [getCurrentFrame]);
 
-  // 🔥 FIXED: Smart frame change detection - PREVENTS RACE CONDITIONS!
+  // 🎯 SIMPLE FIX: Handle frame changes with immediate redraw
   useEffect(() => {
-    // 🚫 CRITICAL: Never interfere when seeking is in progress!
-    if (isSeekingRef.current) {
-      console.log('⏸️ BLOCKED: Frame change during seek - preventing race condition');
-      return;
-    }
-
     const currentFrame = getCurrentFrame();
-    const now = Date.now();
-    
-    // Prevent rapid redraws (debounce)
-    if (now - lastRedrawTime.current < 50) {
-      return;
-    }
     
     if (currentFrame !== lastFrameRef.current) {
-      console.log(`🎬 SAFE Frame change: ${lastFrameRef.current} → ${currentFrame}`);
+      console.log(`🎬 Frame change: ${lastFrameRef.current} → ${currentFrame}`);
       lastFrameRef.current = currentFrame;
       
       // Clear any pending preview path
       pendingPathRef.current = null;
       
-      // Redraw for natural playback
+      // Immediate redraw for the new frame
       if (isInitializedRef.current) {
-        redrawCanvas();
-        lastRedrawTime.current = now;
+        // Use setTimeout to ensure this runs after any other effects
+        setTimeout(() => {
+          redrawCanvas();
+        }, 0);
       }
     }
   }, [currentTime, getCurrentFrame, redrawCanvas]);
 
   // Redraw when frameDrawings change OR annotations toggle
   useEffect(() => {
-    if (isInitializedRef.current && !isSeekingRef.current) {
+    if (isInitializedRef.current) {
       redrawCanvas();
     }
   }, [frameDrawings, redrawCanvas, annotations]);
@@ -459,7 +407,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     // Add final path if valid
     if (finalPath) {
       addPathToFrame(finalPath);
-      console.log(`✅ COMPLETED: ${finalPath.type} drawing - NOW PERSISTENT`);
+      console.log(`✅ COMPLETED: ${finalPath.type} drawing`);
     }
 
     // Reset drawing state
@@ -511,7 +459,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
         const currentFrame = getCurrentFrame();
         const frameData = frameDrawings.find(f => f.frame === currentFrame);
         const result = frameData ? frameData.paths.length > 0 : false;
-        console.log(`🔍 Frame ${currentFrame} has drawings: ${result}`);
         return result;
       },
       forceSave: () => {
