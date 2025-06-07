@@ -37,29 +37,38 @@ export const AttachmentViewer = ({
 }: AttachmentViewerProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [showDownloadOnly, setShowDownloadOnly] = useState(false);
 
   // Reset state when attachment changes
   useEffect(() => {
     if (attachment) {
       console.log('📎 Loading attachment:', attachment);
       setError(false);
+      setIsLoading(false);
+      setShowDownloadOnly(false);
       
       const fileType = getFileType(attachment);
+      console.log('📎 File type detected:', fileType);
       
-      // For blob URLs (uploaded files), we need different handling
-      if (attachment.url.startsWith('blob:')) {
-        if (['image', 'video', 'audio'].includes(fileType)) {
-          setIsLoading(true);
-        } else {
-          // For PDFs and other files with blob URLs, don't try to preview
-          setIsLoading(false);
-          if (fileType === 'pdf') {
-            setError(true); // PDFs from blob URLs often don't work in iframes
-          }
-        }
-      } else {
-        // For regular URLs, try to load if it's a previewable type
-        setIsLoading(['image', 'video', 'audio', 'pdf'].includes(fileType));
+      // For PDFs from blob URLs (uploaded files), show download only
+      // Regular URL PDFs can sometimes be previewed
+      if (fileType === 'pdf' && attachment.url.startsWith('blob:')) {
+        console.log('📄 PDF blob URL detected - showing download only');
+        setShowDownloadOnly(true);
+        return;
+      }
+      
+      // For non-previewable files, show download only
+      if (!['image', 'video', 'audio', 'pdf'].includes(fileType)) {
+        console.log('📄 Non-previewable file type - showing download only');
+        setShowDownloadOnly(true);
+        return;
+      }
+      
+      // For previewable files, start with loading state
+      if (['image', 'video', 'audio'].includes(fileType)) {
+        console.log('🖼️ Previewable file - starting to load');
+        setIsLoading(true);
       }
     }
   }, [attachment]);
@@ -142,13 +151,15 @@ export const AttachmentViewer = ({
   };
 
   const handleLoadError = () => {
-    console.log('❌ Content failed to load');
+    console.log('❌ Content failed to load - showing download option');
     setError(true);
     setIsLoading(false);
+    setShowDownloadOnly(true);
   };
 
   const renderContent = () => {
-    if (isLoading && !error) {
+    // Show loading spinner
+    if (isLoading && !error && !showDownloadOnly) {
       return (
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -157,33 +168,37 @@ export const AttachmentViewer = ({
       );
     }
 
-    if (error || (!isLoading && !['image', 'video', 'audio'].includes(fileType))) {
+    // Show download-only interface
+    if (showDownloadOnly || error || (!isLoading && !['image', 'video', 'audio', 'pdf'].includes(fileType))) {
       return (
-        <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <div className="flex flex-col items-center justify-center h-64 space-y-6">
           <div className="p-4 bg-gray-700 rounded-full">
             {getFileIcon()}
           </div>
           <div className="text-center">
             <h3 className="text-lg font-medium text-white mb-2">{getFileName()}</h3>
-            <p className="text-gray-400 text-sm mb-4">
+            <p className="text-gray-400 text-sm mb-6">
               {error ? 'Unable to preview this file in the browser.' : 
-               fileType === 'pdf' ? 'PDF file' :
+               fileType === 'pdf' ? 'PDF file ready for download' :
                fileType === 'archive' ? 'Archive file' : 
                fileType === 'document' ? 'Document file' : 
                'File attachment'}
             </p>
-            <Button
-              onClick={handleDownload}
-              className="bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2 px-4 py-2"
-            >
-              <Download size={16} />
-              <span>Download File</span>
-            </Button>
+            <div className="flex justify-center">
+              <Button
+                onClick={handleDownload}
+                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2 px-6 py-3"
+              >
+                <Download size={16} />
+                <span>Download File</span>
+              </Button>
+            </div>
           </div>
         </div>
       );
     }
 
+    // Show preview for supported file types
     switch (fileType) {
       case 'image':
         return (
@@ -208,7 +223,9 @@ export const AttachmentViewer = ({
               onLoadedData={handleLoadSuccess}
               onError={handleLoadError}
               style={{ backgroundColor: 'black' }}
-            />
+            >
+              Your browser does not support the video tag.
+            </video>
           </div>
         );
       
@@ -224,6 +241,21 @@ export const AttachmentViewer = ({
               controls
               className="w-full max-w-md"
               onLoadedData={handleLoadSuccess}
+              onError={handleLoadError}
+            >
+              Your browser does not support the audio tag.
+            </audio>
+          </div>
+        );
+      
+      case 'pdf':
+        return (
+          <div className="h-[70vh] w-full">
+            <iframe
+              src={attachment.url}
+              className="w-full h-full rounded-lg"
+              title={getFileName()}
+              onLoad={handleLoadSuccess}
               onError={handleLoadError}
             />
           </div>
@@ -256,9 +288,7 @@ export const AttachmentViewer = ({
           <div className="flex items-center space-x-2">
             <Button
               onClick={handleDownload}
-              variant="outline"
-              size="sm"
-              className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white hover:border-gray-500 flex items-center space-x-2 px-3 py-2"
+              className="bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2 px-4 py-2"
             >
               <Download size={14} />
               <span>Download</span>
