@@ -138,17 +138,32 @@ export const CommentPanel = ({
     }
 
     // Apply sorting
+    let sortedComments;
     switch (sortBy) {
       case 'oldest':
-        return filteredComments.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+        sortedComments = filteredComments.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+        break;
       case 'newest':
-        return filteredComments.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        sortedComments = filteredComments.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        break;
       case 'commenter':
-        return filteredComments.sort((a, b) => a.author.localeCompare(b.author));
+        sortedComments = filteredComments.sort((a, b) => a.author.localeCompare(b.author));
+        break;
       case 'timecode':
       default:
-        return filteredComments.sort((a, b) => a.timestamp - b.timestamp);
+        sortedComments = filteredComments.sort((a, b) => a.timestamp - b.timestamp);
+        break;
     }
+
+    // Add comment numbers based on original order (by timestamp)
+    const allTopLevelByTimestamp = comments
+      .filter(comment => !comment.parentId && comment.timestamp >= 0)
+      .sort((a, b) => a.timestamp - b.timestamp);
+    
+    return sortedComments.map(comment => {
+      const commentNumber = allTopLevelByTimestamp.findIndex(c => c.id === comment.id) + 1;
+      return { ...comment, commentNumber };
+    });
   };
 
   const getReplies = (parentId: string) => {
@@ -352,6 +367,10 @@ export const CommentPanel = ({
                       <div className="flex items-center space-x-2">
                         {comment.timestamp >= 0 ? (
                           <div className="flex items-center space-x-2">
+                            {/* Comment number */}
+                            <span className="text-xs text-gray-400 bg-gray-600 px-2 py-1 rounded-full font-medium">
+                              #{comment.commentNumber}
+                            </span>
                             {/* Timestamp button - prevent event bubbling */}
                             <div
                               className="flex items-center space-x-2 bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full text-sm font-medium hover:bg-yellow-500/30 transition-colors"
@@ -374,6 +393,10 @@ export const CommentPanel = ({
                           </div>
                         ) : (
                           <div className="flex items-center space-x-2">
+                            {/* Comment number for general comments */}
+                            <span className="text-xs text-gray-400 bg-gray-600 px-2 py-1 rounded-full font-medium">
+                              #{comment.commentNumber || 'G'}
+                            </span>
                             <div className="flex items-center space-x-2 bg-gray-600/50 text-gray-400 px-2 py-1 rounded-full text-sm font-medium">
                               <MessageSquare size={12} />
                               <span>General</span>
