@@ -95,6 +95,11 @@ export const CommentInput = ({
     }
   };
 
+  // ✍️ NEW: Handle when user starts typing (textarea gets focus)
+  const handleTextareaFocus = () => {
+    pauseVideo('comment writing');
+  };
+
   const handleSubmit = () => {
     if (comment.trim()) {
       const canvas = (window as any).drawingCanvas;
@@ -180,15 +185,15 @@ export const CommentInput = ({
     setAttachments(attachments.filter((_, i) => i !== index));
   };
 
-  const addEmoji = (emoji: string) => {
-    setComment(comment + emoji);
-    setShowEmojiPicker(false);
-  };
-
   // 😊 ENHANCED: Handle emoji button with video pausing
   const handleEmojiClick = () => {
     pauseVideo('emoji picker');
     setShowEmojiPicker(!showEmojiPicker);
+  };
+
+  const addEmoji = (emoji: string) => {
+    setComment(comment + emoji);
+    setShowEmojiPicker(false);
   };
 
   const toggleAttachTime = () => {
@@ -278,10 +283,12 @@ export const CommentInput = ({
                 </div>
               </div>
             )}
+            {/* ✍️ ENHANCED: Textarea with focus handler to pause video */}
             <Textarea
               placeholder={attachTime ? ` - ${placeholder}` : placeholder}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
+              onFocus={handleTextareaFocus}
               className={`bg-gray-800 border-gray-600 text-white placeholder-gray-400 resize-none min-h-[80px] focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                 attachTime ? 'pl-20' : ''
               }`}
