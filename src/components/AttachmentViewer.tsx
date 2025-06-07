@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,8 +12,7 @@ import {
   File, 
   Image as ImageIcon,
   Video,
-  Music,
-  Archive
+  Music
 } from "lucide-react";
 
 interface AttachmentWithType {
@@ -166,7 +164,6 @@ export const AttachmentViewer = ({
       case 'audio': return <Music size={20} className="text-green-400" />;
       case 'pdf': return <FileText size={20} className="text-red-400" />;
       case 'text': return <FileText size={20} className="text-blue-400" />;
-      case 'archive': return <Archive size={20} className="text-orange-400" />;
       default: return <File size={20} className="text-gray-400" />;
     }
   };
@@ -303,8 +300,8 @@ export const AttachmentViewer = ({
               src={attachment.url}
               controls
               className="max-w-full max-h-full rounded-lg"
-              onLoadedMetadata={() => {
-                console.log('📹 Video metadata loaded successfully');
+              onLoadedData={() => {
+                console.log('📹 Video data loaded successfully');
                 handleLoadSuccess();
               }}
               onCanPlay={() => {
@@ -337,8 +334,8 @@ export const AttachmentViewer = ({
               src={attachment.url}
               controls
               className="w-full max-w-md"
-              onLoadedMetadata={() => {
-                console.log('🎵 Audio metadata loaded successfully');
+              onLoadedData={() => {
+                console.log('🎵 Audio data loaded successfully');
                 handleLoadSuccess();
               }}
               onCanPlay={() => {
@@ -361,7 +358,7 @@ export const AttachmentViewer = ({
         return (
           <div className="h-[70vh] w-full">
             <iframe
-              src={attachment.url}
+              src={`${attachment.url}#toolbar=1&view=FitH`}
               className="w-full h-full rounded-lg border border-gray-600"
               title={getFullFileName()}
               onLoad={() => {
