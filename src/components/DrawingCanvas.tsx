@@ -242,8 +242,11 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     });
   }, [getCurrentFrame]);
 
-  // 🎯 SIMPLE FIX: Handle frame changes with immediate redraw
+  // 🔥 FIXED: Synchronized drawing display with video seeking
   useEffect(() => {
+    const video = videoRef?.current;
+    if (!video) return;
+
     const currentFrame = getCurrentFrame();
     
     if (currentFrame !== lastFrameRef.current) {
@@ -253,15 +256,38 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
       // Clear any pending preview path
       pendingPathRef.current = null;
       
-      // Immediate redraw for the new frame
-      if (isInitializedRef.current) {
-        // Use setTimeout to ensure this runs after any other effects
-        setTimeout(() => {
+      // 🎯 KEY FIX: Wait for video to actually seek before redrawing
+      const handleSeeked = () => {
+        if (isInitializedRef.current) {
+          console.log(`🎯 Video seeked to ${video.currentTime.toFixed(3)}s - redrawing frame ${currentFrame}`);
           redrawCanvas();
-        }, 0);
+        }
+        video.removeEventListener('seeked', handleSeeked);
+      };
+
+      // If video is currently seeking, wait for 'seeked' event
+      if (Math.abs(video.currentTime - currentTime) > 0.016) {
+        console.log(`📹 Waiting for video to seek to ${currentTime.toFixed(3)}s (currently at ${video.currentTime.toFixed(3)}s)`);
+        video.addEventListener('seeked', handleSeeked);
+        
+        // Fallback timeout in case seeked event doesn't fire
+        setTimeout(() => {
+          video.removeEventListener('seeked', handleSeeked);
+          if (isInitializedRef.current) {
+            console.log(`⏰ Fallback redraw for frame ${currentFrame}`);
+            redrawCanvas();
+          }
+        }, 200);
+      } else {
+        // Video is already at the right time, redraw immediately
+        if (isInitializedRef.current) {
+          setTimeout(() => {
+            redrawCanvas();
+          }, 0);
+        }
       }
     }
-  }, [currentTime, getCurrentFrame, redrawCanvas]);
+  }, [currentTime, getCurrentFrame, redrawCanvas, videoRef]);
 
   // Redraw when frameDrawings change OR annotations toggle
   useEffect(() => {

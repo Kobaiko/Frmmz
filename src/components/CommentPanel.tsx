@@ -176,6 +176,22 @@ export const CommentPanel = ({
     console.log('Comment link copied');
   };
 
+  // 🎯 NEW: Handle clicking anywhere on comment (except interactive elements)
+  const handleCommentClick = (comment: Comment, event: React.MouseEvent) => {
+    // Don't navigate if clicking on interactive elements
+    const target = event.target as HTMLElement;
+    const isInteractive = target.closest('button') || 
+                          target.closest('[role="button"]') || 
+                          target.closest('input') || 
+                          target.closest('textarea') ||
+                          target.closest('[data-interactive="true"]');
+    
+    if (!isInteractive && comment.timestamp >= 0) {
+      console.log(`🎯 Comment clicked - navigating to timestamp: ${comment.timestamp.toFixed(3)}s`);
+      onCommentClick(comment.timestamp);
+    }
+  };
+
   return (
     <div className="h-full bg-gray-800 flex flex-col">
       <div className="p-6 border-b border-gray-700">
@@ -250,18 +266,23 @@ export const CommentPanel = ({
                   onCopyLink={() => handleCopyLink(comment.id)}
                   onDelete={() => onDeleteComment(comment.id)}
                 >
-                  <div className="p-4 bg-gray-700 rounded-lg border border-gray-600 hover:border-gray-500 transition-all duration-200 cursor-pointer">
+                  {/* 🎯 ENTIRE COMMENT IS NOW CLICKABLE */}
+                  <div 
+                    className="p-4 bg-gray-700 rounded-lg border border-gray-600 hover:border-gray-500 transition-all duration-200 cursor-pointer"
+                    onClick={(e) => handleCommentClick(comment, e)}
+                  >
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-2">
                         {comment.timestamp >= 0 ? (
                           <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => onCommentClick(comment.timestamp)}
+                            {/* Timestamp button - prevent event bubbling */}
+                            <div
                               className="flex items-center space-x-2 bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full text-sm font-medium hover:bg-yellow-500/30 transition-colors"
+                              data-interactive="true"
                             >
                               <Clock size={12} />
                               <span>{formatTime(comment.timestamp)}</span>
-                            </button>
+                            </div>
                             {comment.hasDrawing && (
                               <div className="flex items-center space-x-1 bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full text-xs font-medium">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -302,8 +323,12 @@ export const CommentPanel = ({
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => onDeleteComment(comment.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteComment(comment.id);
+                          }}
                           className="h-6 w-6 p-0 text-gray-400 hover:text-red-400"
+                          data-interactive="true"
                         >
                           <Trash2 size={12} />
                         </Button>
@@ -336,8 +361,12 @@ export const CommentPanel = ({
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => setReplyingTo(comment.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReplyingTo(comment.id);
+                        }}
                         className="text-gray-400 hover:text-blue-400 text-xs"
+                        data-interactive="true"
                       >
                         Reply
                       </Button>
@@ -406,17 +435,21 @@ export const CommentPanel = ({
                   )}
 
                   {getReplies(comment.id).map((reply) => (
-                    <div key={reply.id} className="ml-6 p-3 bg-gray-750 rounded-lg border border-gray-600">
+                    <div 
+                      key={reply.id} 
+                      className="ml-6 p-3 bg-gray-750 rounded-lg border border-gray-600 cursor-pointer hover:border-gray-500 transition-colors"
+                      onClick={(e) => handleCommentClick(reply, e)}
+                    >
                       <div className="flex items-center justify-between mb-2">
                         {reply.timestamp >= 0 ? (
                           <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => onCommentClick(reply.timestamp)}
+                            <div
                               className="flex items-center space-x-2 bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full text-xs font-medium hover:bg-yellow-500/30 transition-colors"
+                              data-interactive="true"
                             >
                               <Clock size={10} />
                               <span>{formatTime(reply.timestamp)}</span>
-                            </button>
+                            </div>
                             {reply.hasDrawing && (
                               <div className="flex items-center space-x-1 bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full text-xs font-medium">
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -438,8 +471,12 @@ export const CommentPanel = ({
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => onDeleteComment(reply.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteComment(reply.id);
+                          }}
                           className="h-5 w-5 p-0 text-gray-400 hover:text-red-400"
+                          data-interactive="true"
                         >
                           <Trash2 size={10} />
                         </Button>
