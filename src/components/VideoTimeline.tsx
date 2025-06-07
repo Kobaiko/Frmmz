@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { VideoPreview } from "./VideoPreview";
 import type { Comment } from "@/pages/Index";
 
@@ -41,51 +42,79 @@ export const VideoTimeline = ({
   };
 
   const getCommentMarkers = () => {
-    return comments.filter(comment => !comment.parentId).map(comment => ({
+    return comments.filter(comment => !comment.parentId && comment.timestamp >= 0).map(comment => ({
       ...comment,
       position: duration > 0 ? (comment.timestamp / duration) * 100 : 0
     }));
   };
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
-    <div className="mb-4 relative">
-      <VideoPreview
-        previewVideoRef={previewVideoRef}
-        isHovering={isHovering}
-        hoverTime={hoverTime}
-        timeFormat={timeFormat}
-        duration={duration}
-      />
-      
-      <div
-        className="relative h-1 bg-gray-600 rounded cursor-pointer"
-        onClick={handleTimelineClick}
-        onMouseMove={handleTimelineMouseMove}
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
-      >
-        {/* Progress bar */}
-        <div
-          className="absolute top-0 left-0 h-full bg-blue-500 rounded"
-          style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+    <TooltipProvider>
+      <div className="mb-4 relative">
+        <VideoPreview
+          previewVideoRef={previewVideoRef}
+          isHovering={isHovering}
+          hoverTime={hoverTime}
+          timeFormat={timeFormat}
+          duration={duration}
         />
         
-        {/* Comment markers with user avatars */}
-        {getCommentMarkers().map((comment) => (
+        {/* Timeline container with extra bottom padding for avatars */}
+        <div className="relative pb-8">
+          {/* Main timeline bar */}
           <div
-            key={comment.id}
-            className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2"
-            style={{ left: `${comment.position}%` }}
+            className="relative h-1 bg-gray-600 rounded cursor-pointer"
+            onClick={handleTimelineClick}
+            onMouseMove={handleTimelineMouseMove}
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}
           >
-            <Avatar className="w-6 h-6 border-2 border-white shadow-lg cursor-pointer hover:scale-110 transition-transform">
-              <AvatarImage src="" />
-              <AvatarFallback className="bg-blue-600 text-white text-xs font-medium">
-                {comment.author.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            {/* Progress bar */}
+            <div
+              className="absolute top-0 left-0 h-full bg-blue-500 rounded"
+              style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+            />
           </div>
-        ))}
+          
+          {/* Comment markers positioned below the timeline */}
+          {getCommentMarkers().map((comment) => (
+            <Tooltip key={comment.id}>
+              <TooltipTrigger asChild>
+                <div
+                  className="absolute transform -translate-x-1/2 mt-2"
+                  style={{ left: `${comment.position}%` }}
+                >
+                  <Avatar className="w-6 h-6 border-2 border-white shadow-lg hover:scale-110 transition-transform cursor-default">
+                    <AvatarImage src="" />
+                    <AvatarFallback className="bg-blue-600 text-white text-xs font-medium">
+                      {comment.author.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent 
+                side="top" 
+                className="max-w-xs bg-gray-900 text-white border border-gray-700 p-3"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2 text-xs text-gray-400">
+                    <span>{comment.author}</span>
+                    <span>•</span>
+                    <span>{formatTime(comment.timestamp)}</span>
+                  </div>
+                  <p className="text-sm text-white">{comment.text}</p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 };
