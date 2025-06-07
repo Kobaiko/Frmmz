@@ -40,7 +40,10 @@ export const useVideoPlayer = ({
     const previewVideo = previewVideoRef.current;
     if (!video) return;
 
+    console.log('🎬 Loading video source:', src);
+
     const handleLoadedMetadata = () => {
+      console.log('✅ Video metadata loaded successfully');
       const videoDuration = video.duration;
       setDuration(videoDuration);
       
@@ -48,6 +51,7 @@ export const useVideoPlayer = ({
       if (previewVideo) {
         previewVideo.src = src;
         previewVideo.muted = true;
+        console.log('🔗 Preview video source set');
       }
       
       // Determine max quality based on video resolution
@@ -73,8 +77,31 @@ export const useVideoPlayer = ({
       setQuality(maxQual);
       setAvailableQualities(availableQuals);
       
+      console.log(`📺 Video resolution: ${video.videoWidth}x${videoHeight}, Max quality: ${maxQual}`);
+      
       if (onDurationChange) {
         onDurationChange(videoDuration);
+      }
+    };
+
+    const handleLoadStart = () => {
+      console.log('🚀 Video load started');
+    };
+
+    const handleCanPlay = () => {
+      console.log('✅ Video can play');
+    };
+
+    const handleError = (e: Event) => {
+      console.error('❌ Video loading error:', e);
+      const target = e.target as HTMLVideoElement;
+      if (target && target.error) {
+        console.error('Video error details:', {
+          code: target.error.code,
+          message: target.error.message,
+          networkState: target.networkState,
+          readyState: target.readyState
+        });
       }
     };
 
@@ -99,16 +126,24 @@ export const useVideoPlayer = ({
       }
     };
     
+    video.addEventListener('loadstart', handleLoadStart);
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('error', handleError);
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
 
-    // Set video source
+    // Set video source with CORS attributes for external URLs
+    video.crossOrigin = 'anonymous';
     video.src = src;
+    console.log('🔗 Video source set with CORS anonymous');
 
     return () => {
+      video.removeEventListener('loadstart', handleLoadStart);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('error', handleError);
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
