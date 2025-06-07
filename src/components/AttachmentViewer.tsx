@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,20 +40,18 @@ export const AttachmentViewer = ({
   const [error, setError] = useState(false);
   const [showDownloadOnly, setShowDownloadOnly] = useState(false);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Enhanced file type detection with better fallbacks
+  // Enhanced file type detection
   const getFileType = (attachment: AttachmentWithType) => {
     const { type, name } = attachment;
     
     console.log('🔍 Detecting file type for:', { name, type });
     
-    // Get extension for fallback
     const extension = name?.split('.').pop()?.toLowerCase() || '';
-    console.log('📄 File extension:', extension);
     
     // Use MIME type first (most reliable)
     if (type) {
-      console.log('🏷️ Using MIME type:', type);
       if (type.startsWith('image/')) {
         console.log('✅ Detected as IMAGE via MIME');
         return 'image';
@@ -75,8 +74,7 @@ export const AttachmentViewer = ({
       }
     }
     
-    // Enhanced fallback to extension with more types
-    console.log('🔄 Falling back to extension detection');
+    // Fallback to extension
     if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'tiff', 'tif'].includes(extension)) {
       console.log('✅ Detected as IMAGE via extension');
       return 'image';
@@ -121,7 +119,7 @@ export const AttachmentViewer = ({
       const fileType = getFileType(attachment);
       console.log('📋 Final detected file type:', fileType);
       
-      // List of types that can be previewed
+      // Check if file type is previewable
       const previewableTypes = ['image', 'video', 'audio', 'pdf', 'text'];
       const isPreviewable = previewableTypes.includes(fileType);
       
@@ -133,22 +131,20 @@ export const AttachmentViewer = ({
         return;
       }
       
-      // For previewable files, start loading process
+      // For previewable files, start loading
       console.log('🚀 Starting preview loading for', fileType);
       setIsLoading(true);
       
-      // Set a timeout for media files that might hang (but not for PDFs/text)
-      if (['image', 'video', 'audio'].includes(fileType)) {
-        console.log('⏱️ Setting 10 second timeout for media file');
-        loadingTimeoutRef.current = setTimeout(() => {
-          console.log('⏰ TIMEOUT: Media file took too long to load - switching to download mode');
-          setIsLoading(false);
-          setError(true);
-          setShowDownloadOnly(true);
-        }, 10000); // 10 second timeout for media files
-      } else {
-        console.log('📄 No timeout for PDF/text file');
-      }
+      // Set reasonable timeout for different file types
+      const timeoutDuration = fileType === 'pdf' || fileType === 'text' ? 15000 : 30000;
+      console.log(`⏱️ Setting ${timeoutDuration/1000} second timeout for ${fileType} file`);
+      
+      loadingTimeoutRef.current = setTimeout(() => {
+        console.log('⏰ TIMEOUT: File took too long to load - switching to download mode');
+        setIsLoading(false);
+        setError(true);
+        setShowDownloadOnly(true);
+      }, timeoutDuration);
     }
     
     return () => {
@@ -303,20 +299,21 @@ export const AttachmentViewer = ({
         return (
           <div className="flex items-center justify-center max-h-[70vh]">
             <video
+              ref={videoRef}
               src={attachment.url}
               controls
               className="max-w-full max-h-full rounded-lg"
-              onLoadedData={() => {
-                console.log('📹 Video loaded successfully');
+              onLoadedMetadata={() => {
+                console.log('📹 Video metadata loaded successfully');
+                handleLoadSuccess();
+              }}
+              onCanPlay={() => {
+                console.log('📹 Video can play');
                 handleLoadSuccess();
               }}
               onError={(e) => {
                 console.log('❌ Video failed to load:', e);
                 handleLoadError('Video failed to load');
-              }}
-              onCanPlay={() => {
-                console.log('📹 Video can play');
-                handleLoadSuccess();
               }}
               style={{ backgroundColor: 'black', maxWidth: '100%', maxHeight: '70vh' }}
               preload="metadata"
@@ -340,17 +337,17 @@ export const AttachmentViewer = ({
               src={attachment.url}
               controls
               className="w-full max-w-md"
-              onLoadedData={() => {
-                console.log('🎵 Audio loaded successfully');
+              onLoadedMetadata={() => {
+                console.log('🎵 Audio metadata loaded successfully');
+                handleLoadSuccess();
+              }}
+              onCanPlay={() => {
+                console.log('🎵 Audio can play');
                 handleLoadSuccess();
               }}
               onError={(e) => {
                 console.log('❌ Audio failed to load:', e);
                 handleLoadError('Audio failed to load');
-              }}
-              onCanPlay={() => {
-                console.log('🎵 Audio can play');
-                handleLoadSuccess();
               }}
               preload="metadata"
             >
@@ -364,7 +361,7 @@ export const AttachmentViewer = ({
         return (
           <div className="h-[70vh] w-full">
             <iframe
-              src={`${attachment.url}#toolbar=0`}
+              src={attachment.url}
               className="w-full h-full rounded-lg border border-gray-600"
               title={getFullFileName()}
               onLoad={() => {
@@ -401,7 +398,6 @@ export const AttachmentViewer = ({
       
       default:
         console.log('❓ Unknown file type for preview:', fileType);
-        // Fallback to download interface for unknown types
         setShowDownloadOnly(true);
         return null;
     }
@@ -412,7 +408,6 @@ export const AttachmentViewer = ({
       <DialogContent 
         className="max-w-4xl max-h-[90vh] bg-gray-900 border-gray-600 text-white p-0 [&>button]:hidden"
       >
-        {/* Accessible title for screen readers */}
         <DialogTitle className="sr-only">
           Attachment Viewer - {getFullFileName()}
         </DialogTitle>
