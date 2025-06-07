@@ -13,13 +13,19 @@ import { CommentTypeFilter, type CommentType } from "@/components/CommentTypeFil
 import { AttachmentViewer } from "@/components/AttachmentViewer";
 import type { Comment } from "@/pages/Index";
 
+interface AttachmentWithType {
+  url: string;
+  type: string;
+  name: string;
+}
+
 interface CommentPanelProps {
   comments: Comment[];
   currentTime: number;
   onCommentClick: (timestamp: number) => void;
   onDeleteComment: (commentId: string) => void;
-  onReplyComment: (parentId: string, text: string, attachments?: string[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
-  onAddComment: (text: string, attachments?: string[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
+  onReplyComment: (parentId: string, text: string, attachments?: AttachmentWithType[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
+  onAddComment: (text: string, attachments?: AttachmentWithType[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
   onStartDrawing?: () => void;
   isDrawingMode?: boolean;
 }
@@ -49,67 +55,34 @@ export const CommentPanel = ({
   });
 
   // 🆕 NEW: Attachment viewer state
-  const [selectedAttachment, setSelectedAttachment] = useState<string | null>(null);
+  const [selectedAttachment, setSelectedAttachment] = useState<AttachmentWithType | null>(null);
   const [selectedAttachmentIndex, setSelectedAttachmentIndex] = useState(0);
   const [isAttachmentViewerOpen, setIsAttachmentViewerOpen] = useState(false);
 
-  // 🎯 NEW: File type detection for icons
-  const getFileType = (url: string) => {
-    // Check data URLs first
-    if (url.startsWith('data:')) {
-      const mimeType = url.split(';')[0].split(':')[1];
-      if (mimeType.startsWith('image/')) return 'image';
-      if (mimeType.startsWith('video/')) return 'video';
-      if (mimeType.startsWith('audio/')) return 'audio';
-      if (mimeType.includes('pdf')) return 'pdf';
-      return 'file';
+  // 🎯 NEW: Enhanced file type detection for proper icons
+  const getFileTypeIcon = (attachment: AttachmentWithType, size = 12) => {
+    const { type } = attachment;
+    
+    if (type.startsWith('image/')) {
+      return <ImageIcon size={size} className="text-blue-400" />;
+    }
+    if (type.startsWith('video/')) {
+      return <Video size={size} className="text-purple-400" />;
+    }
+    if (type.startsWith('audio/')) {
+      return <Music size={size} className="text-green-400" />;
+    }
+    if (type === 'application/pdf') {
+      return <FileText size={size} className="text-red-400" />;
+    }
+    if (type.includes('text') || type.includes('document')) {
+      return <FileText size={size} className="text-blue-400" />;
+    }
+    if (type.includes('zip') || type.includes('rar') || type.includes('archive')) {
+      return <Archive size={size} className="text-orange-400" />;
     }
     
-    // For blob URLs and regular URLs, check file extensions
-    const extension = url.split('.').pop()?.toLowerCase();
-    
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(extension || '')) {
-      return 'image';
-    }
-    if (['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'].includes(extension || '')) {
-      return 'video';
-    }
-    if (['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'].includes(extension || '')) {
-      return 'audio';
-    }
-    if (extension === 'pdf') {
-      return 'pdf';
-    }
-    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(extension || '')) {
-      return 'archive';
-    }
-    if (['txt', 'md', 'rtf', 'doc', 'docx'].includes(extension || '')) {
-      return 'document';
-    }
-    
-    return 'file';
-  };
-
-  // 🎨 NEW: Get file type icon with colors
-  const getFileTypeIcon = (url: string, size = 12) => {
-    const fileType = getFileType(url);
-    
-    switch (fileType) {
-      case 'image': 
-        return <ImageIcon size={size} className="text-blue-400" />;
-      case 'video': 
-        return <Video size={size} className="text-purple-400" />;
-      case 'audio': 
-        return <Music size={size} className="text-green-400" />;
-      case 'pdf': 
-        return <FileText size={size} className="text-red-400" />;
-      case 'document': 
-        return <FileText size={size} className="text-blue-400" />;
-      case 'archive': 
-        return <Archive size={size} className="text-orange-400" />;
-      default: 
-        return <File size={size} className="text-gray-400" />;
-    }
+    return <File size={size} className="text-gray-400" />;
   };
 
   const formatTime = (seconds: number) => {
@@ -258,7 +231,7 @@ export const CommentPanel = ({
   };
 
   // 📎 ENHANCED: Handle attachment clicks with modal viewer and video pausing
-  const handleAttachmentClick = (attachment: string, attachmentIndex: number, event: React.MouseEvent) => {
+  const handleAttachmentClick = (attachment: AttachmentWithType, attachmentIndex: number, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent comment navigation
     
     // 🎬 Pause video when viewing attachment
@@ -427,7 +400,7 @@ export const CommentPanel = ({
                     
                     <p className="text-gray-200 mb-3 leading-relaxed">{comment.text}</p>
                     
-                    {/* 📎 ENHANCED: Beautiful Clickable Attachments with File Type Icons */}
+                    {/* 📎 ENHANCED: Beautiful Clickable Attachments with Proper File Type Icons */}
                     {comment.attachments && comment.attachments.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-3">
                         {comment.attachments.map((attachment, index) => (
@@ -436,11 +409,11 @@ export const CommentPanel = ({
                             onClick={(e) => handleAttachmentClick(attachment, index, e)}
                             className="flex items-center space-x-2 bg-gray-600 hover:bg-blue-600/20 border border-gray-500 hover:border-blue-500/50 rounded-lg px-3 py-2 transition-all duration-200 cursor-pointer group"
                             data-interactive="true"
-                            title="Click to preview attachment"
+                            title={`Click to preview ${attachment.name}`}
                           >
                             {getFileTypeIcon(attachment, 14)}
                             <span className="text-xs text-gray-300 group-hover:text-white">
-                              Attachment {index + 1}
+                              {attachment.name}
                             </span>
                             <Eye size={10} className="text-gray-500 group-hover:text-blue-400" />
                           </button>
@@ -584,7 +557,7 @@ export const CommentPanel = ({
                       
                       <p className="text-gray-200 text-sm mb-2">{reply.text}</p>
                       
-                      {/* 📎 ENHANCED: Clickable Attachments for Replies with File Type Icons */}
+                      {/* 📎 ENHANCED: Clickable Attachments for Replies with Proper File Type Icons */}
                       {reply.attachments && reply.attachments.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-2">
                           {reply.attachments.map((attachment, index) => (
@@ -593,11 +566,11 @@ export const CommentPanel = ({
                               onClick={(e) => handleAttachmentClick(attachment, index, e)}
                               className="flex items-center space-x-1 bg-gray-600 hover:bg-blue-600/20 border border-gray-500 hover:border-blue-500/50 rounded px-2 py-1 transition-all duration-200 cursor-pointer group"
                               data-interactive="true"
-                              title="Click to preview attachment"
+                              title={`Click to preview ${attachment.name}`}
                             >
                               {getFileTypeIcon(attachment, 10)}
                               <span className="text-xs text-gray-300 group-hover:text-white">
-                                File {index + 1}
+                                {attachment.name}
                               </span>
                               <Eye size={8} className="text-gray-500 group-hover:text-blue-400" />
                             </button>

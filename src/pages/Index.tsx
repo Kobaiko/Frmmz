@@ -4,6 +4,12 @@ import { CommentPanel } from "@/components/CommentPanel";
 import { VideoUpload } from "@/components/VideoUpload";
 import { ProjectHeader } from "@/components/ProjectHeader";
 
+interface AttachmentWithType {
+  url: string;
+  type: string;
+  name: string;
+}
+
 export interface Comment {
   id: string;
   timestamp: number;
@@ -11,7 +17,7 @@ export interface Comment {
   author: string;
   createdAt: Date;
   parentId?: string;
-  attachments?: string[];
+  attachments?: AttachmentWithType[];
   isInternal?: boolean;
   hasDrawing?: boolean;
 }
@@ -31,7 +37,7 @@ const Index = () => {
     setVideoUrl(url);
   };
 
-  const handleAddComment = (text: string, timestamp: number, parentId?: string, attachments?: string[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
+  const handleAddComment = (text: string, timestamp: number, parentId?: string, attachments?: AttachmentWithType[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
     // If the comment has a drawing, calculate the exact frame timestamp
     let finalTimestamp = timestamp;
     if (hasDrawing && attachTime) {

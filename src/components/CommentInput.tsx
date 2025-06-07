@@ -11,9 +11,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+interface AttachmentWithType {
+  url: string;
+  type: string;
+  name: string;
+}
+
 interface CommentInputProps {
   currentTime: number;
-  onAddComment: (text: string, attachments?: string[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
+  onAddComment: (text: string, attachments?: AttachmentWithType[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
   parentId?: string;
   onCancel?: () => void;
   placeholder?: string;
@@ -31,7 +37,7 @@ export const CommentInput = ({
   isDrawingMode = false
 }: CommentInputProps) => {
   const [comment, setComment] = useState("");
-  const [attachments, setAttachments] = useState<string[]>([]);
+  const [attachments, setAttachments] = useState<AttachmentWithType[]>([]);
   const [isInternal, setIsInternal] = useState(false);
   const [attachTime, setAttachTime] = useState(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -175,13 +181,29 @@ export const CommentInput = ({
     fileInputRef.current?.click();
   };
 
+  // 🔧 ENHANCED: Better file handling with type detection
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const fileUrls = files.map(file => URL.createObjectURL(file));
-    setAttachments([...attachments, ...fileUrls]);
+    
+    const newAttachments = files.map(file => {
+      const url = URL.createObjectURL(file);
+      return {
+        url,
+        type: file.type,
+        name: file.name
+      };
+    });
+    
+    setAttachments([...attachments, ...newAttachments]);
+    console.log('📎 Added attachments:', newAttachments);
   };
 
   const removeAttachment = (index: number) => {
+    const removedAttachment = attachments[index];
+    // Clean up blob URL to prevent memory leaks
+    if (removedAttachment.url.startsWith('blob:')) {
+      URL.revokeObjectURL(removedAttachment.url);
+    }
     setAttachments(attachments.filter((_, i) => i !== index));
   };
 
@@ -232,6 +254,32 @@ export const CommentInput = ({
     }
   };
 
+  // 🎨 Get file type icon
+  const getFileTypeIcon = (attachment: AttachmentWithType) => {
+    const { type } = attachment;
+    
+    if (type.startsWith('image/')) {
+      return <span className="text-blue-400">🖼️</span>;
+    }
+    if (type.startsWith('video/')) {
+      return <span className="text-purple-400">🎬</span>;
+    }
+    if (type.startsWith('audio/')) {
+      return <span className="text-green-400">🎵</span>;
+    }
+    if (type === 'application/pdf') {
+      return <span className="text-red-400">📄</span>;
+    }
+    if (type.includes('zip') || type.includes('rar') || type.includes('archive')) {
+      return <span className="text-orange-400">📦</span>;
+    }
+    if (type.includes('text') || type.includes('document')) {
+      return <span className="text-blue-400">📝</span>;
+    }
+    
+    return <span className="text-gray-400">📄</span>;
+  };
+
   return (
     <div className="p-4 bg-gray-800/90 backdrop-blur-sm">
       <div className="max-w-4xl mx-auto">
@@ -240,9 +288,9 @@ export const CommentInput = ({
           <div className="mb-3 flex flex-wrap gap-2">
             {attachments.map((attachment, index) => (
               <div key={index} className="relative bg-gray-700 rounded-lg p-2 flex items-center space-x-2">
-                <Paperclip size={14} className="text-gray-400" />
+                {getFileTypeIcon(attachment)}
                 <span className="text-xs text-gray-300 truncate max-w-32">
-                  Attachment {index + 1}
+                  {attachment.name}
                 </span>
                 <Button
                   size="sm"
