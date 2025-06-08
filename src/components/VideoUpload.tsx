@@ -65,7 +65,7 @@ export const VideoUpload = ({ onVideoLoad }: VideoUploadProps) => {
     }
   };
 
-  const handleUrlSubmit = () => {
+  const handleUrlSubmit = async () => {
     if (!urlInput.trim()) {
       setError("Please enter a video URL");
       return;
@@ -91,35 +91,63 @@ export const VideoUpload = ({ onVideoLoad }: VideoUploadProps) => {
     setIsLoading(true);
     console.log('🌐 Loading video from URL:', trimmedUrl);
     
-    // Test if the URL is accessible
-    const testVideo = document.createElement('video');
-    testVideo.crossOrigin = 'anonymous';
-    
-    const handleSuccess = () => {
-      console.log('✅ URL video test successful');
+    // Create a simple test to see if we can load the video
+    try {
+      const response = await fetch(trimmedUrl, { 
+        method: 'HEAD',
+        mode: 'no-cors' // This will help avoid CORS issues for the test
+      });
+      
+      console.log('✅ URL appears accessible, loading video');
       onVideoLoad(trimmedUrl);
       setIsLoading(false);
-    };
-
-    const handleError = (e: Event) => {
-      console.error('❌ URL video test failed:', e);
-      setError("Unable to load video from this URL. This might be due to CORS restrictions or the URL not being a direct video file. Try uploading the file directly instead.");
-      setIsLoading(false);
-    };
-
-    testVideo.addEventListener('loadedmetadata', handleSuccess);
-    testVideo.addEventListener('error', handleError);
-    
-    // Set a timeout as fallback
-    setTimeout(() => {
-      if (isLoading) {
-        console.log('⏰ URL test timeout');
-        setError("Video loading timed out. Please check if the URL is a direct video file link and try again.");
+    } catch (error) {
+      console.error('❌ URL test failed:', error);
+      
+      // Try loading anyway - some servers block HEAD requests but allow video access
+      console.log('🔄 HEAD request failed, trying direct video load...');
+      
+      const testVideo = document.createElement('video');
+      testVideo.crossOrigin = 'anonymous';
+      testVideo.preload = 'metadata';
+      
+      const handleSuccess = () => {
+        console.log('✅ Direct video load successful');
+        onVideoLoad(trimmedUrl);
         setIsLoading(false);
-      }
-    }, 5000);
+        testVideo.remove();
+      };
 
-    testVideo.src = trimmedUrl;
+      const handleError = (e: Event) => {
+        console.error('❌ Direct video load failed:', e);
+        setError("Unable to load video from this URL. This might be due to CORS restrictions or the URL not being accessible. Please try uploading the file directly instead.");
+        setIsLoading(false);
+        testVideo.remove();
+      };
+
+      testVideo.addEventListener('loadedmetadata', handleSuccess);
+      testVideo.addEventListener('error', handleError);
+      
+      // Set a timeout as fallback
+      const timeout = setTimeout(() => {
+        if (isLoading) {
+          console.log('⏰ Video load timeout');
+          setError("Video loading timed out. The URL might not be accessible or may have CORS restrictions. Please try uploading the file directly.");
+          setIsLoading(false);
+          testVideo.remove();
+        }
+      }, 10000);
+
+      testVideo.addEventListener('loadedmetadata', () => {
+        clearTimeout(timeout);
+      });
+
+      testVideo.addEventListener('error', () => {
+        clearTimeout(timeout);
+      });
+
+      testVideo.src = trimmedUrl;
+    }
   };
 
   return (
@@ -190,6 +218,7 @@ export const VideoUpload = ({ onVideoLoad }: VideoUploadProps) => {
                 <p><strong>✅ Supported:</strong> Direct video file URLs (.mp4, .webm, .mov, etc.)</p>
                 <p><strong>❌ Not supported:</strong> YouTube, Vimeo, TikTok, Instagram (CORS restrictions)</p>
                 <p><strong>💡 Tip:</strong> For best results, upload your video file directly</p>
+                <p><strong>📝 Example:</strong> https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4</p>
               </div>
               <Button 
                 onClick={handleUrlSubmit} 
