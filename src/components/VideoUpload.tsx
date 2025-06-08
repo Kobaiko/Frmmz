@@ -36,12 +36,30 @@ export const VideoUpload = ({ onVideoLoad }: VideoUploadProps) => {
 
   const isValidVideoUrl = (url: string) => {
     try {
-      new URL(url);
-      // Check if it's a common video URL pattern
-      const videoExtensions = /\.(mp4|webm|ogg|avi|mov|mkv|m4v)(\?.*)?$/i;
-      const commonVideoSites = /(youtube|vimeo|dailymotion|wistia)/i;
+      const urlObj = new URL(url);
       
-      return videoExtensions.test(url) || commonVideoSites.test(url) || url.includes('blob:');
+      // Block known video hosting services that don't allow direct access
+      const blockedDomains = [
+        'youtube.com', 'youtu.be', 'www.youtube.com',
+        'vimeo.com', 'www.vimeo.com',
+        'dailymotion.com', 'www.dailymotion.com',
+        'facebook.com', 'www.facebook.com',
+        'instagram.com', 'www.instagram.com',
+        'tiktok.com', 'www.tiktok.com'
+      ];
+      
+      if (blockedDomains.some(domain => urlObj.hostname.includes(domain))) {
+        return false;
+      }
+      
+      // Check if it's a direct video file URL
+      const videoExtensions = /\.(mp4|webm|ogg|avi|mov|mkv|m4v)(\?.*)?$/i;
+      const isDirectVideo = videoExtensions.test(url);
+      
+      // Allow blob URLs (for local files)
+      const isBlobUrl = url.startsWith('blob:');
+      
+      return isDirectVideo || isBlobUrl;
     } catch {
       return false;
     }
@@ -53,14 +71,25 @@ export const VideoUpload = ({ onVideoLoad }: VideoUploadProps) => {
       return;
     }
 
-    if (!isValidVideoUrl(urlInput.trim())) {
-      setError("Please enter a valid video URL (e.g., .mp4, .webm, or streaming service)");
+    const trimmedUrl = urlInput.trim();
+    
+    // Check for blocked video hosting services first
+    const blockedServices = ['youtube.com', 'youtu.be', 'vimeo.com', 'dailymotion.com', 'facebook.com', 'instagram.com', 'tiktok.com'];
+    const isBlockedService = blockedServices.some(service => trimmedUrl.includes(service));
+    
+    if (isBlockedService) {
+      setError("YouTube, Vimeo, and other video hosting services are not supported due to CORS restrictions. Please use a direct video file URL (e.g., ending in .mp4, .webm, .mov) or upload a file instead.");
+      return;
+    }
+
+    if (!isValidVideoUrl(trimmedUrl)) {
+      setError("Please enter a direct video file URL (e.g., https://example.com/video.mp4)");
       return;
     }
 
     setError("");
     setIsLoading(true);
-    console.log('🌐 Loading video from URL:', urlInput.trim());
+    console.log('🌐 Loading video from URL:', trimmedUrl);
     
     // Test if the URL is accessible
     const testVideo = document.createElement('video');
@@ -68,13 +97,13 @@ export const VideoUpload = ({ onVideoLoad }: VideoUploadProps) => {
     
     const handleSuccess = () => {
       console.log('✅ URL video test successful');
-      onVideoLoad(urlInput.trim());
+      onVideoLoad(trimmedUrl);
       setIsLoading(false);
     };
 
-    const handleError = () => {
-      console.error('❌ URL video test failed');
-      setError("Unable to load video from this URL. Please check if the URL is correct and accessible.");
+    const handleError = (e: Event) => {
+      console.error('❌ URL video test failed:', e);
+      setError("Unable to load video from this URL. This might be due to CORS restrictions or the URL not being a direct video file. Try uploading the file directly instead.");
       setIsLoading(false);
     };
 
@@ -84,13 +113,13 @@ export const VideoUpload = ({ onVideoLoad }: VideoUploadProps) => {
     // Set a timeout as fallback
     setTimeout(() => {
       if (isLoading) {
-        console.log('⏰ URL test timeout, proceeding anyway');
-        onVideoLoad(urlInput.trim());
+        console.log('⏰ URL test timeout');
+        setError("Video loading timed out. Please check if the URL is a direct video file link and try again.");
         setIsLoading(false);
       }
-    }, 3000);
+    }, 5000);
 
-    testVideo.src = urlInput.trim();
+    testVideo.src = trimmedUrl;
   };
 
   return (
@@ -157,9 +186,11 @@ export const VideoUpload = ({ onVideoLoad }: VideoUploadProps) => {
                   className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                 />
               </div>
-              <p className="text-xs text-gray-500">
-                Supports direct video URLs (.mp4, .webm, etc.) and some streaming services
-              </p>
+              <div className="text-xs text-gray-500 space-y-1">
+                <p><strong>✅ Supported:</strong> Direct video file URLs (.mp4, .webm, .mov, etc.)</p>
+                <p><strong>❌ Not supported:</strong> YouTube, Vimeo, TikTok, Instagram (CORS restrictions)</p>
+                <p><strong>💡 Tip:</strong> For best results, upload your video file directly</p>
+              </div>
               <Button 
                 onClick={handleUrlSubmit} 
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
