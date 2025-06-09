@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { ProjectCard } from "./ProjectCard";
 import { CreateProjectDialog } from "./CreateProjectDialog";
+import { WorkspaceSettingsDialog } from "./WorkspaceSettingsDialog";
 import { toast } from "@/hooks/use-toast";
+
 interface Project {
   id: string;
   name: string;
@@ -12,15 +14,20 @@ interface Project {
   thumbnail?: string;
   isNewProject?: boolean;
 }
+
 interface WorkspaceViewProps {
   onOpenProject: (projectId: string) => void;
 }
+
 export const WorkspaceView = ({
   onOpenProject
 }: WorkspaceViewProps) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [activeFilter, setActiveFilter] = useState('Active Projects');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [workspaceName, setWorkspaceName] = useState("Yair's Workspace");
+  const [projectNotifications, setProjectNotifications] = useState(true);
 
   // Sample projects data
   const [projects, setProjects] = useState<Project[]>([{
@@ -95,15 +102,11 @@ export const WorkspaceView = ({
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-white">Yair's Workspace</h1>
+              <h1 className="text-2xl font-bold text-white">{workspaceName}</h1>
               <p className="text-gray-400">{projects.length} Projects</p>
             </div>
             
             <div className="flex items-center space-x-4">
-              
-              
-              
-              
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
@@ -114,14 +117,20 @@ export const WorkspaceView = ({
                   <div className="px-3 py-2 border-b border-gray-700">
                     <p className="text-sm font-medium text-white">Workspace</p>
                   </div>
-                  <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                  <DropdownMenuItem 
+                    className="text-gray-300 hover:bg-gray-700"
+                    onClick={() => setProjectNotifications(!projectNotifications)}
+                  >
                     <span className="mr-2">🔔</span>
                     Project Notifications
                     <div className="ml-auto">
-                      <div className="w-4 h-4 bg-blue-600 rounded-full"></div>
+                      <div className={`w-4 h-4 rounded-full ${projectNotifications ? 'bg-blue-600' : 'bg-gray-600'}`}></div>
                     </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                  <DropdownMenuItem 
+                    className="text-gray-300 hover:bg-gray-700"
+                    onClick={() => setShowSettingsDialog(true)}
+                  >
                     <span className="mr-2">⚙️</span>
                     Workspace Settings
                   </DropdownMenuItem>
@@ -158,10 +167,16 @@ export const WorkspaceView = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="bg-gray-800 border-gray-700">
-                  {filterOptions.map(option => <DropdownMenuItem key={option} className="text-gray-300 hover:bg-gray-700" onClick={() => setActiveFilter(option)}>
+                  {filterOptions.map(option => 
+                    <DropdownMenuItem 
+                      key={option} 
+                      className="text-gray-300 hover:bg-gray-700" 
+                      onClick={() => setActiveFilter(option)}
+                    >
                       {option}
                       {activeFilter === option && <span className="ml-auto text-blue-400">✓</span>}
-                    </DropdownMenuItem>)}
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
               
@@ -197,5 +212,12 @@ export const WorkspaceView = ({
       </div>
 
       <CreateProjectDialog open={showCreateDialog} onOpenChange={setShowCreateDialog} onCreateProject={handleCreateProject} />
+      
+      <WorkspaceSettingsDialog
+        open={showSettingsDialog}
+        onOpenChange={setShowSettingsDialog}
+        workspaceName={workspaceName}
+        onWorkspaceNameChange={setWorkspaceName}
+      />
     </div>;
 };
