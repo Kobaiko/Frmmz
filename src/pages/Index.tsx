@@ -4,7 +4,8 @@ import { CommentPanel } from "@/components/CommentPanel";
 import { VideoUpload } from "@/components/VideoUpload";
 import { ProjectHeader } from "@/components/ProjectHeader";
 import { WorkspaceView } from "@/components/WorkspaceView";
-import { ProjectAssets } from "@/components/ProjectAssets";
+import { ProjectAssetsEnhanced } from "@/components/ProjectAssetsEnhanced";
+import { Sidebar } from "@/components/Sidebar";
 
 interface AttachmentWithType {
   url: string;
@@ -24,10 +25,11 @@ export interface Comment {
   hasDrawing?: boolean;
 }
 
-type ViewMode = 'workspace' | 'project-assets' | 'video-feedback';
+type ViewMode = 'home' | 'project-assets' | 'feedback-session';
 
 const Index = () => {
-  const [viewMode, setViewMode] = useState<ViewMode>('workspace');
+  const [viewMode, setViewMode] = useState<ViewMode>('home');
+  const [activeNavItem, setActiveNavItem] = useState('home');
   const [currentProject, setCurrentProject] = useState<string>('');
   const [videoUrl, setVideoUrl] = useState<string>("");
   const [comments, setComments] = useState<Comment[]>([]);
@@ -39,31 +41,33 @@ const Index = () => {
     window.location.hash.slice(1) || Math.random().toString(36).substr(2, 9)
   );
 
-  const handleOpenProject = (projectId: string) => {
-    if (projectId === 'new') {
-      // Create new project logic
-      const newProjectName = `New Project ${Date.now()}`;
-      setCurrentProject(newProjectName);
-      setViewMode('project-assets');
-    } else {
-      // Open existing project
-      const projectNames: { [key: string]: string } = {
-        'demo': 'Demo Project',
-        'first': "Yair's First Project"
-      };
-      setCurrentProject(projectNames[projectId] || 'Unknown Project');
-      setViewMode('project-assets');
+  const handleNavItemClick = (item: string) => {
+    setActiveNavItem(item);
+    if (item === 'home') {
+      setViewMode('home');
+      setCurrentProject('');
+      setVideoUrl('');
     }
   };
 
-  const handleBackToWorkspace = () => {
-    setViewMode('workspace');
+  const handleOpenProject = (projectId: string) => {
+    const projectNames: { [key: string]: string } = {
+      'demo': 'Demo Project',
+      'first': "Yair's First Project"
+    };
+    setCurrentProject(projectNames[projectId] || projectId);
+    setViewMode('project-assets');
+  };
+
+  const handleBackToHome = () => {
+    setViewMode('home');
+    setActiveNavItem('home');
     setCurrentProject('');
     setVideoUrl('');
   };
 
-  const handleStartVideoFeedback = () => {
-    setViewMode('video-feedback');
+  const handleStartFeedback = () => {
+    setViewMode('feedback-session');
   };
 
   const handleVideoLoad = (url: string) => {
@@ -131,31 +135,41 @@ const Index = () => {
     setIsDrawingMode(enabled);
   };
 
-  if (viewMode === 'workspace') {
-    return <WorkspaceView onOpenProject={handleOpenProject} />;
+  if (viewMode === 'home') {
+    return (
+      <div className="min-h-screen bg-gray-900 flex">
+        <Sidebar activeItem={activeNavItem} onItemClick={handleNavItemClick} />
+        <WorkspaceView onOpenProject={handleOpenProject} />
+      </div>
+    );
   }
 
   if (viewMode === 'project-assets') {
     return (
-      <ProjectAssets
-        projectName={currentProject}
-        onBack={handleBackToWorkspace}
-        onStartVideo={handleStartVideoFeedback}
-      />
+      <div className="min-h-screen bg-gray-900 flex">
+        <Sidebar activeItem={activeNavItem} onItemClick={handleNavItemClick} />
+        <div className="flex-1">
+          <ProjectAssetsEnhanced
+            projectName={currentProject}
+            onBack={handleBackToHome}
+            onStartFeedback={handleStartFeedback}
+          />
+        </div>
+      </div>
     );
   }
 
-  if (viewMode === 'video-feedback' && !videoUrl) {
+  if (viewMode === 'feedback-session' && !videoUrl) {
     return (
       <div className="min-h-screen bg-gray-900">
         <ProjectHeader projectId={projectId} />
         <div className="container mx-auto px-4 py-12">
           <div className="max-w-2xl mx-auto text-center">
             <h1 className="text-4xl font-bold text-white mb-4">
-              Video Feedback Platform
+              Feedback Platform
             </h1>
             <p className="text-gray-400 mb-12 text-lg">
-              Upload a video or paste a URL to start collecting feedback
+              Upload content or paste a URL to start collecting feedback
             </p>
             <VideoUpload onVideoLoad={handleVideoLoad} />
           </div>

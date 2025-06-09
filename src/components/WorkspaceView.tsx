@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Grid, List, Filter, Search, MoreHorizontal } from "lucide-react";
+import { Grid, List, Filter, Search, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ProjectCard } from "./ProjectCard";
+import { CreateProjectDialog } from "./CreateProjectDialog";
 
 interface Project {
   id: string;
@@ -25,9 +26,11 @@ interface WorkspaceViewProps {
 export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState('Active Projects');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   // Sample projects data
-  const [projects] = useState<Project[]>([
+  const [projects, setProjects] = useState<Project[]>([
     {
       id: 'demo',
       name: 'Demo Project',
@@ -40,6 +43,8 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
     }
   ]);
 
+  const filterOptions = ['All Projects', 'Active Projects', 'Inactive Projects'];
+
   const filteredProjects = projects.filter(project =>
     project.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -50,8 +55,17 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
     ...filteredProjects
   ];
 
+  const handleCreateProject = (name: string, template: string) => {
+    const newProject: Project = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: name,
+      size: '0 MB'
+    };
+    setProjects([...projects, newProject]);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-900 flex-1">
       {/* Header */}
       <div className="border-b border-gray-700 bg-gray-800">
         <div className="container mx-auto px-4 py-4">
@@ -61,8 +75,12 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
               <p className="text-gray-400">{projects.length} Projects</p>
             </div>
             
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              + New Project
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => setShowCreateDialog(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Project
             </Button>
           </div>
           
@@ -92,19 +110,20 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="border-gray-600 text-gray-300">
                     <Filter className="h-4 w-4 mr-2" />
-                    Filtered by: Active Projects
+                    Filtered by: {activeFilter}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="bg-gray-800 border-gray-700">
-                  <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
-                    All Projects
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
-                    Active Projects
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
-                    Archived Projects
-                  </DropdownMenuItem>
+                  {filterOptions.map((option) => (
+                    <DropdownMenuItem 
+                      key={option}
+                      className="text-gray-300 hover:bg-gray-700"
+                      onClick={() => setActiveFilter(option)}
+                    >
+                      {option}
+                      {activeFilter === option && <span className="ml-auto text-blue-400">✓</span>}
+                    </DropdownMenuItem>
+                  ))}
                 </DropdownMenuContent>
               </DropdownMenu>
               
@@ -132,7 +151,7 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
               <ProjectCard
                 key={project.id}
                 project={project}
-                onOpenProject={onOpenProject}
+                onOpenProject={project.id === 'new' ? () => setShowCreateDialog(true) : onOpenProject}
                 onDeleteProject={(id) => console.log('Delete project:', id)}
               />
             ))}
@@ -143,7 +162,7 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
               <div
                 key={project.id}
                 className="flex items-center justify-between p-4 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-750 cursor-pointer"
-                onClick={() => onOpenProject(project.id)}
+                onClick={() => project.id === 'new' ? setShowCreateDialog(true) : onOpenProject(project.id)}
               >
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded"></div>
@@ -152,14 +171,22 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
                     <p className="text-gray-400 text-sm">{project.size}</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
+                {!project.isNewProject && (
+                  <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
+
+      <CreateProjectDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onCreateProject={handleCreateProject}
+      />
     </div>
   );
 };
