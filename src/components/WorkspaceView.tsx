@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ProjectCard } from "./ProjectCard";
 import { CreateProjectDialog } from "./CreateProjectDialog";
+import { toast } from "@/hooks/use-toast";
 
 interface Project {
   id: string;
@@ -63,6 +64,44 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
       size: '0 MB'
     };
     setProjects([...projects, newProject]);
+    toast({
+      title: "Project created",
+      description: `${name} has been created successfully.`,
+    });
+  };
+
+  const handleDeleteProject = (projectId: string) => {
+    setProjects(projects.filter(p => p.id !== projectId));
+    toast({
+      title: "Project deleted",
+      description: "Project has been deleted successfully.",
+    });
+  };
+
+  const handleDuplicateProject = (projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (project) {
+      const duplicatedProject: Project = {
+        ...project,
+        id: Math.random().toString(36).substr(2, 9),
+        name: `${project.name} (Copy)`,
+      };
+      setProjects([...projects, duplicatedProject]);
+      toast({
+        title: "Project duplicated",
+        description: `${project.name} has been duplicated.`,
+      });
+    }
+  };
+
+  const handleRenameProject = (projectId: string, newName: string) => {
+    setProjects(projects.map(p => 
+      p.id === projectId ? { ...p, name: newName } : p
+    ));
+    toast({
+      title: "Project renamed",
+      description: `Project has been renamed to ${newName}.`,
+    });
   };
 
   return (
@@ -77,7 +116,7 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
             </div>
             
             <Button 
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
               onClick={() => setShowCreateDialog(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -93,7 +132,7 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
                   variant={viewMode === 'grid' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('grid')}
-                  className="h-8 w-8 p-0"
+                  className="h-8 w-8 p-0 text-white"
                 >
                   <Grid className="h-4 w-4" />
                 </Button>
@@ -101,7 +140,7 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
                   variant={viewMode === 'list' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('list')}
-                  className="h-8 w-8 p-0"
+                  className="h-8 w-8 p-0 text-white"
                 >
                   <List className="h-4 w-4" />
                 </Button>
@@ -109,7 +148,7 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="border-gray-600 text-gray-300">
+                  <Button variant="outline" size="sm" className="border-gray-600 text-gray-300 bg-gray-800 hover:bg-gray-700">
                     <Filter className="h-4 w-4 mr-2" />
                     Filtered by: {activeFilter}
                   </Button>
@@ -153,7 +192,9 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
                 key={project.id}
                 project={project}
                 onOpenProject={project.id === 'new' ? () => setShowCreateDialog(true) : onOpenProject}
-                onDeleteProject={(id) => console.log('Delete project:', id)}
+                onDeleteProject={handleDeleteProject}
+                onDuplicateProject={handleDuplicateProject}
+                onRenameProject={handleRenameProject}
               />
             ))}
           </div>

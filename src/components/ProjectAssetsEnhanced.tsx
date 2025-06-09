@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { ArrowLeft, Plus, Upload, Folder, Lock, MoreHorizontal, Eye, Grid, List, Search } from "lucide-react";
+import { ArrowLeft, Plus, Upload, Folder, Lock, MoreHorizontal, Eye, Grid, List, Search, Share, Copy, Trash2, Edit3, Download, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,8 +8,16 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "@/hooks/use-toast";
 
 interface Asset {
   id: string;
@@ -34,9 +42,10 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
   const [selectedStatus, setSelectedStatus] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showStatusFilter, setShowStatusFilter] = useState(false);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
 
   // Sample asset data
-  const [assets] = useState<Asset[]>([
+  const [assets, setAssets] = useState<Asset[]>([
     {
       id: '1',
       name: 'IMG_193458D1E9A5-1.jpeg',
@@ -78,7 +87,35 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
     setDragActive(false);
     
     const files = Array.from(e.dataTransfer.files);
-    console.log('Files dropped:', files);
+    handleFileUpload(files);
+  };
+
+  const handleFileUpload = (files: File[]) => {
+    files.forEach(file => {
+      const newAsset: Asset = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: file.name,
+        type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'document',
+        size: formatFileSize(file.size),
+        status: 'Needs Review',
+        author: 'You',
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+      };
+      setAssets(prev => [...prev, newAsset]);
+    });
+    
+    toast({
+      title: "Assets uploaded",
+      description: `${files.length} asset(s) uploaded successfully.`,
+    });
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'kB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
   const getStatusColor = (status: string) => {
@@ -88,6 +125,40 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
       case 'Approved': return 'bg-green-500';
       default: return 'bg-gray-500';
     }
+  };
+
+  const handleCreateShareLink = (assetId: string) => {
+    const shareUrl = `${window.location.origin}/asset/${assetId}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast({
+      title: "Share link copied",
+      description: "Asset share link has been copied to clipboard.",
+    });
+  };
+
+  const handleCopyAssetUrl = (assetId: string) => {
+    const assetUrl = `${window.location.origin}/asset/${assetId}`;
+    navigator.clipboard.writeText(assetUrl);
+    toast({
+      title: "Asset URL copied",
+      description: "Asset URL has been copied to clipboard.",
+    });
+  };
+
+  const handleDownload = (asset: Asset) => {
+    // Simulate download
+    toast({
+      title: "Download started",
+      description: `Downloading ${asset.name}...`,
+    });
+  };
+
+  const handleDelete = (assetId: string) => {
+    setAssets(assets.filter(a => a.id !== assetId));
+    toast({
+      title: "Asset deleted",
+      description: "Asset has been deleted successfully.",
+    });
   };
 
   if (assets.length === 0) {
@@ -115,17 +186,23 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
               <div className="flex items-center space-x-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
                       <Plus className="h-4 w-4 mr-2" />
                       Add
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
-                    <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                    <DropdownMenuItem 
+                      className="text-gray-300 hover:bg-gray-700"
+                      onClick={() => document.getElementById('file-upload')?.click()}
+                    >
                       <Upload className="h-4 w-4 mr-2" />
                       Upload Asset
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                    <DropdownMenuItem 
+                      className="text-gray-300 hover:bg-gray-700"
+                      onClick={() => document.getElementById('folder-upload')?.click()}
+                    >
                       <Upload className="h-4 w-4 mr-2" />
                       Upload Folder
                     </DropdownMenuItem>
@@ -140,7 +217,7 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
                   </DropdownMenuContent>
                 </DropdownMenu>
                 
-                <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700">
+                <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800">
                   Share
                 </Button>
               </div>
@@ -176,7 +253,7 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
               
               <div className="space-y-3">
                 <Button 
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
                   onClick={() => document.getElementById('file-upload')?.click()}
                 >
                   Upload
@@ -189,7 +266,19 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
                   className="hidden"
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []);
-                    console.log('Files selected:', files);
+                    handleFileUpload(files);
+                  }}
+                />
+
+                <input
+                  id="folder-upload"
+                  type="file"
+                  // @ts-ignore
+                  webkitdirectory=""
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    handleFileUpload(files);
                   }}
                 />
                 
@@ -232,15 +321,36 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
             </div>
             
             <div className="flex items-center space-x-2">
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-4 w-4 mr-2" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
+                  <DropdownMenuItem 
+                    className="text-gray-300 hover:bg-gray-700"
+                    onClick={() => document.getElementById('file-upload')?.click()}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Asset
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="text-gray-300 hover:bg-gray-700"
+                    onClick={() => document.getElementById('folder-upload')?.click()}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Folder
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               
-              <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700">
+              <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800">
                 <Search className="h-4 w-4 mr-2" />
               </Button>
               
-              <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700">
+              <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800">
                 Share
               </Button>
             </div>
@@ -274,7 +384,7 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
                 variant={viewMode === 'grid' ? 'default' : 'ghost'}
                 size="icon"
                 onClick={() => setViewMode('grid')}
-                className="h-8 w-8"
+                className="h-8 w-8 text-white"
               >
                 <Grid className="h-4 w-4" />
               </Button>
@@ -282,7 +392,7 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
                 variant={viewMode === 'list' ? 'default' : 'ghost'}
                 size="icon"
                 onClick={() => setViewMode('list')}
-                className="h-8 w-8"
+                className="h-8 w-8 text-white"
               >
                 <List className="h-4 w-4" />
               </Button>
@@ -317,7 +427,7 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-gray-600 text-gray-300"
+                      className="border-gray-600 text-gray-300 bg-gray-800 hover:bg-gray-700"
                       onClick={() => setShowStatusFilter(!showStatusFilter)}
                     >
                       <div className={`w-2 h-2 rounded-full mr-2 ${getStatusColor(asset.status)}`} />
@@ -355,32 +465,55 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
-                      <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                    <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 w-48">
+                      <DropdownMenuItem 
+                        className="text-gray-300 hover:bg-gray-700"
+                        onClick={() => handleCreateShareLink(asset.id)}
+                      >
+                        <Share className="h-4 w-4 mr-2" />
                         Create Share Link
                       </DropdownMenuItem>
                       <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                        <ExternalLink className="h-4 w-4 mr-2" />
                         Add to Share Links
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                      <DropdownMenuSeparator className="bg-gray-600" />
+                      <DropdownMenuItem 
+                        className="text-gray-300 hover:bg-gray-700"
+                        onClick={() => handleDownload(asset)}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
                         Download
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                      <DropdownMenuItem 
+                        className="text-gray-300 hover:bg-gray-700"
+                        onClick={() => handleCopyAssetUrl(asset.id)}
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
                         Copy Asset URL
                       </DropdownMenuItem>
                       <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                        <Copy className="h-4 w-4 mr-2" />
                         Copy to
                       </DropdownMenuItem>
                       <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
                         Move to
                       </DropdownMenuItem>
+                      <DropdownMenuSeparator className="bg-gray-600" />
                       <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                        <Copy className="h-4 w-4 mr-2" />
                         Duplicate
                       </DropdownMenuItem>
                       <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                        <Edit3 className="h-4 w-4 mr-2" />
                         Rename
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-400 hover:bg-gray-700">
+                      <DropdownMenuSeparator className="bg-gray-600" />
+                      <DropdownMenuItem 
+                        className="text-red-400 hover:bg-gray-700"
+                        onClick={() => handleDelete(asset.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
                         Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -390,6 +523,30 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
             </CardContent>
           </Card>
         ))}
+        
+        {/* Hidden file inputs */}
+        <input
+          id="file-upload"
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            const files = Array.from(e.target.files || []);
+            handleFileUpload(files);
+          }}
+        />
+
+        <input
+          id="folder-upload"
+          type="file"
+          // @ts-ignore
+          webkitdirectory=""
+          className="hidden"
+          onChange={(e) => {
+            const files = Array.from(e.target.files || []);
+            handleFileUpload(files);
+          }}
+        />
       </div>
     </div>
   );
