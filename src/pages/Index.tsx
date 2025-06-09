@@ -3,6 +3,8 @@ import { VideoPlayer } from "@/components/VideoPlayer";
 import { CommentPanel } from "@/components/CommentPanel";
 import { VideoUpload } from "@/components/VideoUpload";
 import { ProjectHeader } from "@/components/ProjectHeader";
+import { WorkspaceView } from "@/components/WorkspaceView";
+import { ProjectAssets } from "@/components/ProjectAssets";
 
 interface AttachmentWithType {
   url: string;
@@ -22,35 +24,63 @@ export interface Comment {
   hasDrawing?: boolean;
 }
 
+type ViewMode = 'workspace' | 'project-assets' | 'video-feedback';
+
 const Index = () => {
+  const [viewMode, setViewMode] = useState<ViewMode>('workspace');
+  const [currentProject, setCurrentProject] = useState<string>('');
   const [videoUrl, setVideoUrl] = useState<string>("");
   const [comments, setComments] = useState<Comment[]>([]);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [isDrawingMode, setIsDrawingMode] = useState<boolean>(false);
-  const [annotations, setAnnotations] = useState<boolean>(true); // Default to ON
+  const [annotations, setAnnotations] = useState<boolean>(true);
   const [projectId] = useState<string>(() => 
     window.location.hash.slice(1) || Math.random().toString(36).substr(2, 9)
   );
+
+  const handleOpenProject = (projectId: string) => {
+    if (projectId === 'new') {
+      // Create new project logic
+      const newProjectName = `New Project ${Date.now()}`;
+      setCurrentProject(newProjectName);
+      setViewMode('project-assets');
+    } else {
+      // Open existing project
+      const projectNames: { [key: string]: string } = {
+        'demo': 'Demo Project',
+        'first': "Yair's First Project"
+      };
+      setCurrentProject(projectNames[projectId] || 'Unknown Project');
+      setViewMode('project-assets');
+    }
+  };
+
+  const handleBackToWorkspace = () => {
+    setViewMode('workspace');
+    setCurrentProject('');
+    setVideoUrl('');
+  };
+
+  const handleStartVideoFeedback = () => {
+    setViewMode('video-feedback');
+  };
 
   const handleVideoLoad = (url: string) => {
     setVideoUrl(url);
   };
 
   const handleAddComment = (text: string, timestamp: number, parentId?: string, attachments?: AttachmentWithType[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
-    // If the comment has a drawing, calculate the exact frame timestamp
     let finalTimestamp = timestamp;
     if (hasDrawing && attachTime) {
-      // Get the current frame number (30fps)
       const currentFrame = Math.floor(timestamp * 30);
-      // Convert back to exact frame timestamp (beginning of frame)
       finalTimestamp = currentFrame / 30;
       console.log(`🎯 Drawing comment: Original time ${timestamp.toFixed(3)}s → Frame ${currentFrame} → Exact time ${finalTimestamp.toFixed(3)}s`);
     }
     
     const newComment: Comment = {
       id: Math.random().toString(36).substr(2, 9),
-      timestamp: attachTime ? finalTimestamp : -1, // Use exact frame timestamp for drawings
+      timestamp: attachTime ? finalTimestamp : -1,
       text,
       author: "User",
       createdAt: new Date(),
@@ -63,14 +93,12 @@ const Index = () => {
     console.log('Adding comment with hasDrawing:', hasDrawing, 'at timestamp:', finalTimestamp);
     
     setComments([...comments, newComment].sort((a, b) => {
-      // Sort by timestamp, but put general comments (-1) at the end
       if (a.timestamp === -1 && b.timestamp === -1) return a.createdAt.getTime() - b.createdAt.getTime();
       if (a.timestamp === -1) return 1;
       if (b.timestamp === -1) return -1;
       return a.timestamp - b.timestamp;
     }));
 
-    // Reset drawing mode after adding comment
     setIsDrawingMode(false);
     console.log('Drawing mode reset after adding comment');
   };
@@ -80,17 +108,15 @@ const Index = () => {
   };
 
   const handleCommentClick = (timestamp: number) => {
-    if (timestamp >= 0) { // Only seek if it's a timestamped comment
+    if (timestamp >= 0) {
       console.log(`🎯 Seeking to EXACT timestamp: ${timestamp.toFixed(3)}s and pausing video`);
       
-      // Pause the video first
       const video = document.querySelector('video') as HTMLVideoElement;
       if (video && !video.paused) {
         video.pause();
         console.log('📹 Video paused for timestamp navigation');
       }
       
-      // Then set the exact time
       setCurrentTime(timestamp);
     }
   };
@@ -105,7 +131,21 @@ const Index = () => {
     setIsDrawingMode(enabled);
   };
 
-  if (!videoUrl) {
+  if (viewMode === 'workspace') {
+    return <WorkspaceView onOpenProject={handleOpenProject} />;
+  }
+
+  if (viewMode === 'project-assets') {
+    return (
+      <ProjectAssets
+        projectName={currentProject}
+        onBack={handleBackToWorkspace}
+        onStartVideo={handleStartVideoFeedback}
+      />
+    );
+  }
+
+  if (viewMode === 'video-feedback' && !videoUrl) {
     return (
       <div className="min-h-screen bg-gray-900">
         <ProjectHeader projectId={projectId} />
