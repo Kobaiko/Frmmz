@@ -1,13 +1,13 @@
 
 import { useState } from "react";
-import { Grid, List, Filter, Search, Plus, MoreHorizontal } from "lucide-react";
+import { Grid, List, Filter, Plus, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { ProjectCard } from "./ProjectCard";
 import { CreateProjectDialog } from "./CreateProjectDialog";
@@ -27,7 +27,6 @@ interface WorkspaceViewProps {
 
 export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('Active Projects');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
@@ -39,22 +38,23 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
       size: '1.05 MB',
     },
     {
+      id: 'untitled',
+      name: 'Untitled Project',
+      size: '0 MB',
+    },
+    {
       id: 'first',
       name: "Yair's First Project",
-      size: '0 MB',
+      size: '519 KB',
     }
   ]);
 
   const filterOptions = ['All Projects', 'Active Projects', 'Inactive Projects'];
 
-  const filteredProjects = projects.filter(project =>
-    project.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   // Add new project placeholder
   const allItems = [
+    ...projects,
     { id: 'new', name: 'New Project', size: '', isNewProject: true },
-    ...filteredProjects
   ];
 
   const handleCreateProject = (name: string, template: string) => {
@@ -108,20 +108,56 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
     <div className="min-h-screen bg-gray-900 flex-1">
       {/* Header */}
       <div className="border-b border-gray-700 bg-gray-800">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold text-white">Yair's Workspace</h1>
               <p className="text-gray-400">{projects.length} Projects</p>
             </div>
             
-            <Button 
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-              onClick={() => setShowCreateDialog(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New Project
-            </Button>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 text-sm text-gray-300">
+                <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs">Team</span>
+                <span>• Free Trial</span>
+                <span>9 days left</span>
+              </div>
+              
+              <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-semibold text-sm">
+                Y
+              </div>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
+                    <MoreHorizontal className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 w-64">
+                  <div className="px-3 py-2 border-b border-gray-700">
+                    <p className="text-sm font-medium text-white">Workspace</p>
+                  </div>
+                  <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                    <span className="mr-2">🔔</span>
+                    Project Notifications
+                    <div className="ml-auto">
+                      <div className="w-4 h-4 bg-blue-600 rounded-full"></div>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                    <span className="mr-2">⚙️</span>
+                    Workspace Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-gray-600" />
+                  <DropdownMenuItem className="text-red-400 hover:bg-gray-700">
+                    <span className="mr-2">🗑️</span>
+                    Delete
+                  </DropdownMenuItem>
+                  <div className="px-3 py-2 border-t border-gray-700">
+                    <p className="text-xs text-gray-500">You must have at least one workspace</p>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
           
           {/* Controls */}
@@ -148,7 +184,7 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="border-gray-600 text-gray-300 bg-gray-800 hover:bg-gray-700">
+                  <Button variant="outline" size="sm" className="border-gray-600 text-gray-300 bg-gray-700 hover:bg-gray-600">
                     <Filter className="h-4 w-4 mr-2" />
                     Filtered by: {activeFilter}
                   </Button>
@@ -170,21 +206,19 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
               <span className="text-sm text-gray-400">Sorted by: Name</span>
             </div>
             
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search projects..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-gray-700 border-gray-600 text-white placeholder-gray-400 w-64"
-              />
-            </div>
+            <Button 
+              className="bg-gray-700 hover:bg-gray-600 text-white border border-gray-600"
+              onClick={() => setShowCreateDialog(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Project
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Projects Grid */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-6 py-8">
         {viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {allItems.map((project) => (
