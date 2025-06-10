@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { Grid, List, Filter, Plus, MoreHorizontal } from "lucide-react";
+import { Grid, List, Filter, Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { ProjectCard } from "./ProjectCard";
 import { CreateProjectDialog } from "./CreateProjectDialog";
 import { toast } from "@/hooks/use-toast";
@@ -24,7 +26,10 @@ export const WorkspaceView = ({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [activeFilter, setActiveFilter] = useState('Active Projects');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [workspaceName] = useState("Yair's Workspace");
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [workspaceName, setWorkspaceName] = useState("Yair's Workspace");
+  const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [projectNotifications, setProjectNotifications] = useState(true);
 
   // Sample projects data
@@ -94,6 +99,37 @@ export const WorkspaceView = ({
       description: `Project has been renamed to ${newName}.`
     });
   };
+
+  const handleRenameWorkspace = () => {
+    setNewWorkspaceName(workspaceName);
+    setShowRenameDialog(true);
+  };
+
+  const handleConfirmRename = () => {
+    if (newWorkspaceName.trim()) {
+      setWorkspaceName(newWorkspaceName.trim());
+      setShowRenameDialog(false);
+      toast({
+        title: "Workspace renamed",
+        description: `Workspace has been renamed to "${newWorkspaceName.trim()}".`
+      });
+    }
+  };
+
+  const handleDeleteWorkspace = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = () => {
+    setShowDeleteDialog(false);
+    toast({
+      title: "Workspace deleted",
+      description: "The workspace has been deleted successfully.",
+      variant: "destructive"
+    });
+    // In a real app, you would navigate away or handle the deletion
+  };
+
   return <div className="min-h-screen bg-gray-900 flex-1">
       {/* Header */}
       <div className="border-b border-gray-700 bg-gray-800">
@@ -117,6 +153,13 @@ export const WorkspaceView = ({
                   </div>
                   <DropdownMenuItem 
                     className="text-gray-300 hover:bg-gray-700"
+                    onClick={handleRenameWorkspace}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Rename Workspace
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="text-gray-300 hover:bg-gray-700"
                     onClick={() => setProjectNotifications(!projectNotifications)}
                   >
                     <span className="mr-2">🔔</span>
@@ -126,9 +169,12 @@ export const WorkspaceView = ({
                     </div>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-gray-600" />
-                  <DropdownMenuItem className="text-red-400 hover:bg-gray-700">
-                    <span className="mr-2">🗑️</span>
-                    Delete
+                  <DropdownMenuItem 
+                    className="text-red-400 hover:bg-gray-700"
+                    onClick={handleDeleteWorkspace}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Workspace
                   </DropdownMenuItem>
                   <div className="px-3 py-2 border-t border-gray-700">
                     <p className="text-xs text-gray-500">You must have at least one workspace</p>
@@ -203,5 +249,57 @@ export const WorkspaceView = ({
       </div>
 
       <CreateProjectDialog open={showCreateDialog} onOpenChange={setShowCreateDialog} onCreateProject={handleCreateProject} />
+      
+      {/* Rename Workspace Dialog */}
+      <Dialog open={showRenameDialog} onOpenChange={setShowRenameDialog}>
+        <DialogContent className="bg-gray-800 border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Rename Workspace</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={newWorkspaceName}
+              onChange={(e) => setNewWorkspaceName(e.target.value)}
+              placeholder="Enter workspace name"
+              className="bg-gray-700 border-gray-600 text-white"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleConfirmRename();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowRenameDialog(false)} className="text-gray-300">
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmRename} className="bg-blue-600 hover:bg-blue-700">
+              Rename
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Workspace Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="bg-gray-800 border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Delete Workspace</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-gray-300">
+              Are you sure you want to delete "{workspaceName}"? This action cannot be undone and will delete all projects in this workspace.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowDeleteDialog(false)} className="text-gray-300">
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmDelete} variant="destructive">
+              Delete Workspace
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>;
 };
