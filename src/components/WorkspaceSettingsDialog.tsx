@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -56,69 +55,194 @@ export const WorkspaceSettingsDialog = ({
     setShowWatermarkEdit(false);
   };
 
+  const getWatermarkPositionStyle = () => {
+    const baseStyle = {
+      position: 'absolute' as const,
+      color: 'white',
+      fontSize: watermarkSize === 'small' ? '12px' : watermarkSize === 'medium' ? '16px' : '20px',
+      opacity: watermarkOpacity / 100,
+      padding: '8px',
+      textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+    };
+
+    switch (watermarkPosition) {
+      case 'top-left':
+        return { ...baseStyle, top: '10px', left: '10px' };
+      case 'top-right':
+        return { ...baseStyle, top: '10px', right: '10px' };
+      case 'bottom-left':
+        return { ...baseStyle, bottom: '10px', left: '10px' };
+      case 'bottom-right':
+        return { ...baseStyle, bottom: '10px', right: '10px' };
+      case 'center':
+        return { ...baseStyle, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+      default:
+        return { ...baseStyle, bottom: '10px', right: '10px' };
+    }
+  };
+
   if (showWatermarkEdit) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[500px] bg-gray-800 border-gray-700 text-white">
+        <DialogContent className="sm:max-w-[900px] bg-gray-800 border-gray-700 text-white">
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold text-white">
-              Edit Watermark
+              Watermark Templates
             </DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-6 py-4">
-            {/* Watermark Text */}
-            <div className="space-y-2">
-              <label className="text-sm text-gray-300">Watermark Text</label>
-              <Input
-                value={watermarkText}
-                onChange={(e) => setWatermarkText(e.target.value)}
-                className="bg-gray-700 border-gray-600 text-white focus:border-blue-400"
-                placeholder="Enter watermark text"
-              />
+          <div className="flex gap-6 py-4">
+            {/* Demo Preview */}
+            <div className="flex-1">
+              <div className="bg-black rounded-lg overflow-hidden relative" style={{ aspectRatio: '16/9' }}>
+                <img 
+                  src="/lovable-uploads/6b1da53a-8d92-4c46-875a-2062a75d3d1a.png" 
+                  alt="Demo video preview"
+                  className="w-full h-full object-cover"
+                />
+                <div style={getWatermarkPositionStyle()}>
+                  {watermarkText}
+                </div>
+              </div>
             </div>
 
-            {/* Opacity */}
-            <div className="space-y-2">
-              <label className="text-sm text-gray-300">Opacity: {watermarkOpacity}%</label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={watermarkOpacity}
-                onChange={(e) => setWatermarkOpacity(Number(e.target.value))}
-                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
-              />
-            </div>
+            {/* Settings Panel */}
+            <div className="w-80 space-y-6">
+              <div className="space-y-2">
+                <label className="text-sm text-gray-300">Template name</label>
+                <Input
+                  value="Custom Text (middle)"
+                  readOnly
+                  className="bg-gray-700 border-gray-600 text-white"
+                />
+              </div>
 
-            {/* Position */}
-            <div className="space-y-2">
-              <label className="text-sm text-gray-300">Position</label>
-              <select
-                value={watermarkPosition}
-                onChange={(e) => setWatermarkPosition(e.target.value)}
-                className="w-full bg-gray-700 border border-gray-600 text-white rounded px-3 py-2 focus:border-blue-400"
-              >
-                <option value="top-left">Top Left</option>
-                <option value="top-right">Top Right</option>
-                <option value="bottom-left">Bottom Left</option>
-                <option value="bottom-right">Bottom Right</option>
-                <option value="center">Center</option>
-              </select>
-            </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-300">Block 1/1</span>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="destructive" className="bg-red-600 hover:bg-red-700">
+                    Delete
+                  </Button>
+                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                    Add Block
+                  </Button>
+                </div>
+              </div>
 
-            {/* Size */}
-            <div className="space-y-2">
-              <label className="text-sm text-gray-300">Size</label>
-              <select
-                value={watermarkSize}
-                onChange={(e) => setWatermarkSize(e.target.value)}
-                className="w-full bg-gray-700 border border-gray-600 text-white rounded px-3 py-2 focus:border-blue-400"
-              >
-                <option value="small">Small</option>
-                <option value="medium">Medium</option>
-                <option value="large">Large</option>
-              </select>
+              {/* Watermark Text */}
+              <div className="space-y-2">
+                <label className="text-sm text-gray-300">Watermark</label>
+                <textarea
+                  value={watermarkText}
+                  onChange={(e) => setWatermarkText(e.target.value)}
+                  className="w-full bg-gray-700 border-gray-600 text-white rounded px-3 py-2 h-20 resize-none focus:border-blue-400"
+                  placeholder="Enter watermark text"
+                />
+              </div>
+
+              {/* Opacity */}
+              <div className="space-y-2">
+                <label className="text-sm text-gray-300">Opacity: {watermarkOpacity}%</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={watermarkOpacity}
+                  onChange={(e) => setWatermarkOpacity(Number(e.target.value))}
+                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${watermarkOpacity}%, #374151 ${watermarkOpacity}%, #374151 100%)`
+                  }}
+                />
+              </div>
+
+              {/* Rotation */}
+              <div className="space-y-2">
+                <label className="text-sm text-gray-300">Rotation: 0°</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="360"
+                  defaultValue="0"
+                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                />
+              </div>
+
+              {/* Size and Color */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-300">Size</label>
+                  <select
+                    value={watermarkSize}
+                    onChange={(e) => setWatermarkSize(e.target.value)}
+                    className="w-full bg-gray-700 border border-gray-600 text-white rounded px-3 py-2 focus:border-blue-400"
+                  >
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Large</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-300">Color</label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value="#FFFFFF"
+                      className="bg-gray-700 border-gray-600 text-white focus:border-blue-400"
+                    />
+                    <div className="w-8 h-8 bg-white rounded border border-gray-600"></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Text Effects */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-300">Text Scroll</label>
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                    ✕
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-300">Text Shadow</label>
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                    ✕
+                  </Button>
+                </div>
+              </div>
+
+              {/* Session-based Watermark */}
+              <div className="space-y-3 pt-4 border-t border-gray-700">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-300">Session-based Watermark</span>
+                  <span className="text-xs text-blue-400">+ Enterprise</span>
+                </div>
+                <p className="text-xs text-gray-400">
+                  Embed personal identifying info and custom visuals for enhanced security.
+                </p>
+                
+                <div className="grid grid-cols-2 gap-y-2 text-xs">
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" className="rounded" />
+                    <span className="text-gray-300">Name</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" className="rounded" />
+                    <span className="text-gray-300">Date & time</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" className="rounded" />
+                    <span className="text-gray-300">Email</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" className="rounded" />
+                    <span className="text-gray-300">Share creator's custom text</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" className="rounded" />
+                    <span className="text-gray-300">IP Address</span>
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -135,7 +259,7 @@ export const WorkspaceSettingsDialog = ({
               onClick={handleWatermarkSave}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              Save Watermark
+              Save
             </Button>
           </div>
         </DialogContent>
