@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { ProjectCard } from "./ProjectCard";
 import { CreateProjectDialog } from "./CreateProjectDialog";
-import { WorkspaceSettingsDialog } from "./WorkspaceSettingsDialog";
 import { toast } from "@/hooks/use-toast";
 
 interface Project {
@@ -25,8 +24,7 @@ export const WorkspaceView = ({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [activeFilter, setActiveFilter] = useState('Active Projects');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  const [workspaceName, setWorkspaceName] = useState("Yair's Workspace");
+  const [workspaceName] = useState("Yair's Workspace");
   const [projectNotifications, setProjectNotifications] = useState(true);
 
   // Sample projects data
@@ -127,13 +125,6 @@ export const WorkspaceView = ({
                       <div className={`w-4 h-4 rounded-full ${projectNotifications ? 'bg-blue-600' : 'bg-gray-600'}`}></div>
                     </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    className="text-gray-300 hover:bg-gray-700"
-                    onClick={() => setShowSettingsDialog(true)}
-                  >
-                    <span className="mr-2">⚙️</span>
-                    Workspace Settings
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-gray-600" />
                   <DropdownMenuItem className="text-red-400 hover:bg-gray-700">
                     <span className="mr-2">🗑️</span>
@@ -212,12 +203,5 @@ export const WorkspaceView = ({
       </div>
 
       <CreateProjectDialog open={showCreateDialog} onOpenChange={setShowCreateDialog} onCreateProject={handleCreateProject} />
-      
-      <WorkspaceSettingsDialog
-        open={showSettingsDialog}
-        onOpenChange={setShowSettingsDialog}
-        workspaceName={workspaceName}
-        onWorkspaceNameChange={setWorkspaceName}
-      />
     </div>;
 };
