@@ -31,6 +31,7 @@ const Index = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('home');
   const [activeNavItem, setActiveNavItem] = useState('home');
   const [currentProject, setCurrentProject] = useState<string>('');
+  const [currentProjectId, setCurrentProjectId] = useState<string>('');
   const [videoUrl, setVideoUrl] = useState<string>("");
   const [comments, setComments] = useState<Comment[]>([]);
   const [currentTime, setCurrentTime] = useState<number>(0);
@@ -46,6 +47,7 @@ const Index = () => {
     if (item === 'home') {
       setViewMode('home');
       setCurrentProject('');
+      setCurrentProjectId('');
       setVideoUrl('');
     }
   };
@@ -53,9 +55,11 @@ const Index = () => {
   const handleOpenProject = (projectId: string) => {
     const projectNames: { [key: string]: string } = {
       'demo': 'Demo Project',
-      'first': "Yair's First Project"
+      'first': "Yair's First Project",
+      'untitled': 'Untitled Project'
     };
     setCurrentProject(projectNames[projectId] || projectId);
+    setCurrentProjectId(projectId);
     setViewMode('project-assets');
   };
 
@@ -63,6 +67,7 @@ const Index = () => {
     setViewMode('home');
     setActiveNavItem('home');
     setCurrentProject('');
+    setCurrentProjectId('');
     setVideoUrl('');
   };
 
@@ -151,6 +156,7 @@ const Index = () => {
         <div className="flex-1">
           <ProjectAssetsEnhanced
             projectName={currentProject}
+            projectId={currentProjectId}
             onBack={handleBackToHome}
             onStartFeedback={handleStartFeedback}
           />

@@ -28,35 +28,45 @@ interface Asset {
   author: string;
   date: string;
   thumbnail?: string;
+  projectId: string;
 }
 
 interface ProjectAssetsEnhancedProps {
   projectName: string;
+  projectId: string;
   onBack: () => void;
   onStartFeedback: () => void;
 }
 
-export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: ProjectAssetsEnhancedProps) => {
+// Global assets store - in a real app this would be in a context or database
+const globalAssets: { [projectId: string]: Asset[] } = {};
+
+export const ProjectAssetsEnhanced = ({ projectName, projectId, onBack, onStartFeedback }: ProjectAssetsEnhancedProps) => {
   const [dragActive, setDragActive] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showStatusFilter, setShowStatusFilter] = useState(false);
-  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [showStatusFilter, setShowStatusFilter] = useState<string | null>(null);
+  const [showImageViewer, setShowImageViewer] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<Asset | null>(null);
 
-  // Sample asset data
-  const [assets, setAssets] = useState<Asset[]>([
-    {
-      id: '1',
-      name: 'IMG_193458D1E9A5-1.jpeg',
-      type: 'image',
-      size: '519 kB',
-      status: 'Needs Review',
-      author: 'Yair Kivalko',
-      date: 'Jun 09, 2025',
-      thumbnail: '/lovable-uploads/848c43be-63ce-4bed-a3af-d20c27c57322.png'
+  // Get project-specific assets
+  const [assets, setAssets] = useState<Asset[]>(() => {
+    if (!globalAssets[projectId]) {
+      globalAssets[projectId] = projectId === 'demo' ? [{
+        id: '1',
+        name: 'IMG_193458D1E9A5-1.jpeg',
+        type: 'image',
+        size: '519 kB',
+        status: 'Needs Review',
+        author: 'Yair Kivalko',
+        date: 'Jun 09, 2025',
+        thumbnail: '/lovable-uploads/848c43be-63ce-4bed-a3af-d20c27c57322.png',
+        projectId
+      }] : [];
     }
-  ]);
+    return globalAssets[projectId];
+  });
 
   const statusOptions = [
     { value: '', label: 'All Status', color: '' },
@@ -99,9 +109,14 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
         size: formatFileSize(file.size),
         status: 'Needs Review',
         author: 'You',
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+        projectId,
+        thumbnail: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
       };
-      setAssets(prev => [...prev, newAsset]);
+      
+      const updatedAssets = [...assets, newAsset];
+      setAssets(updatedAssets);
+      globalAssets[projectId] = updatedAssets;
     });
     
     toast({
@@ -127,6 +142,27 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
     }
   };
 
+  const handleStatusChange = (assetId: string, newStatus: 'Needs Review' | 'In Progress' | 'Approved') => {
+    const updatedAssets = assets.map(asset => 
+      asset.id === assetId ? { ...asset, status: newStatus } : asset
+    );
+    setAssets(updatedAssets);
+    globalAssets[projectId] = updatedAssets;
+    setShowStatusFilter(null);
+    
+    toast({
+      title: "Status updated",
+      description: `Asset status changed to ${newStatus}.`,
+    });
+  };
+
+  const handleImageClick = (asset: Asset) => {
+    if (asset.type === 'image') {
+      setSelectedImage(asset);
+      setShowImageViewer(true);
+    }
+  };
+
   const handleCreateShareLink = (assetId: string) => {
     const shareUrl = `${window.location.origin}/asset/${assetId}`;
     navigator.clipboard.writeText(shareUrl);
@@ -146,7 +182,6 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
   };
 
   const handleDownload = (asset: Asset) => {
-    // Simulate download
     toast({
       title: "Download started",
       description: `Downloading ${asset.name}...`,
@@ -154,7 +189,9 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
   };
 
   const handleDelete = (assetId: string) => {
-    setAssets(assets.filter(a => a.id !== assetId));
+    const updatedAssets = assets.filter(a => a.id !== assetId);
+    setAssets(updatedAssets);
+    globalAssets[projectId] = updatedAssets;
     toast({
       title: "Asset deleted",
       description: "Asset has been deleted successfully.",
@@ -407,7 +444,10 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
           <Card key={asset.id} className="bg-gray-800 border-gray-700 mb-3">
             <CardContent className="p-4">
               <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-gray-700 rounded overflow-hidden flex-shrink-0">
+                <div 
+                  className="w-16 h-16 bg-gray-700 rounded overflow-hidden flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => handleImageClick(asset)}
+                >
                   {asset.thumbnail ? (
                     <img src={asset.thumbnail} alt={asset.name} className="w-full h-full object-cover" />
                   ) : (
@@ -428,28 +468,25 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
                       variant="outline"
                       size="sm"
                       className="border-gray-600 text-gray-300 bg-gray-800 hover:bg-gray-700"
-                      onClick={() => setShowStatusFilter(!showStatusFilter)}
+                      onClick={() => setShowStatusFilter(showStatusFilter === asset.id ? null : asset.id)}
                     >
                       <div className={`w-2 h-2 rounded-full mr-2 ${getStatusColor(asset.status)}`} />
-                      Status
+                      {asset.status}
                     </Button>
                     
-                    {showStatusFilter && (
+                    {showStatusFilter === asset.id && (
                       <div className="absolute top-full left-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg p-2 min-w-[200px] z-10">
-                        <Input
-                          placeholder="Search options"
-                          className="mb-2 bg-gray-700 border-gray-600"
-                        />
                         <div className="space-y-1">
-                          {statusOptions.map((option) => (
+                          {statusOptions.slice(1).map((option) => (
                             <div
                               key={option.value}
-                              className={`p-2 rounded cursor-pointer text-sm ${
-                                asset.status === option.label ? 'bg-gray-700' : 'hover:bg-gray-700'
+                              className={`p-2 rounded cursor-pointer text-sm hover:bg-gray-700 ${
+                                asset.status === option.label ? 'bg-gray-700' : ''
                               }`}
+                              onClick={() => handleStatusChange(asset.id, option.label as 'Needs Review' | 'In Progress' | 'Approved')}
                             >
                               <div className="flex items-center space-x-2">
-                                {option.color && <div className={`w-2 h-2 rounded-full ${option.color}`} />}
+                                <div className={`w-2 h-2 rounded-full ${option.color}`} />
                                 <span className="text-gray-300">{option.label}</span>
                               </div>
                             </div>
@@ -548,6 +585,24 @@ export const ProjectAssetsEnhanced = ({ projectName, onBack, onStartFeedback }: 
           }}
         />
       </div>
+
+      {/* Image Viewer Dialog */}
+      <Dialog open={showImageViewer} onOpenChange={setShowImageViewer}>
+        <DialogContent className="bg-gray-800 border-gray-700 max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="text-white">{selectedImage?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-center items-center p-4">
+            {selectedImage?.thumbnail && (
+              <img 
+                src={selectedImage.thumbnail} 
+                alt={selectedImage.name}
+                className="max-w-full max-h-[70vh] object-contain"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
