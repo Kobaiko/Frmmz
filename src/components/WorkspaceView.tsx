@@ -16,7 +16,7 @@ import { IntegrationHub } from "./IntegrationHub";
 import { SecurityCompliance } from "./SecurityCompliance";
 import { RealtimeCollaboration } from "./RealtimeCollaboration";
 import { AdvancedWorkflows } from "./AdvancedWorkflows";
-import { ProjectManagement, Project } from "./ProjectManagement";
+import { ProjectManagement, Project as ManagementProject } from "./ProjectManagement";
 import { AdvancedSharing } from "./AdvancedSharing";
 import { UserManagement } from "./UserManagement";
 import { toast } from "@/hooks/use-toast";
@@ -85,7 +85,7 @@ export const WorkspaceView = ({
   }]);
   
   // Create sample projects data for ProjectManagement component
-  const managementProjects = projects.map(p => ({
+  const managementProjects: ManagementProject[] = projects.map(p => ({
     id: p.id,
     name: p.name,
     description: `Description for ${p.name}`,

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +25,9 @@ import {
   Eye,
   Download,
   Share,
-  MoreHorizontal
+  MoreHorizontal,
+  ArrowLeft,
+  Play
 } from "lucide-react";
 
 export interface Asset {
@@ -49,12 +50,21 @@ export interface Asset {
 
 interface ProjectAssetsEnhancedProps {
   projectId: string;
-  assets: Asset[];
-  onAssetSelect: (asset: Asset) => void;
-  onUpload: () => void;
+  onBack: () => void;
+  onStartFeedback: () => void;
+  assets?: Asset[];
+  onAssetSelect?: (asset: Asset) => void;
+  onUpload?: () => void;
 }
 
-export const ProjectAssetsEnhanced = ({ projectId, assets, onAssetSelect, onUpload }: ProjectAssetsEnhancedProps) => {
+export const ProjectAssetsEnhanced = ({ 
+  projectId, 
+  onBack, 
+  onStartFeedback,
+  assets = [], 
+  onAssetSelect = () => {}, 
+  onUpload = () => {} 
+}: ProjectAssetsEnhancedProps) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
@@ -94,7 +104,42 @@ export const ProjectAssetsEnhanced = ({ projectId, assets, onAssetSelect, onUplo
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const filteredAssets = assets
+  // Sample assets data if none provided
+  const sampleAssets: Asset[] = [
+    {
+      id: '1',
+      name: 'Demo Video.mp4',
+      type: 'video',
+      size: 52428800, // 50MB
+      duration: 120,
+      resolution: '1920x1080',
+      format: 'mp4',
+      uploadedBy: 'Yair Kivalko',
+      uploadedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      modifiedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      tags: ['demo', 'video', 'hd'],
+      status: 'ready',
+      path: '/assets/demo-video.mp4'
+    },
+    {
+      id: '2',
+      name: 'Project Thumbnail.jpg',
+      type: 'image',
+      size: 2097152, // 2MB
+      resolution: '1280x720',
+      format: 'jpg',
+      uploadedBy: 'Team Member',
+      uploadedAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
+      modifiedAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+      tags: ['thumbnail', 'image'],
+      status: 'ready',
+      path: '/assets/thumbnail.jpg'
+    }
+  ];
+
+  const displayAssets = assets.length > 0 ? assets : sampleAssets;
+
+  const filteredAssets = displayAssets
     .filter(asset => {
       const matchesSearch = asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            asset.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -122,11 +167,11 @@ export const ProjectAssetsEnhanced = ({ projectId, assets, onAssetSelect, onUplo
     });
 
   const assetCounts = {
-    all: assets.length,
-    video: assets.filter(a => a.type === 'video').length,
-    image: assets.filter(a => a.type === 'image').length,
-    audio: assets.filter(a => a.type === 'audio').length,
-    document: assets.filter(a => a.type === 'document').length
+    all: displayAssets.length,
+    video: displayAssets.filter(a => a.type === 'video').length,
+    image: displayAssets.filter(a => a.type === 'image').length,
+    audio: displayAssets.filter(a => a.type === 'audio').length,
+    document: displayAssets.filter(a => a.type === 'document').length
   };
 
   const handleAssetSelect = (assetId: string, multiSelect = false) => {
@@ -137,7 +182,7 @@ export const ProjectAssetsEnhanced = ({ projectId, assets, onAssetSelect, onUplo
           : [...prev, assetId]
       );
     } else {
-      const asset = assets.find(a => a.id === assetId);
+      const asset = displayAssets.find(a => a.id === assetId);
       if (asset) onAssetSelect(asset);
     }
   };
@@ -146,12 +191,27 @@ export const ProjectAssetsEnhanced = ({ projectId, assets, onAssetSelect, onUplo
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Project Assets</h2>
-          <p className="text-gray-400">{filteredAssets.length} of {assets.length} assets</p>
+        <div className="flex items-center space-x-4">
+          <Button
+            onClick={onBack}
+            variant="outline"
+            size="sm"
+            className="border-gray-600 text-gray-300"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold text-white">Project Assets</h2>
+            <p className="text-gray-400">{filteredAssets.length} of {displayAssets.length} assets</p>
+          </div>
         </div>
         <div className="flex space-x-2">
-          <Button onClick={onUpload} className="bg-pink-600 hover:bg-pink-700">
+          <Button onClick={onStartFeedback} className="bg-pink-600 hover:bg-pink-700">
+            <Play className="h-4 w-4 mr-2" />
+            Start Review
+          </Button>
+          <Button onClick={onUpload} variant="outline" className="border-gray-600 text-gray-300">
             <Upload className="h-4 w-4 mr-2" />
             Upload Assets
           </Button>
