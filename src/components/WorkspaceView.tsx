@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Grid, List, Filter, Plus, MoreHorizontal, Pencil, Trash2, Settings, BarChart3, Users, FileText, Zap, Shield, Workflow, Share2, Database } from "lucide-react";
+import { Grid, List, Filter, Plus, MoreHorizontal, Pencil, Trash2, Settings, BarChart3, Users, FileText, Zap, Shield, Workflow, Share2, Database, FolderTree } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -16,6 +16,9 @@ import { IntegrationHub } from "./IntegrationHub";
 import { SecurityCompliance } from "./SecurityCompliance";
 import { RealtimeCollaboration } from "./RealtimeCollaboration";
 import { AdvancedWorkflows } from "./AdvancedWorkflows";
+import { ProjectManagement } from "./ProjectManagement";
+import { AdvancedSharing } from "./AdvancedSharing";
+import { UserManagement } from "./UserManagement";
 import { toast } from "@/hooks/use-toast";
 
 interface Project {
@@ -49,6 +52,9 @@ export const WorkspaceView = ({
   const [showSecurityCompliance, setShowSecurityCompliance] = useState(false);
   const [showRealtimeCollab, setShowRealtimeCollab] = useState(false);
   const [showAdvancedWorkflows, setShowAdvancedWorkflows] = useState(false);
+  const [showProjectManagement, setShowProjectManagement] = useState(false);
+  const [showAdvancedSharing, setShowAdvancedSharing] = useState(false);
+  const [showUserManagement, setShowUserManagement] = useState(false);
   const [workspaceName, setWorkspaceName] = useState("Yair's Workspace");
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [projectNotifications, setProjectNotifications] = useState(true);
@@ -244,6 +250,33 @@ export const WorkspaceView = ({
     );
   }
 
+  if (showProjectManagement) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex-1">
+        <ProjectManagement 
+          projectId="demo-project" 
+          onClose={() => setShowProjectManagement(false)} 
+        />
+      </div>
+    );
+  }
+
+  if (showAdvancedSharing) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex-1">
+        <AdvancedSharing onClose={() => setShowAdvancedSharing(false)} />
+      </div>
+    );
+  }
+
+  if (showUserManagement) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex-1">
+        <UserManagement onClose={() => setShowUserManagement(false)} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 flex-1">
       {/* Enhanced Header with Quick Stats */}
@@ -295,6 +328,31 @@ export const WorkspaceView = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 w-64">
+                  <div className="px-3 py-2 border-b border-gray-700">
+                    <p className="text-sm font-medium text-white">Workspace Features</p>
+                  </div>
+                  <DropdownMenuItem 
+                    className="text-gray-300 hover:bg-gray-700"
+                    onClick={() => setShowProjectManagement(true)}
+                  >
+                    <FolderTree className="mr-2 h-4 w-4" />
+                    Project Management
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="text-gray-300 hover:bg-gray-700"
+                    onClick={() => setShowAdvancedSharing(true)}
+                  >
+                    <Share2 className="mr-2 h-4 w-4" />
+                    Advanced Sharing
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="text-gray-300 hover:bg-gray-700"
+                    onClick={() => setShowUserManagement(true)}
+                  >
+                    <Users className="mr-2 h-4 w-4" />
+                    User Management
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-gray-600" />
                   <div className="px-3 py-2 border-b border-gray-700">
                     <p className="text-sm font-medium text-white">Enterprise Features</p>
                   </div>
