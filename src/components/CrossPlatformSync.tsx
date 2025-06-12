@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import {
   Tablet, 
   Wifi, 
   WifiOff, 
-  Sync, 
+  sync, 
   Check, 
   Clock, 
   AlertTriangle,
@@ -187,7 +186,7 @@ export const CrossPlatformSync = ({
             {isSyncing ? (
               <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
             ) : (
-              <Sync className="h-4 w-4 mr-2" />
+              <sync className="h-4 w-4 mr-2" />
             )}
             Sync All
           </Button>
@@ -317,7 +316,7 @@ export const CrossPlatformSync = ({
                     {device.syncStatus === 'syncing' ? (
                       <RefreshCw className="h-4 w-4 animate-spin" />
                     ) : (
-                      <Sync className="h-4 w-4" />
+                      <sync className="h-4 w-4" />
                     )}
                   </Button>
                 </div>
