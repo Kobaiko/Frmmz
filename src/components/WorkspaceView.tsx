@@ -1,11 +1,16 @@
 import { useState } from "react";
-import { Grid, List, Filter, Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Grid, List, Filter, Plus, MoreHorizontal, Pencil, Trash2, Settings, BarChart3, Users, FileText, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProjectCard } from "./ProjectCard";
 import { CreateProjectDialog } from "./CreateProjectDialog";
+import { WorkspaceSettings } from "./WorkspaceSettings";
+import { ProjectTemplates } from "./ProjectTemplates";
+import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { toast } from "@/hooks/use-toast";
 
 interface Project {
@@ -14,6 +19,9 @@ interface Project {
   size: string;
   thumbnail?: string;
   isNewProject?: boolean;
+  status?: 'active' | 'completed' | 'on-hold';
+  lastActivity?: string;
+  collaborators?: number;
 }
 
 interface WorkspaceViewProps {
@@ -28,25 +36,38 @@ export const WorkspaceView = ({
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const [workspaceName, setWorkspaceName] = useState("Yair's Workspace");
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [projectNotifications, setProjectNotifications] = useState(true);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'projects' | 'analytics' | 'settings'>('dashboard');
 
-  // Sample projects data
+  // Enhanced projects data with additional metadata
   const [projects, setProjects] = useState<Project[]>([{
     id: 'demo',
     name: 'Demo Project',
-    size: '1.05 MB'
+    size: '1.05 MB',
+    status: 'active',
+    lastActivity: '2 hours ago',
+    collaborators: 3
   }, {
     id: 'untitled',
     name: 'Untitled Project',
-    size: '0 MB'
+    size: '0 MB',
+    status: 'on-hold',
+    lastActivity: '1 day ago',
+    collaborators: 1
   }, {
     id: 'first',
     name: "Yair's First Project",
-    size: '519 KB'
+    size: '519 KB',
+    status: 'completed',
+    lastActivity: '3 days ago',
+    collaborators: 2
   }]);
-  const filterOptions = ['All Projects', 'Active Projects', 'Inactive Projects'];
+  const filterOptions = ['All Projects', 'Active Projects', 'Completed Projects', 'On Hold'];
 
   // Add new project placeholder
   const allItems = [...projects, {
@@ -59,7 +80,10 @@ export const WorkspaceView = ({
     const newProject: Project = {
       id: Math.random().toString(36).substr(2, 9),
       name: name,
-      size: '0 MB'
+      size: '0 MB',
+      status: 'active',
+      lastActivity: 'Just now',
+      collaborators: 1
     };
     setProjects([...projects, newProject]);
     toast({
@@ -80,7 +104,8 @@ export const WorkspaceView = ({
       const duplicatedProject: Project = {
         ...project,
         id: Math.random().toString(36).substr(2, 9),
-        name: `${project.name} (Copy)`
+        name: `${project.name} (Copy)`,
+        lastActivity: 'Just now'
       };
       setProjects([...projects, duplicatedProject]);
       toast({
@@ -127,20 +152,87 @@ export const WorkspaceView = ({
       description: "The workspace has been deleted successfully.",
       variant: "destructive"
     });
-    // In a real app, you would navigate away or handle the deletion
   };
 
-  return <div className="min-h-screen bg-gray-900 flex-1">
-      {/* Header */}
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-500';
+      case 'completed': return 'bg-blue-500';
+      case 'on-hold': return 'bg-yellow-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  if (showSettings) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex-1">
+        <WorkspaceSettings onClose={() => setShowSettings(false)} />
+      </div>
+    );
+  }
+
+  if (showTemplates) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex-1">
+        <ProjectTemplates 
+          onSelectTemplate={(template) => {
+            setShowTemplates(false);
+            setShowCreateDialog(true);
+          }}
+          onClose={() => setShowTemplates(false)} 
+        />
+      </div>
+    );
+  }
+
+  if (showAnalytics) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex-1">
+        <AnalyticsDashboard />
+        <div className="fixed top-4 right-4">
+          <Button onClick={() => setShowAnalytics(false)} variant="outline" className="border-gray-600 text-gray-300">
+            Back to Workspace
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-900 flex-1">
+      {/* Enhanced Header with Quick Stats */}
       <div className="border-b border-gray-700 bg-gray-800">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold text-white">{workspaceName}</h1>
-              <p className="text-gray-400">{projects.length} Projects</p>
+              <div className="flex items-center space-x-4 mt-2">
+                <p className="text-gray-400">{projects.length} Projects</p>
+                <Badge className="bg-blue-600">Professional Plan</Badge>
+                <span className="text-gray-400">•</span>
+                <p className="text-gray-400">45.2 GB used of 100 GB</p>
+              </div>
             </div>
             
             <div className="flex items-center space-x-4">
+              <Button
+                onClick={() => setShowAnalytics(true)}
+                variant="outline"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Analytics
+              </Button>
+
+              <Button
+                onClick={() => setShowTemplates(true)}
+                variant="outline"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Templates
+              </Button>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
@@ -151,6 +243,13 @@ export const WorkspaceView = ({
                   <div className="px-3 py-2 border-b border-gray-700">
                     <p className="text-sm font-medium text-white">Workspace</p>
                   </div>
+                  <DropdownMenuItem 
+                    className="text-gray-300 hover:bg-gray-700"
+                    onClick={() => setShowSettings(true)}
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    Workspace Settings
+                  </DropdownMenuItem>
                   <DropdownMenuItem 
                     className="text-gray-300 hover:bg-gray-700"
                     onClick={handleRenameWorkspace}
@@ -182,6 +281,59 @@ export const WorkspaceView = ({
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
+          </div>
+
+          {/* Quick Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card className="bg-gray-700 border-gray-600">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm">Active Projects</p>
+                    <p className="text-white text-2xl font-bold">{projects.filter(p => p.status === 'active').length}</p>
+                  </div>
+                  <Zap className="h-8 w-8 text-blue-500" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-700 border-gray-600">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm">Team Members</p>
+                    <p className="text-white text-2xl font-bold">8</p>
+                  </div>
+                  <Users className="h-8 w-8 text-green-500" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-700 border-gray-600">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm">Comments Today</p>
+                    <p className="text-white text-2xl font-bold">47</p>
+                  </div>
+                  <BarChart3 className="h-8 w-8 text-yellow-500" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-700 border-gray-600">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm">Storage Used</p>
+                    <p className="text-white text-2xl font-bold">45%</p>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-full bg-blue-500"></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
           
           {/* Controls */}
@@ -220,7 +372,7 @@ export const WorkspaceView = ({
               <span className="text-sm text-gray-400">Sorted by: Name</span>
             </div>
             
-            <Button className="bg-gray-700 hover:bg-gray-600 text-white border border-gray-600" onClick={() => setShowCreateDialog(true)}>
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setShowCreateDialog(true)}>
               <Plus className="h-4 w-4 mr-2" />
               New Project
             </Button>
@@ -230,22 +382,52 @@ export const WorkspaceView = ({
 
       {/* Projects Grid */}
       <div className="container mx-auto px-6 py-8">
-        {viewMode === 'grid' ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {allItems.map(project => <ProjectCard key={project.id} project={project} onOpenProject={project.id === 'new' ? () => setShowCreateDialog(true) : onOpenProject} onDeleteProject={handleDeleteProject} onDuplicateProject={handleDuplicateProject} onRenameProject={handleRenameProject} />)}
-          </div> : <div className="space-y-2">
-            {allItems.map(project => <div key={project.id} className="flex items-center justify-between p-4 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-750 cursor-pointer" onClick={() => project.id === 'new' ? setShowCreateDialog(true) : onOpenProject(project.id)}>
+        {viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {allItems.map(project => (
+              <ProjectCard 
+                key={project.id} 
+                project={project} 
+                onOpenProject={project.id === 'new' ? () => setShowCreateDialog(true) : onOpenProject} 
+                onDeleteProject={handleDeleteProject} 
+                onDuplicateProject={handleDuplicateProject} 
+                onRenameProject={handleRenameProject} 
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {allItems.map(project => (
+              <div 
+                key={project.id} 
+                className="flex items-center justify-between p-4 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-750 cursor-pointer" 
+                onClick={() => project.id === 'new' ? setShowCreateDialog(true) : onOpenProject(project.id)}
+              >
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded"></div>
                   <div>
-                    <h3 className="text-white font-medium">{project.name}</h3>
-                    <p className="text-gray-400 text-sm">{project.size}</p>
+                    <div className="flex items-center space-x-2">
+                      <h3 className="text-white font-medium">{project.name}</h3>
+                      {!project.isNewProject && project.status && (
+                        <div className={`w-2 h-2 rounded-full ${getStatusColor(project.status)}`}></div>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-4 text-sm text-gray-400">
+                      <span>{project.size}</span>
+                      {project.lastActivity && <span>• {project.lastActivity}</span>}
+                      {project.collaborators && <span>• {project.collaborators} collaborators</span>}
+                    </div>
                   </div>
                 </div>
-                {!project.isNewProject && <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
+                {!project.isNewProject && (
+                  <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
                     <MoreHorizontal className="h-4 w-4" />
-                  </Button>}
-              </div>)}
-          </div>}
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <CreateProjectDialog open={showCreateDialog} onOpenChange={setShowCreateDialog} onCreateProject={handleCreateProject} />
@@ -301,5 +483,6 @@ export const WorkspaceView = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>;
+    </div>
+  );
 };
