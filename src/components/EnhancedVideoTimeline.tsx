@@ -1,9 +1,8 @@
-
 import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Drawing, CheckCircle, Clock, Zap } from "lucide-react";
+import { MessageSquare, Edit, CheckCircle, Clock, Zap } from "lucide-react";
 import type { Comment } from "@/pages/Index";
 
 interface EnhancedVideoTimelineProps {
@@ -102,7 +101,7 @@ export const EnhancedVideoTimeline = ({
   };
 
   const getCommentIcon = (comment: Comment) => {
-    if (comment.hasDrawing) return <Drawing className="h-3 w-3" />;
+    if (comment.hasDrawing) return <Edit className="h-3 w-3" />;
     return <MessageSquare className="h-3 w-3" />;
   };
 
