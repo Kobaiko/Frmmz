@@ -1,235 +1,319 @@
+
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { 
   Shield, 
   Lock, 
+  Key, 
   Eye, 
-  FileText, 
+  Download, 
   AlertTriangle,
   CheckCircle,
-  ArrowLeft,
-  Download,
-  Settings,
-  Users,
-  Key,
-  Activity
+  Clock,
+  FileText,
+  Globe,
+  Server,
+  Database
 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
-interface SecurityComplianceProps {
-  onClose: () => void;
+interface SecuritySettings {
+  twoFactorAuth: boolean;
+  ssoEnabled: boolean;
+  passwordComplexity: 'low' | 'medium' | 'high';
+  sessionTimeout: number;
+  downloadRestrictions: boolean;
+  watermarking: boolean;
+  ipWhitelist: string[];
+  auditLogging: boolean;
+  dataRetention: number;
+  encryptionAtRest: boolean;
 }
 
-export const SecurityCompliance = ({ onClose }: SecurityComplianceProps) => {
-  const [activeTab, setActiveTab] = useState("overview");
-  const [ssoEnabled, setSsoEnabled] = useState(true);
-  const [mfaEnabled, setMfaEnabled] = useState(true);
-  const [auditLogging, setAuditLogging] = useState(true);
+interface ComplianceStandard {
+  id: string;
+  name: string;
+  status: 'compliant' | 'partial' | 'non-compliant';
+  lastAudit: Date;
+  requirements: number;
+  completed: number;
+}
 
-  const complianceStatus = [
-    { name: "SOC 2 Type II", status: "compliant", score: 100, icon: Shield },
-    { name: "GDPR", status: "compliant", score: 95, icon: Lock },
-    { name: "HIPAA", status: "ready", score: 90, icon: FileText },
-    { name: "ISO 27001", status: "in-progress", score: 78, icon: CheckCircle }
-  ];
+interface SecurityComplianceProps {
+  workspaceId: string;
+}
 
-  const securityMetrics = [
-    { label: "Failed Login Attempts", value: "3", change: "-50%", color: "text-green-500" },
-    { label: "Active Sessions", value: "127", change: "+5%", color: "text-blue-500" },
-    { label: "Data Exports", value: "8", change: "+12%", color: "text-yellow-500" },
-    { label: "Permission Changes", value: "15", change: "-20%", color: "text-green-500" }
-  ];
+export const SecurityCompliance = ({ workspaceId }: SecurityComplianceProps) => {
+  const [settings, setSettings] = useState<SecuritySettings>({
+    twoFactorAuth: true,
+    ssoEnabled: false,
+    passwordComplexity: 'high',
+    sessionTimeout: 480,
+    downloadRestrictions: true,
+    watermarking: true,
+    ipWhitelist: ['192.168.1.0/24', '10.0.0.0/8'],
+    auditLogging: true,
+    dataRetention: 2555,
+    encryptionAtRest: true
+  });
 
-  const auditEvents = [
+  const [complianceStandards] = useState<ComplianceStandard[]>([
     {
-      timestamp: "2024-01-15 14:30:00",
-      user: "admin@company.com",
-      action: "User role modified",
-      resource: "user-management",
-      severity: "medium"
+      id: 'soc2',
+      name: 'SOC 2 Type II',
+      status: 'compliant',
+      lastAudit: new Date('2024-01-15'),
+      requirements: 127,
+      completed: 127
     },
     {
-      timestamp: "2024-01-15 13:45:00",
-      user: "sarah.johnson@company.com",
-      action: "Project shared externally",
-      resource: "project-share",
-      severity: "low"
+      id: 'gdpr',
+      name: 'GDPR',
+      status: 'compliant',
+      lastAudit: new Date('2024-02-01'),
+      requirements: 89,
+      completed: 89
     },
     {
-      timestamp: "2024-01-15 12:20:00",
-      user: "system",
-      action: "Failed login attempt",
-      resource: "authentication",
-      severity: "high"
+      id: 'hipaa',
+      name: 'HIPAA',
+      status: 'partial',
+      lastAudit: new Date('2024-01-20'),
+      requirements: 164,
+      completed: 142
+    },
+    {
+      id: 'iso27001',
+      name: 'ISO 27001',
+      status: 'non-compliant',
+      lastAudit: new Date('2023-12-15'),
+      requirements: 114,
+      completed: 67
     }
-  ];
+  ]);
+
+  const [auditLogs] = useState([
+    {
+      id: '1',
+      timestamp: new Date(),
+      user: 'john@company.com',
+      action: 'Downloaded asset',
+      resource: 'video_final_v3.mp4',
+      ipAddress: '192.168.1.100'
+    },
+    {
+      id: '2',
+      timestamp: new Date(Date.now() - 30 * 60 * 1000),
+      user: 'jane@company.com',
+      action: 'Modified permissions',
+      resource: 'Project Alpha',
+      ipAddress: '10.0.1.50'
+    },
+    {
+      id: '3',
+      timestamp: new Date(Date.now() - 60 * 60 * 1000),
+      user: 'admin@company.com',
+      action: 'Created share link',
+      resource: 'marketing_video.mp4',
+      ipAddress: '192.168.1.10'
+    }
+  ]);
+
+  const updateSetting = (key: keyof SecuritySettings, value: any) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+    toast({
+      title: "Security setting updated",
+      description: `${key} has been updated successfully`
+    });
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'compliant': return 'bg-green-600';
-      case 'ready': return 'bg-blue-600';
-      case 'in-progress': return 'bg-yellow-600';
+      case 'partial': return 'bg-yellow-600';
+      case 'non-compliant': return 'bg-red-600';
       default: return 'bg-gray-600';
     }
   };
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'high': return 'text-red-500';
-      case 'medium': return 'text-yellow-500';
-      case 'low': return 'text-green-500';
-      default: return 'text-gray-400';
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'compliant': return <CheckCircle className="h-4 w-4" />;
+      case 'partial': return <Clock className="h-4 w-4" />;
+      case 'non-compliant': return <AlertTriangle className="h-4 w-4" />;
+      default: return <AlertTriangle className="h-4 w-4" />;
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button onClick={onClose} variant="ghost" size="icon" className="text-gray-400">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h2 className="text-2xl font-bold text-white">Security & Compliance</h2>
-            <p className="text-gray-400">Monitor security status and compliance requirements</p>
-          </div>
+        <div>
+          <h2 className="text-2xl font-bold text-white">Security & Compliance</h2>
+          <p className="text-gray-400">Manage security settings and compliance standards</p>
         </div>
-        <div className="flex items-center space-x-3">
-          <Button variant="outline" size="sm" className="text-gray-300 border-gray-600">
-            <Download className="h-4 w-4 mr-2" />
-            Export Report
-          </Button>
-          <Button variant="outline" size="sm" className="text-gray-300 border-gray-600">
-            <Settings className="h-4 w-4 mr-2" />
-            Configure
-          </Button>
-        </div>
+        <Button variant="outline" className="border-gray-600 text-gray-300">
+          <Download className="h-4 w-4 mr-2" />
+          Export Report
+        </Button>
       </div>
 
-      {/* Security Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {securityMetrics.map((metric, index) => (
-          <Card key={index} className="bg-gray-800 border-gray-700">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">{metric.label}</p>
-                  <p className="text-2xl font-bold text-white mt-1">{metric.value}</p>
-                  <p className={`text-xs mt-1 ${metric.color}`}>{metric.change} from last week</p>
-                </div>
-                <Activity className="h-8 w-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Security Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 bg-gray-800">
-          <TabsTrigger value="overview" className="text-gray-300">Overview</TabsTrigger>
+      <Tabs defaultValue="security" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 bg-gray-800">
+          <TabsTrigger value="security" className="text-gray-300">Security Settings</TabsTrigger>
           <TabsTrigger value="compliance" className="text-gray-300">Compliance</TabsTrigger>
-          <TabsTrigger value="access" className="text-gray-300">Access Control</TabsTrigger>
           <TabsTrigger value="audit" className="text-gray-300">Audit Logs</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <Shield className="h-5 w-5 mr-2 text-blue-500" />
-                  Security Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Two-Factor Authentication</span>
-                    <Switch checked={mfaEnabled} onCheckedChange={setMfaEnabled} />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Single Sign-On</span>
-                    <Switch checked={ssoEnabled} onCheckedChange={setSsoEnabled} />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Audit Logging</span>
-                    <Switch checked={auditLogging} onCheckedChange={setAuditLogging} />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Data Encryption</span>
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                  </div>
+        <TabsContent value="security" className="space-y-6">
+          {/* Authentication & Access */}
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center">
+                <Key className="h-5 w-5 mr-2" />
+                Authentication & Access
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-white">Two-Factor Authentication</h4>
+                  <p className="text-sm text-gray-400">Require 2FA for all users</p>
                 </div>
-              </CardContent>
-            </Card>
+                <Switch
+                  checked={settings.twoFactorAuth}
+                  onCheckedChange={(checked) => updateSetting('twoFactorAuth', checked)}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-white">Single Sign-On (SSO)</h4>
+                  <p className="text-sm text-gray-400">Enable SAML/LDAP authentication</p>
+                </div>
+                <Switch
+                  checked={settings.ssoEnabled}
+                  onCheckedChange={(checked) => updateSetting('ssoEnabled', checked)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-300">Password Complexity</label>
+                  <Select 
+                    value={settings.passwordComplexity} 
+                    onValueChange={(value) => updateSetting('passwordComplexity', value)}
+                  >
+                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-700 border-gray-600">
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-300">Session Timeout (minutes)</label>
+                  <Input
+                    type="number"
+                    value={settings.sessionTimeout}
+                    onChange={(e) => updateSetting('sessionTimeout', parseInt(e.target.value))}
+                    className="bg-gray-700 border-gray-600 text-white mt-1"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <AlertTriangle className="h-5 w-5 mr-2 text-yellow-500" />
-                  Recent Alerts
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3 p-3 bg-gray-700 rounded-lg">
-                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-white text-sm">Multiple failed login attempts</p>
-                      <p className="text-gray-400 text-xs">5 minutes ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 bg-gray-700 rounded-lg">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-white text-sm">External share link created</p>
-                      <p className="text-gray-400 text-xs">1 hour ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 bg-gray-700 rounded-lg">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-white text-sm">New user added to workspace</p>
-                      <p className="text-gray-400 text-xs">3 hours ago</p>
-                    </div>
-                  </div>
+          {/* Data Protection */}
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center">
+                <Shield className="h-5 w-5 mr-2" />
+                Data Protection
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-white">Download Restrictions</h4>
+                  <p className="text-sm text-gray-400">Control who can download assets</p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+                <Switch
+                  checked={settings.downloadRestrictions}
+                  onCheckedChange={(checked) => updateSetting('downloadRestrictions', checked)}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-white">Watermarking</h4>
+                  <p className="text-sm text-gray-400">Add watermarks to shared content</p>
+                </div>
+                <Switch
+                  checked={settings.watermarking}
+                  onCheckedChange={(checked) => updateSetting('watermarking', checked)}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-white">Encryption at Rest</h4>
+                  <p className="text-sm text-gray-400">Encrypt stored data using AES-256</p>
+                </div>
+                <Switch
+                  checked={settings.encryptionAtRest}
+                  onCheckedChange={(checked) => updateSetting('encryptionAtRest', checked)}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-300">Data Retention (days)</label>
+                <Input
+                  type="number"
+                  value={settings.dataRetention}
+                  onChange={(e) => updateSetting('dataRetention', parseInt(e.target.value))}
+                  className="bg-gray-700 border-gray-600 text-white mt-1"
+                />
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="compliance" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {complianceStatus.map((compliance, index) => (
-              <Card key={index} className="bg-gray-800 border-gray-700">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
+          <div className="grid gap-4">
+            {complianceStandards.map((standard) => (
+              <Card key={standard.id} className="bg-gray-800 border-gray-700">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <compliance.icon className="h-8 w-8 text-blue-500" />
+                      <div className={`p-2 rounded-full ${getStatusColor(standard.status)}`}>
+                        {getStatusIcon(standard.status)}
+                      </div>
                       <div>
-                        <CardTitle className="text-white">{compliance.name}</CardTitle>
-                        <Badge className={`${getStatusColor(compliance.status)} text-white mt-1`}>
-                          {compliance.status}
-                        </Badge>
+                        <h3 className="font-semibold text-white">{standard.name}</h3>
+                        <p className="text-sm text-gray-400">
+                          Last audit: {standard.lastAudit.toLocaleDateString()}
+                        </p>
                       </div>
                     </div>
-                    <span className="text-2xl font-bold text-white">{compliance.score}%</span>
+                    <Badge className={`${getStatusColor(standard.status)} text-white`}>
+                      {standard.status}
+                    </Badge>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <Progress value={compliance.score} className="h-2" />
+                  <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Compliance Score</span>
-                      <span className="text-white">{compliance.score}/100</span>
+                      <span className="text-gray-400">Requirements</span>
+                      <span className="text-white">{standard.completed}/{standard.requirements}</span>
                     </div>
+                    <Progress 
+                      value={(standard.completed / standard.requirements) * 100} 
+                      className="h-2"
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -237,96 +321,30 @@ export const SecurityCompliance = ({ onClose }: SecurityComplianceProps) => {
           </div>
         </TabsContent>
 
-        <TabsContent value="access" className="space-y-6">
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center">
-                <Key className="h-5 w-5 mr-2 text-blue-500" />
-                Access Control Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="space-y-4">
-                  <h4 className="text-white font-medium">Password Policy</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-gray-300 text-sm">Minimum Length</label>
-                      <input 
-                        type="number" 
-                        defaultValue="8"
-                        className="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-gray-300 text-sm">Password Expiry (days)</label>
-                      <input 
-                        type="number" 
-                        defaultValue="90"
-                        className="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded text-white"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="text-white font-medium">Session Management</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-gray-300 text-sm">Session Timeout (minutes)</label>
-                      <input 
-                        type="number" 
-                        defaultValue="60"
-                        className="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-gray-300 text-sm">Max Concurrent Sessions</label>
-                      <input 
-                        type="number" 
-                        defaultValue="3"
-                        className="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded text-white"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  Save Settings
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="audit" className="space-y-6">
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader>
               <CardTitle className="text-white flex items-center">
-                <Eye className="h-5 w-5 mr-2 text-blue-500" />
+                <Eye className="h-5 w-5 mr-2" />
                 Audit Trail
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {auditEvents.map((event, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className={`w-2 h-2 rounded-full ${getSeverityColor(event.severity).replace('text-', 'bg-')}`}></div>
+                {auditLogs.map((log) => (
+                  <div key={log.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <FileText className="h-4 w-4 text-gray-400" />
                       <div>
-                        <p className="text-white font-medium">{event.action}</p>
-                        <div className="flex items-center space-x-2 text-sm text-gray-400">
-                          <span>{event.user}</span>
-                          <span>•</span>
-                          <span>{event.resource}</span>
-                          <span>•</span>
-                          <span>{event.timestamp}</span>
-                        </div>
+                        <p className="text-white font-medium">{log.action}</p>
+                        <p className="text-sm text-gray-400">
+                          {log.user} • {log.resource} • {log.ipAddress}
+                        </p>
                       </div>
                     </div>
-                    <Badge className={`${getSeverityColor(event.severity).replace('text-', 'bg-')} text-white`}>
-                      {event.severity}
-                    </Badge>
+                    <div className="text-sm text-gray-400">
+                      {log.timestamp.toLocaleString()}
+                    </div>
                   </div>
                 ))}
               </div>

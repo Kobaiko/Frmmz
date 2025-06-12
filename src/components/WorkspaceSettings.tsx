@@ -2,283 +2,331 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Settings, Users, Shield, Database, Bell, CreditCard } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { 
+  Settings, 
+  Building, 
+  Palette, 
+  Globe, 
+  CreditCard, 
+  Download,
+  Upload,
+  Trash2,
+  AlertTriangle
+} from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
-interface WorkspaceSettingsProps {
-  onClose: () => void;
+interface WorkspaceConfig {
+  name: string;
+  description: string;
+  logo?: string;
+  primaryColor: string;
+  timezone: string;
+  language: string;
+  subdomain: string;
+  customDomain?: string;
+  storageLimit: number;
+  userLimit: number;
+  features: string[];
 }
 
-export const WorkspaceSettings = ({ onClose }: WorkspaceSettingsProps) => {
-  const [workspaceSettings, setWorkspaceSettings] = useState({
-    name: "Yair's Workspace",
-    description: "Professional video production workspace",
-    timezone: "America/New_York",
-    storageLimit: "100GB",
-    retentionPolicy: "90 days",
-    autoApproval: false,
-    guestAccess: true,
-    downloadTracking: true,
-    watermarking: false,
-    ssoEnabled: false
+interface BillingInfo {
+  plan: 'free' | 'pro' | 'enterprise';
+  billingCycle: 'monthly' | 'annual';
+  nextBilling: Date;
+  amount: number;
+  usage: {
+    storage: number;
+    users: number;
+    projects: number;
+  };
+}
+
+interface WorkspaceSettingsProps {
+  workspaceId: string;
+  isOwner: boolean;
+}
+
+export const WorkspaceSettings = ({ workspaceId, isOwner }: WorkspaceSettingsProps) => {
+  const [config, setConfig] = useState<WorkspaceConfig>({
+    name: 'Creative Studio',
+    description: 'Professional video production and collaboration workspace',
+    primaryColor: '#FF0080',
+    timezone: 'America/New_York',
+    language: 'en',
+    subdomain: 'creative-studio',
+    storageLimit: 500,
+    userLimit: 25,
+    features: ['advanced_sharing', 'custom_branding', 'analytics', 'api_access']
   });
 
-  const [securitySettings, setSecuritySettings] = useState({
-    twoFactorRequired: false,
-    sessionTimeout: "8 hours",
-    ipWhitelist: "",
-    passwordPolicy: "standard",
-    auditLogging: true
+  const [billing] = useState<BillingInfo>({
+    plan: 'pro',
+    billingCycle: 'monthly',
+    nextBilling: new Date('2024-07-15'),
+    amount: 99,
+    usage: {
+      storage: 230,
+      users: 18,
+      projects: 45
+    }
   });
 
-  const handleSave = () => {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const updateConfig = (key: keyof WorkspaceConfig, value: any) => {
+    setConfig(prev => ({ ...prev, [key]: value }));
     toast({
-      title: "Settings saved",
-      description: "Workspace settings have been updated successfully."
+      title: "Settings updated",
+      description: `${key} has been updated successfully`
     });
-    onClose();
   };
 
+  const getPlanColor = (plan: string) => {
+    switch (plan) {
+      case 'free': return 'bg-gray-600';
+      case 'pro': return 'bg-blue-600';
+      case 'enterprise': return 'bg-purple-600';
+      default: return 'bg-gray-600';
+    }
+  };
+
+  const DeleteWorkspaceDialog = () => {
+    const [confirmText, setConfirmText] = useState('');
+    const canDelete = confirmText === config.name;
+
+    return (
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogTrigger asChild>
+          <Button variant="outline" className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white">
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete Workspace
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="bg-gray-800 border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center">
+              <AlertTriangle className="h-5 w-5 mr-2 text-red-400" />
+              Delete Workspace
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-red-900/20 border border-red-600/30 p-4 rounded-lg">
+              <p className="text-red-400 text-sm">
+                This action cannot be undone. This will permanently delete the workspace,
+                all projects, assets, and user data.
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-300">
+                Type <strong>{config.name}</strong> to confirm
+              </label>
+              <Input
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                placeholder={config.name}
+                className="bg-gray-700 border-gray-600 text-white mt-1"
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteDialog(false)}
+                className="border-gray-600 text-gray-300"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  // Handle deletion
+                  toast({
+                    title: "Workspace deletion initiated",
+                    description: "This process may take a few minutes to complete"
+                  });
+                  setShowDeleteDialog(false);
+                }}
+                disabled={!canDelete}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete Workspace
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
+  if (!isOwner) {
+    return (
+      <Card className="bg-gray-800 border-gray-700">
+        <CardContent className="p-8 text-center">
+          <Settings className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-400 mb-2">Access Restricted</h3>
+          <p className="text-gray-500">Only workspace owners can access these settings</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-white">Workspace Settings</h1>
-        <Button onClick={onClose} variant="outline" className="border-gray-600 text-gray-300">
-          Close
-        </Button>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Workspace Settings</h2>
+          <p className="text-gray-400">Configure your workspace preferences and billing</p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <Badge className={`${getPlanColor(billing.plan)} text-white`}>
+            {billing.plan.toUpperCase()} Plan
+          </Badge>
+        </div>
       </div>
 
-      <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 bg-gray-800">
-          <TabsTrigger value="general" className="text-gray-300">
-            <Settings className="h-4 w-4 mr-2" />
-            General
-          </TabsTrigger>
-          <TabsTrigger value="users" className="text-gray-300">
-            <Users className="h-4 w-4 mr-2" />
-            Users & Roles
-          </TabsTrigger>
-          <TabsTrigger value="security" className="text-gray-300">
-            <Shield className="h-4 w-4 mr-2" />
-            Security
-          </TabsTrigger>
-          <TabsTrigger value="storage" className="text-gray-300">
-            <Database className="h-4 w-4 mr-2" />
-            Storage
-          </TabsTrigger>
-          <TabsTrigger value="billing" className="text-gray-300">
-            <CreditCard className="h-4 w-4 mr-2" />
-            Billing
-          </TabsTrigger>
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList className="grid w-full grid-cols-4 bg-gray-800">
+          <TabsTrigger value="general" className="text-gray-300">General</TabsTrigger>
+          <TabsTrigger value="branding" className="text-gray-300">Branding</TabsTrigger>
+          <TabsTrigger value="billing" className="text-gray-300">Billing</TabsTrigger>
+          <TabsTrigger value="danger" className="text-gray-300">Danger Zone</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="space-y-6">
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader>
-              <CardTitle className="text-white">Workspace Information</CardTitle>
+              <CardTitle className="text-white flex items-center">
+                <Building className="h-5 w-5 mr-2" />
+                Basic Information
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-gray-300">Workspace Name</Label>
-                <Input
-                  value={workspaceSettings.name}
-                  onChange={(e) => setWorkspaceSettings(prev => ({ ...prev, name: e.target.value }))}
-                  className="bg-gray-700 border-gray-600 text-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-gray-300">Description</Label>
-                <Input
-                  value={workspaceSettings.description}
-                  onChange={(e) => setWorkspaceSettings(prev => ({ ...prev, description: e.target.value }))}
-                  className="bg-gray-700 border-gray-600 text-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-gray-300">Timezone</Label>
-                <Select value={workspaceSettings.timezone} onValueChange={(value) => setWorkspaceSettings(prev => ({ ...prev, timezone: value }))}>
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700">
-                    <SelectItem value="America/New_York">Eastern Time</SelectItem>
-                    <SelectItem value="America/Los_Angeles">Pacific Time</SelectItem>
-                    <SelectItem value="Europe/London">London</SelectItem>
-                    <SelectItem value="Asia/Tokyo">Tokyo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white">Collaboration Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-gray-300">Guest Access</Label>
-                  <p className="text-sm text-gray-500">Allow external users to access shared content</p>
+                  <label className="text-sm font-medium text-gray-300">Workspace Name</label>
+                  <Input
+                    value={config.name}
+                    onChange={(e) => updateConfig('name', e.target.value)}
+                    className="bg-gray-700 border-gray-600 text-white mt-1"
+                  />
                 </div>
-                <Switch
-                  checked={workspaceSettings.guestAccess}
-                  onCheckedChange={(checked) => setWorkspaceSettings(prev => ({ ...prev, guestAccess: checked }))}
-                />
-              </div>
-              <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-gray-300">Auto-approval</Label>
-                  <p className="text-sm text-gray-500">Automatically approve comments from team members</p>
+                  <label className="text-sm font-medium text-gray-300">Subdomain</label>
+                  <Input
+                    value={config.subdomain}
+                    onChange={(e) => updateConfig('subdomain', e.target.value)}
+                    className="bg-gray-700 border-gray-600 text-white mt-1"
+                  />
                 </div>
-                <Switch
-                  checked={workspaceSettings.autoApproval}
-                  onCheckedChange={(checked) => setWorkspaceSettings(prev => ({ ...prev, autoApproval: checked }))}
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-300">Description</label>
+                <Textarea
+                  value={config.description}
+                  onChange={(e) => updateConfig('description', e.target.value)}
+                  className="bg-gray-700 border-gray-600 text-white mt-1"
+                  rows={3}
                 />
               </div>
-              <div className="flex items-center justify-between">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-gray-300">Download Tracking</Label>
-                  <p className="text-sm text-gray-500">Track when assets are downloaded</p>
+                  <label className="text-sm font-medium text-gray-300">Timezone</label>
+                  <Select value={config.timezone} onValueChange={(value) => updateConfig('timezone', value)}>
+                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-700 border-gray-600">
+                      <SelectItem value="America/New_York">Eastern Time</SelectItem>
+                      <SelectItem value="America/Chicago">Central Time</SelectItem>
+                      <SelectItem value="America/Denver">Mountain Time</SelectItem>
+                      <SelectItem value="America/Los_Angeles">Pacific Time</SelectItem>
+                      <SelectItem value="Europe/London">GMT</SelectItem>
+                      <SelectItem value="Europe/Paris">CET</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Switch
-                  checked={workspaceSettings.downloadTracking}
-                  onCheckedChange={(checked) => setWorkspaceSettings(prev => ({ ...prev, downloadTracking: checked }))}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="users" className="space-y-6">
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white">User Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium text-white">Team Members</h3>
-                  <Button className="bg-blue-600 hover:bg-blue-700">Invite Users</Button>
-                </div>
-                <div className="space-y-3">
-                  {[
-                    { name: "Yair Kivalko", email: "yair@example.com", role: "Owner", status: "Active" },
-                    { name: "John Smith", email: "john@example.com", role: "Admin", status: "Active" },
-                    { name: "Sarah Johnson", email: "sarah@example.com", role: "Collaborator", status: "Pending" }
-                  ].map((user, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
-                      <div>
-                        <p className="text-white font-medium">{user.name}</p>
-                        <p className="text-gray-400 text-sm">{user.email}</p>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <Badge variant={user.status === "Active" ? "default" : "secondary"}>
-                          {user.status}
-                        </Badge>
-                        <Select defaultValue={user.role}>
-                          <SelectTrigger className="w-32 bg-gray-600 border-gray-500">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-gray-800 border-gray-700">
-                            <SelectItem value="Owner">Owner</SelectItem>
-                            <SelectItem value="Admin">Admin</SelectItem>
-                            <SelectItem value="Collaborator">Collaborator</SelectItem>
-                            <SelectItem value="Reviewer">Reviewer</SelectItem>
-                            <SelectItem value="Viewer">Viewer</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  ))}
+                <div>
+                  <label className="text-sm font-medium text-gray-300">Language</label>
+                  <Select value={config.language} onValueChange={(value) => updateConfig('language', value)}>
+                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-700 border-gray-600">
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="es">Spanish</SelectItem>
+                      <SelectItem value="fr">French</SelectItem>
+                      <SelectItem value="de">German</SelectItem>
+                      <SelectItem value="ja">Japanese</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="security" className="space-y-6">
+        <TabsContent value="branding" className="space-y-6">
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader>
-              <CardTitle className="text-white">Security & Compliance</CardTitle>
+              <CardTitle className="text-white flex items-center">
+                <Palette className="h-5 w-5 mr-2" />
+                Brand Customization
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Two-Factor Authentication Required</Label>
-                  <p className="text-sm text-gray-500">Require 2FA for all workspace members</p>
-                </div>
-                <Switch
-                  checked={securitySettings.twoFactorRequired}
-                  onCheckedChange={(checked) => setSecuritySettings(prev => ({ ...prev, twoFactorRequired: checked }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-gray-300">Session Timeout</Label>
-                <Select value={securitySettings.sessionTimeout} onValueChange={(value) => setSecuritySettings(prev => ({ ...prev, sessionTimeout: value }))}>
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700">
-                    <SelectItem value="1 hour">1 hour</SelectItem>
-                    <SelectItem value="4 hours">4 hours</SelectItem>
-                    <SelectItem value="8 hours">8 hours</SelectItem>
-                    <SelectItem value="24 hours">24 hours</SelectItem>
-                    <SelectItem value="never">Never</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Audit Logging</Label>
-                  <p className="text-sm text-gray-500">Log all user activities for compliance</p>
-                </div>
-                <Switch
-                  checked={securitySettings.auditLogging}
-                  onCheckedChange={(checked) => setSecuritySettings(prev => ({ ...prev, auditLogging: checked }))}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="storage" className="space-y-6">
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white">Storage Management</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-gray-300">Storage Usage</Label>
-                <div className="bg-gray-700 rounded-lg p-4">
-                  <div className="flex justify-between text-sm text-gray-300 mb-2">
-                    <span>45.2 GB used</span>
-                    <span>100 GB total</span>
+              <div>
+                <label className="text-sm font-medium text-gray-300">Logo</label>
+                <div className="mt-1 flex items-center space-x-4">
+                  <div className="w-16 h-16 bg-gray-700 rounded-lg flex items-center justify-center">
+                    {config.logo ? (
+                      <img src={config.logo} alt="Logo" className="w-full h-full object-contain rounded-lg" />
+                    ) : (
+                      <Building className="h-8 w-8 text-gray-400" />
+                    )}
                   </div>
-                  <div className="w-full bg-gray-600 rounded-full h-2">
-                    <div className="bg-blue-600 h-2 rounded-full" style={{ width: '45%' }}></div>
-                  </div>
+                  <Button variant="outline" className="border-gray-600 text-gray-300">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Logo
+                  </Button>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-gray-300">Retention Policy</Label>
-                <Select value={workspaceSettings.retentionPolicy} onValueChange={(value) => setWorkspaceSettings(prev => ({ ...prev, retentionPolicy: value }))}>
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700">
-                    <SelectItem value="30 days">30 days</SelectItem>
-                    <SelectItem value="90 days">90 days</SelectItem>
-                    <SelectItem value="1 year">1 year</SelectItem>
-                    <SelectItem value="forever">Forever</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div>
+                <label className="text-sm font-medium text-gray-300">Primary Color</label>
+                <div className="mt-1 flex items-center space-x-4">
+                  <div 
+                    className="w-12 h-12 rounded-lg border border-gray-600"
+                    style={{ backgroundColor: config.primaryColor }}
+                  />
+                  <Input
+                    type="color"
+                    value={config.primaryColor}
+                    onChange={(e) => updateConfig('primaryColor', e.target.value)}
+                    className="w-20 h-12 bg-gray-700 border-gray-600"
+                  />
+                  <Input
+                    value={config.primaryColor}
+                    onChange={(e) => updateConfig('primaryColor', e.target.value)}
+                    placeholder="#FF0080"
+                    className="bg-gray-700 border-gray-600 text-white"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-300">Custom Domain</label>
+                <Input
+                  value={config.customDomain || ''}
+                  onChange={(e) => updateConfig('customDomain', e.target.value)}
+                  placeholder="your-domain.com"
+                  className="bg-gray-700 border-gray-600 text-white mt-1"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Pro plan required for custom domains
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -287,44 +335,77 @@ export const WorkspaceSettings = ({ onClose }: WorkspaceSettingsProps) => {
         <TabsContent value="billing" className="space-y-6">
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader>
-              <CardTitle className="text-white">Billing & Subscription</CardTitle>
+              <CardTitle className="text-white flex items-center">
+                <CreditCard className="h-5 w-5 mr-2" />
+                Billing Information
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="bg-gray-700 rounded-lg p-4">
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    <h3 className="text-lg font-medium text-white">Professional Plan</h3>
-                    <p className="text-gray-400">$29/month per user</p>
-                  </div>
-                  <Badge className="bg-blue-600">Current Plan</Badge>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-gray-700 p-4 rounded-lg">
+                  <p className="text-sm text-gray-400">Current Plan</p>
+                  <p className="text-xl font-bold text-white">{billing.plan.toUpperCase()}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-400">Users</p>
-                    <p className="text-white">3 of 10</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Storage</p>
-                    <p className="text-white">45.2 GB of 100 GB</p>
-                  </div>
+                <div className="bg-gray-700 p-4 rounded-lg">
+                  <p className="text-sm text-gray-400">Monthly Cost</p>
+                  <p className="text-xl font-bold text-white">${billing.amount}</p>
+                </div>
+                <div className="bg-gray-700 p-4 rounded-lg">
+                  <p className="text-sm text-gray-400">Next Billing</p>
+                  <p className="text-xl font-bold text-white">
+                    {billing.nextBilling.toLocaleDateString()}
+                  </p>
                 </div>
               </div>
-              <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                Upgrade to Enterprise
-              </Button>
+              
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Storage Used</span>
+                  <span className="text-white">{billing.usage.storage}GB / {config.storageLimit}GB</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Users</span>
+                  <span className="text-white">{billing.usage.users} / {config.userLimit}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Projects</span>
+                  <span className="text-white">{billing.usage.projects}</span>
+                </div>
+              </div>
+
+              <div className="flex space-x-3">
+                <Button className="bg-pink-600 hover:bg-pink-700">
+                  Upgrade Plan
+                </Button>
+                <Button variant="outline" className="border-gray-600 text-gray-300">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Invoice
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="danger" className="space-y-6">
+          <Card className="bg-gray-800 border-red-600/30">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center">
+                <AlertTriangle className="h-5 w-5 mr-2 text-red-400" />
+                Danger Zone
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-red-900/20 border border-red-600/30 p-4 rounded-lg">
+                <h4 className="font-medium text-red-400 mb-2">Delete Workspace</h4>
+                <p className="text-sm text-gray-300 mb-4">
+                  Permanently delete this workspace and all of its data. This action cannot be undone.
+                </p>
+                <DeleteWorkspaceDialog />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-
-      <div className="flex justify-end space-x-4 pt-6 border-t border-gray-700">
-        <Button variant="outline" onClick={onClose} className="border-gray-600 text-gray-300">
-          Cancel
-        </Button>
-        <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
-          Save Changes
-        </Button>
-      </div>
     </div>
   );
 };
