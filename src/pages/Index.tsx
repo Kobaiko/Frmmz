@@ -189,7 +189,7 @@ const Index = () => {
       <ProjectHeader projectId={projectId} />
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1">
-          <VideoPlayer
+          <AdvancedVideoPlayer
             src={videoUrl}
             currentTime={currentTime}
             onTimeUpdate={setCurrentTime}
