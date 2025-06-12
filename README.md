@@ -1,4 +1,35 @@
-# Welcome to your Lovable project
+
+# Frmmz - Creative Media Collaboration Platform
+
+## Project Overview
+
+Frmmz is a comprehensive media collaboration platform designed for creative professionals. Built for modern workflows, Frmmz enables teams to collaborate on various media types including:
+
+- **Video files** (.mp4, .webm, .mov, .avi, etc.)
+- **Images** (.jpg, .png, .gif, .webp, .svg, etc.)
+- **Audio files** (.mp3, .wav, .ogg, .aac, .flac, etc.)
+- **Documents** (.pdf, .txt, .json, .xml, etc.)
+
+## Key Features
+
+- **Universal Media Support**: Upload and collaborate on any media type
+- **Real-time Collaboration**: Live comments, feedback, and team presence
+- **Advanced Review Workflows**: Structured approval processes for professional teams
+- **Frame-accurate Feedback**: Precise commenting on videos and images
+- **Project Management**: Organize assets with folders, tags, and metadata
+- **Enterprise Features**: Advanced security, user management, and integrations
+- **Mobile Support**: iOS and Android apps for on-the-go collaboration
+- **Integration Hub**: Connect with Adobe Creative Suite, DAM systems, and more
+
+## Technology Stack
+
+This project is built with modern web technologies:
+
+- **React** - Component-based UI framework
+- **TypeScript** - Type-safe development
+- **Tailwind CSS** - Utility-first styling
+- **Shadcn/UI** - Professional component library
+- **Vite** - Fast build tool and development server
 
 ## Project info
 
@@ -49,16 +80,6 @@ npm run dev
 - Select the "Codespaces" tab.
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
 
 ## How can I deploy this project?
 
