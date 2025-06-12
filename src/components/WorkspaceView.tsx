@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Grid, List, Filter, Plus, MoreHorizontal, Pencil, Trash2, Settings, BarChart3, Users, FileText, Zap } from "lucide-react";
+import { Grid, List, Filter, Plus, MoreHorizontal, Pencil, Trash2, Settings, BarChart3, Users, FileText, Zap, Shield, Workflow, Share2, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -11,6 +11,11 @@ import { CreateProjectDialog } from "./CreateProjectDialog";
 import { WorkspaceSettings } from "./WorkspaceSettings";
 import { ProjectTemplates } from "./ProjectTemplates";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
+import { AssetMetadata } from "./AssetMetadata";
+import { IntegrationHub } from "./IntegrationHub";
+import { SecurityCompliance } from "./SecurityCompliance";
+import { RealtimeCollaboration } from "./RealtimeCollaboration";
+import { AdvancedWorkflows } from "./AdvancedWorkflows";
 import { toast } from "@/hooks/use-toast";
 
 interface Project {
@@ -39,6 +44,11 @@ export const WorkspaceView = ({
   const [showSettings, setShowSettings] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showAssetMetadata, setShowAssetMetadata] = useState(false);
+  const [showIntegrationHub, setShowIntegrationHub] = useState(false);
+  const [showSecurityCompliance, setShowSecurityCompliance] = useState(false);
+  const [showRealtimeCollab, setShowRealtimeCollab] = useState(false);
+  const [showAdvancedWorkflows, setShowAdvancedWorkflows] = useState(false);
   const [workspaceName, setWorkspaceName] = useState("Yair's Workspace");
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [projectNotifications, setProjectNotifications] = useState(true);
@@ -198,6 +208,42 @@ export const WorkspaceView = ({
     );
   }
 
+  if (showAssetMetadata) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex-1">
+        <AssetMetadata 
+          assetId="demo-asset" 
+          assetName="Demo Video.mp4" 
+          onClose={() => setShowAssetMetadata(false)} 
+        />
+      </div>
+    );
+  }
+
+  if (showIntegrationHub) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex-1">
+        <IntegrationHub onClose={() => setShowIntegrationHub(false)} />
+      </div>
+    );
+  }
+
+  if (showSecurityCompliance) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex-1">
+        <SecurityCompliance onClose={() => setShowSecurityCompliance(false)} />
+      </div>
+    );
+  }
+
+  if (showAdvancedWorkflows) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex-1">
+        <AdvancedWorkflows onClose={() => setShowAdvancedWorkflows(false)} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 flex-1">
       {/* Enhanced Header with Quick Stats */}
@@ -233,6 +279,15 @@ export const WorkspaceView = ({
                 Templates
               </Button>
 
+              <Button
+                onClick={() => setShowAdvancedWorkflows(true)}
+                variant="outline"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                <Workflow className="h-4 w-4 mr-2" />
+                Workflows
+              </Button>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
@@ -241,8 +296,30 @@ export const WorkspaceView = ({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 w-64">
                   <div className="px-3 py-2 border-b border-gray-700">
-                    <p className="text-sm font-medium text-white">Workspace</p>
+                    <p className="text-sm font-medium text-white">Enterprise Features</p>
                   </div>
+                  <DropdownMenuItem 
+                    className="text-gray-300 hover:bg-gray-700"
+                    onClick={() => setShowIntegrationHub(true)}
+                  >
+                    <Database className="mr-2 h-4 w-4" />
+                    Integration Hub
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="text-gray-300 hover:bg-gray-700"
+                    onClick={() => setShowSecurityCompliance(true)}
+                  >
+                    <Shield className="mr-2 h-4 w-4" />
+                    Security & Compliance
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="text-gray-300 hover:bg-gray-700"
+                    onClick={() => setShowAssetMetadata(true)}
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    Asset Management
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-gray-600" />
                   <DropdownMenuItem 
                     className="text-gray-300 hover:bg-gray-700"
                     onClick={() => setShowSettings(true)}
@@ -283,8 +360,8 @@ export const WorkspaceView = ({
             </div>
           </div>
 
-          {/* Quick Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          {/* Enhanced Quick Stats Cards with Real-time Collaboration */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
             <Card className="bg-gray-700 border-gray-600">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -334,6 +411,23 @@ export const WorkspaceView = ({
                 </div>
               </CardContent>
             </Card>
+
+            <Card className="bg-gray-700 border-gray-600">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm">Active Now</p>
+                    <p className="text-white text-2xl font-bold">3</p>
+                    <div className="flex -space-x-2 mt-1">
+                      <div className="w-6 h-6 rounded-full bg-blue-500 border-2 border-gray-800"></div>
+                      <div className="w-6 h-6 rounded-full bg-green-500 border-2 border-gray-800"></div>
+                      <div className="w-6 h-6 rounded-full bg-yellow-500 border-2 border-gray-800"></div>
+                    </div>
+                  </div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
           
           {/* Controls */}
@@ -378,6 +472,11 @@ export const WorkspaceView = ({
             </Button>
           </div>
         </div>
+      </div>
+
+      {/* Real-time Collaboration Section */}
+      <div className="container mx-auto px-6 py-4">
+        <RealtimeCollaboration projectId="workspace" currentUser="Yair Kivalko" />
       </div>
 
       {/* Projects Grid */}
