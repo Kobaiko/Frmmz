@@ -75,8 +75,9 @@ const Index = () => {
     setViewMode('feedback-session');
   };
 
-  const handleVideoLoad = (url: string) => {
+  const handleMediaLoad = (url: string, type: string, name: string) => {
     setVideoUrl(url);
+    console.log('Media loaded:', { url, type, name });
   };
 
   const handleAddComment = (text: string, timestamp: number, parentId?: string, attachments?: AttachmentWithType[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
@@ -177,7 +178,7 @@ const Index = () => {
             <p className="text-gray-400 mb-12 text-lg">
               Upload content or paste a URL to start collecting feedback
             </p>
-            <MediaUpload onMediaLoad={handleVideoLoad} />
+            <MediaUpload onMediaLoad={handleMediaLoad} />
           </div>
         </div>
       </div>
