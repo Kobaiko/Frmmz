@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -175,11 +176,11 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
 
   const ProjectListItem = ({ project }: { project: Project }) => (
     <Card 
-      className="bg-gray-800 border-gray-700 hover:border-pink-600 transition-all duration-200 cursor-pointer"
+      className="bg-gray-800 border-gray-700 hover:border-pink-600 transition-all duration-200 cursor-pointer w-full"
       onClick={() => onOpenProject(project.id)}
     >
       <CardContent className="p-4">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 w-full">
           {/* Thumbnail */}
           <div className="w-20 h-12 bg-gray-700 rounded overflow-hidden flex-shrink-0 relative">
             <img 
@@ -193,7 +194,7 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2 mb-1">
               <h3 className="text-white font-medium truncate">{project.name}</h3>
-              <Badge className={`${getStatusColor(project.status)} text-white`}>
+              <Badge className={`${getStatusColor(project.status)} text-white flex-shrink-0`}>
                 {project.status}
               </Badge>
             </div>
@@ -220,7 +221,7 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
   );
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black text-white w-full">
       {/* Header */}
       <div className="border-b border-gray-800 p-6">
         <div className="flex items-center justify-between mb-6">
@@ -329,7 +330,7 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
                 ))}
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3 w-full">
                 {filteredProjects.map((project) => (
                   <ProjectListItem key={project.id} project={project} />
                 ))}
