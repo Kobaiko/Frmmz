@@ -1,339 +1,277 @@
-import { useState, useRef, useEffect } from "react";
+
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { DrawingCanvas } from "./DrawingCanvas";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { VideoTimeline } from "./VideoTimeline";
-import { VideoControls } from "./VideoControls";
-import { VideoGuides } from "./VideoGuides";
-import { useVideoPlayer } from "@/hooks/useVideoPlayer";
-import { useVideoKeyboardShortcuts } from "@/hooks/useVideoKeyboardShortcuts";
-import type { Comment } from "@/pages/Index";
+import { Slider } from "@/components/ui/slider";
+import { 
+  Play, 
+  Pause, 
+  Volume2, 
+  VolumeX, 
+  Maximize, 
+  Settings,
+  SkipBack,
+  SkipForward,
+  RotateCcw,
+  RotateCw
+} from "lucide-react";
 
 interface VideoPlayerProps {
   src: string;
-  currentTime: number;
-  onTimeUpdate: (time: number) => void;
-  onDurationChange?: (duration: number) => void;
-  comments: Comment[];
-  onTimeClick: (time: number) => void;
-  isDrawingMode?: boolean;
-  onDrawingModeChange?: (enabled: boolean) => void;
-  annotations: boolean;
-  setAnnotations: (value: boolean) => void;
+  poster?: string;
+  onTimeUpdate?: (currentTime: number) => void;
+  onCommentAdd?: (timestamp: number) => void;
 }
 
 export const VideoPlayer = ({ 
   src, 
-  currentTime, 
+  poster, 
   onTimeUpdate, 
-  onDurationChange, 
-  comments, 
-  onTimeClick,
-  isDrawingMode = false,
-  onDrawingModeChange,
-  annotations,
-  setAnnotations
+  onCommentAdd 
 }: VideoPlayerProps) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [guides, setGuides] = useState({
-    enabled: false,
-    ratio: '4:3',
-    mask: false
-  });
-  const [zoom, setZoom] = useState('Fit');
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [encodeComments, setEncodeComments] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
 
-  const {
-    videoRef,
-    previewVideoRef,
-    duration,
-    isPlaying,
-    volume,
-    playbackSpeed,
-    quality,
-    availableQualities,
-    maxQuality,
-    isLooping,
-    timeFormat,
-    setTimeFormat,
-    togglePlayPause,
-    toggleLoop,
-    handleSpeedChange,
-    handleVolumeToggle,
-    handleVolumeChange,
-    handleQualityChange
-  } = useVideoPlayer({ src, currentTime, onTimeUpdate, onDurationChange });
-
-  // Force pause video immediately when drawing mode is enabled
-  useEffect(() => {
-    if (isDrawingMode && videoRef.current) {
-      console.log('Drawing mode activated - forcing immediate video pause');
-      const video = videoRef.current;
-      
-      // Force pause immediately and repeatedly to ensure it sticks
-      const forcePause = () => {
-        if (!video.paused) {
-          video.pause();
-          console.log('Video forcefully paused for drawing mode');
-        }
-      };
-      
-      forcePause();
-      
-      // Set up multiple checks to ensure video stays paused
-      const timeouts = [
-        setTimeout(forcePause, 50),
-        setTimeout(forcePause, 100),
-        setTimeout(forcePause, 200),
-      ];
-
-      return () => {
-        timeouts.forEach(clearTimeout);
-      };
-    }
-  }, [isDrawingMode]);
-
-  // Handle drawing mode change - always pause video when enabling
-  const handleDrawingModeChange = (enabled: boolean) => {
-    console.log(`Drawing mode change: ${enabled ? 'enabling' : 'disabling'}`);
-    
-    if (enabled && videoRef.current) {
-      console.log('Pausing video for drawing mode');
-      const video = videoRef.current;
-      
-      // Immediate pause
-      video.pause();
-      
-      // Additional safety pauses
-      setTimeout(() => {
-        if (!video.paused) {
-          video.pause();
-          console.log('Safety pause executed');
-        }
-      }, 50);
-    }
-    
-    if (onDrawingModeChange) {
-      onDrawingModeChange(enabled);
-    }
-  };
-
-  // Handle drawing start - pause video and enable drawing mode
-  const handleDrawingStart = () => {
-    console.log('Drawing start - pausing video immediately');
-    
-    if (videoRef.current && !videoRef.current.paused) {
-      videoRef.current.pause();
-      console.log('Video paused for drawing start');
-    }
-    
-    handleDrawingModeChange(true);
-  };
-
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    const milliseconds = Math.floor((seconds % 1) * 10);
-    
-    return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${milliseconds}`;
-  };
-
-  const toggleFullscreen = () => {
-    const container = containerRef.current;
-    if (!container) return;
-    
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else {
-      container.requestFullscreen();
-    }
-  };
-
-  const handleGuidesToggle = () => {
-    setGuides(prev => ({ ...prev, enabled: !prev.enabled }));
-    console.log(`Guides ${!guides.enabled ? 'enabled' : 'disabled'}`);
-  };
-
-  const handleGuidesRatioChange = (ratio: string) => {
-    setGuides(prev => ({ ...prev, ratio, enabled: true }));
-    console.log(`Guides ratio changed to: ${ratio}`);
-  };
-
-  const handleGuidesMaskToggle = () => {
-    setGuides(prev => ({ ...prev, mask: !prev.mask }));
-    console.log(`Guides mask ${!guides.mask ? 'enabled' : 'disabled'}`);
-  };
-
-  const handleZoomChange = (newZoom: string) => {
-    setZoom(newZoom);
-    const video = videoRef.current;
-    if (!video) return;
-
-    switch (newZoom) {
-      case 'Fit':
-        setZoomLevel(1);
-        video.style.transform = 'scale(1)';
-        video.style.objectFit = 'contain';
-        break;
-      case 'Fill':
-        setZoomLevel(1);
-        video.style.transform = 'scale(1)';
-        video.style.objectFit = 'cover';
-        break;
-      case 'Zoom In':
-        const newZoomIn = Math.min(zoomLevel * 1.2, 3);
-        setZoomLevel(newZoomIn);
-        video.style.transform = `scale(${newZoomIn})`;
-        video.style.transformOrigin = 'center center';
-        break;
-      case 'Zoom Out':
-        const newZoomOut = Math.max(zoomLevel * 0.8, 0.5);
-        setZoomLevel(newZoomOut);
-        video.style.transform = `scale(${newZoomOut})`;
-        video.style.transformOrigin = 'center center';
-        break;
-      case '100%':
-        setZoomLevel(1);
-        video.style.transform = 'scale(1)';
-        video.style.objectFit = 'none';
-        break;
-    }
-    console.log(`Zoom changed to: ${newZoom}`);
-  };
-
-  const handleSetFrameAsThumb = () => {
+  const togglePlay = () => {
     if (videoRef.current) {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        canvas.width = videoRef.current.videoWidth;
-        canvas.height = videoRef.current.videoHeight;
-        ctx.drawImage(videoRef.current, 0, 0);
-        console.log('Frame set as thumbnail');
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
       }
+      setIsPlaying(!isPlaying);
     }
   };
 
-  const handleDownloadStill = () => {
+  const handleTimeUpdate = () => {
     if (videoRef.current) {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        canvas.width = videoRef.current.videoWidth;
-        canvas.height = videoRef.current.videoHeight;
-        ctx.drawImage(videoRef.current, 0, 0);
-        const link = document.createElement('a');
-        link.download = `video-still-${formatTime(currentTime)}.png`;
-        link.href = canvas.toDataURL();
-        link.click();
-        console.log('Still image downloaded');
-      }
+      const time = videoRef.current.currentTime;
+      setCurrentTime(time);
+      onTimeUpdate?.(time);
     }
   };
 
-  useVideoKeyboardShortcuts({
-    videoRef,
-    volume,
-    isPlaying,
-    setVolume: (newVolume) => {
-      if (videoRef.current) {
-        videoRef.current.volume = newVolume;
-      }
-    },
-    onZoomChange: handleZoomChange
-  });
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration);
+    }
+  };
+
+  const handleSeek = (value: number[]) => {
+    if (videoRef.current) {
+      const time = value[0];
+      videoRef.current.currentTime = time;
+      setCurrentTime(time);
+    }
+  };
+
+  const handleVolumeChange = (value: number[]) => {
+    const vol = value[0];
+    setVolume(vol);
+    setIsMuted(vol === 0);
+    if (videoRef.current) {
+      videoRef.current.volume = vol;
+    }
+  };
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      const newMuted = !isMuted;
+      setIsMuted(newMuted);
+      videoRef.current.muted = newMuted;
+    }
+  };
+
+  const skipTime = (seconds: number) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = Math.max(0, Math.min(duration, currentTime + seconds));
+    }
+  };
+
+  const changePlaybackRate = (rate: number) => {
+    setPlaybackRate(rate);
+    if (videoRef.current) {
+      videoRef.current.playbackRate = rate;
+    }
+  };
+
+  const enterFullscreen = () => {
+    if (videoRef.current) {
+      videoRef.current.requestFullscreen();
+    }
+  };
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleVideoClick = (event: React.MouseEvent<HTMLVideoElement>) => {
+    if (onCommentAdd) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const clickX = event.clientX - rect.left;
+      const videoWidth = rect.width;
+      const clickTimePercentage = clickX / videoWidth;
+      const timestamp = clickTimePercentage * duration;
+      onCommentAdd(timestamp);
+    }
+  };
 
   return (
-    <TooltipProvider delayDuration={0}>
-      <div className="h-full bg-black flex flex-col relative" ref={containerRef}>
-        {/* Main video area - centered */}
-        <div className="flex-1 flex items-center justify-center relative overflow-hidden">
-          <div className="relative">
-            <video
-              ref={videoRef}
-              className="max-w-full max-h-full transition-transform duration-200"
-              onClick={!isDrawingMode ? togglePlayPause : undefined}
-              style={{ 
-                display: 'block',
-                objectFit: 'contain',
-                pointerEvents: isDrawingMode ? 'none' : 'auto'
-              }}
-            />
-            
-            {/* Hidden preview video for thumbnails */}
-            <video
-              ref={previewVideoRef}
-              style={{ display: 'none' }}
-              muted
-            />
-            
-            <VideoGuides
-              videoRef={videoRef}
-              containerRef={containerRef}
-              guides={guides}
-            />
-            
-            {/* Drawing Canvas - Always render, controlled by annotations prop */}
-            <div className="absolute inset-0">
-              <DrawingCanvas 
-                currentTime={currentTime} 
-                videoRef={videoRef}
-                isDrawingMode={isDrawingMode}
-                annotations={annotations}
-              />
+    <div className="bg-black rounded-lg overflow-hidden">
+      {/* Video Container */}
+      <div className="relative group">
+        <video
+          ref={videoRef}
+          src={src}
+          poster={poster}
+          className="w-full aspect-video cursor-pointer"
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onClick={handleVideoClick}
+        />
+        
+        {/* Play Overlay */}
+        {!isPlaying && (
+          <div 
+            className="absolute inset-0 flex items-center justify-center bg-black/20 cursor-pointer"
+            onClick={togglePlay}
+          >
+            <div className="bg-black/60 rounded-full p-4">
+              <Play className="h-12 w-12 text-white" />
             </div>
           </div>
-        </div>
-        
-        {/* Bottom control panel */}
-        <div className="bg-black border-t border-gray-800 p-6">
-          {/* Timeline */}
-          <VideoTimeline
-            currentTime={currentTime}
-            duration={duration}
-            comments={comments}
-            onTimeClick={onTimeClick}
-            previewVideoRef={previewVideoRef}
-            timeFormat={timeFormat}
-          />
-          
-          {/* Controls */}
-          <VideoControls
-            isPlaying={isPlaying}
-            onTogglePlayPause={togglePlayPause}
-            isLooping={isLooping}
-            onToggleLoop={toggleLoop}
-            playbackSpeed={playbackSpeed}
-            onSpeedChange={handleSpeedChange}
-            volume={volume}
-            onVolumeToggle={handleVolumeToggle}
-            onVolumeChange={handleVolumeChange}
-            currentTime={currentTime}
-            duration={duration}
-            timeFormat={timeFormat}
-            onTimeFormatChange={setTimeFormat}
-            quality={quality}
-            availableQualities={availableQualities}
-            onQualityChange={handleQualityChange}
-            guides={guides}
-            onGuidesToggle={handleGuidesToggle}
-            onGuidesRatioChange={handleGuidesRatioChange}
-            onGuidesMaskToggle={handleGuidesMaskToggle}
-            zoom={zoom}
-            onZoomChange={handleZoomChange}
-            encodeComments={encodeComments}
-            setEncodeComments={setEncodeComments}
-            annotations={annotations}
-            setAnnotations={setAnnotations}
-            onSetFrameAsThumb={handleSetFrameAsThumb}
-            onDownloadStill={handleDownloadStill}
-            onToggleFullscreen={toggleFullscreen}
-            formatTime={formatTime}
+        )}
+
+        {/* Timeline Overlay */}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Slider
+            value={[currentTime]}
+            max={duration}
+            step={0.1}
+            onValueChange={handleSeek}
+            className="w-full mb-3"
           />
         </div>
       </div>
-    </TooltipProvider>
+
+      {/* Controls */}
+      <div className="bg-gray-900 p-4 space-y-3">
+        {/* Main Controls */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => skipTime(-10)}
+              className="text-white hover:bg-gray-700"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={togglePlay}
+              className="text-white hover:bg-gray-700"
+            >
+              {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => skipTime(10)}
+              className="text-white hover:bg-gray-700"
+            >
+              <RotateCw className="h-4 w-4" />
+            </Button>
+
+            <div className="flex items-center space-x-2 ml-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleMute}
+                className="text-white hover:bg-gray-700"
+              >
+                {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </Button>
+              
+              <div className="w-20">
+                <Slider
+                  value={[isMuted ? 0 : volume]}
+                  max={1}
+                  step={0.1}
+                  onValueChange={handleVolumeChange}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-300">
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </span>
+
+            <div className="flex items-center space-x-1">
+              {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
+                <Button
+                  key={rate}
+                  variant={playbackRate === rate ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => changePlaybackRate(rate)}
+                  className={`text-xs ${
+                    playbackRate === rate 
+                      ? "bg-pink-600 text-white" 
+                      : "text-gray-300 hover:bg-gray-700"
+                  }`}
+                >
+                  {rate}x
+                </Button>
+              ))}
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-white hover:bg-gray-700"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={enterFullscreen}
+              className="text-white hover:bg-gray-700"
+            >
+              <Maximize className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Timeline */}
+        <div className="space-y-2">
+          <Slider
+            value={[currentTime]}
+            max={duration}
+            step={0.1}
+            onValueChange={handleSeek}
+            className="w-full"
+          />
+          
+          {/* Timeline Markers */}
+          <div className="flex justify-between text-xs text-gray-400">
+            <span>0:00</span>
+            <span>{formatTime(duration)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };

@@ -1,265 +1,305 @@
 
 import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CommentInput } from "./CommentInput";
-import { AttachmentViewer } from "./AttachmentViewer";
-import { ReviewWorkflow } from "./ReviewWorkflow";
-import type { Comment } from "@/pages/Index";
 import { 
   MessageSquare, 
   Clock, 
   Reply, 
-  Trash2, 
-  Eye, 
-  EyeOff,
-  CheckCircle,
-  Workflow
+  MoreHorizontal,
+  ThumbsUp,
+  ThumbsDown,
+  Check,
+  X,
+  Edit,
+  Trash2,
+  Pin
 } from "lucide-react";
 
-interface AttachmentWithType {
-  url: string;
-  type: string;
-  name: string;
+interface Comment {
+  id: string;
+  author: {
+    name: string;
+    avatar?: string;
+    role: string;
+  };
+  content: string;
+  timestamp: number;
+  videoTimestamp?: number;
+  createdAt: Date;
+  replies: Comment[];
+  status: 'open' | 'resolved' | 'approved' | 'rejected';
+  isPinned?: boolean;
+  reactions: {
+    likes: number;
+    dislikes: number;
+    userReaction?: 'like' | 'dislike' | null;
+  };
 }
 
 interface CommentPanelProps {
   comments: Comment[];
-  currentTime: number;
-  onCommentClick: (timestamp: number) => void;
+  onAddComment: (content: string, timestamp?: number) => void;
+  onReplyComment: (commentId: string, content: string) => void;
+  onResolveComment: (commentId: string) => void;
   onDeleteComment: (commentId: string) => void;
-  onReplyComment: (parentId: string, text: string, attachments?: AttachmentWithType[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
-  onAddComment: (text: string, attachments?: AttachmentWithType[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
-  onStartDrawing: () => void;
-  isDrawingMode: boolean;
 }
 
-export const CommentPanel = ({ 
-  comments, 
-  currentTime, 
-  onCommentClick, 
-  onDeleteComment, 
-  onReplyComment, 
+export const CommentPanel = ({
+  comments,
   onAddComment,
-  onStartDrawing,
-  isDrawingMode
+  onReplyComment,
+  onResolveComment,
+  onDeleteComment
 }: CommentPanelProps) => {
+  const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [showInternal, setShowInternal] = useState(true);
-  const [activeTab, setActiveTab] = useState("comments");
+  const [replyContent, setReplyContent] = useState('');
 
-  const formatTimestamp = (timestamp: number) => {
-    if (timestamp < 0) return "General";
-    const minutes = Math.floor(timestamp / 60);
-    const seconds = Math.floor(timestamp % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  const formatTimestamp = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const isCommentAtCurrentTime = (comment: Comment) => {
-    if (comment.timestamp < 0) return false;
-    return Math.abs(comment.timestamp - currentTime) < 0.5;
+  const getStatusColor = (status: Comment['status']) => {
+    switch (status) {
+      case 'open': return 'bg-blue-600';
+      case 'resolved': return 'bg-green-600';
+      case 'approved': return 'bg-purple-600';
+      case 'rejected': return 'bg-red-600';
+    }
   };
 
-  const getTopLevelComments = () => {
-    return comments.filter(comment => !comment.parentId);
+  const handleAddComment = () => {
+    if (newComment.trim()) {
+      onAddComment(newComment);
+      setNewComment('');
+    }
   };
 
-  const getReplies = (parentId: string) => {
-    return comments.filter(comment => comment.parentId === parentId);
+  const handleReply = (commentId: string) => {
+    if (replyContent.trim()) {
+      onReplyComment(commentId, replyContent);
+      setReplyContent('');
+      setReplyingTo(null);
+    }
   };
 
-  const filteredComments = getTopLevelComments().filter(comment => {
-    if (!showInternal && comment.isInternal) return false;
-    return true;
-  });
-
-  const handleReply = (parentId: string, text: string, attachments?: AttachmentWithType[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
-    onReplyComment(parentId, text, attachments, isInternal, attachTime, hasDrawing);
-    setReplyingTo(null);
-  };
-
-  const CommentItem = ({ comment, isReply = false }: { comment: Comment; isReply?: boolean }) => {
-    const replies = getReplies(comment.id);
-    const isHighlighted = isCommentAtCurrentTime(comment);
-
-    return (
-      <div className={`${isReply ? 'ml-6 border-l-2 border-gray-600 pl-4' : ''}`}>
-        <Card className={`bg-gray-700 border-gray-600 transition-all duration-200 ${
-          isHighlighted ? 'ring-2 ring-pink-500 bg-gray-600' : ''
-        }`}>
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <span className="font-medium text-white">{comment.author}</span>
-                {comment.isInternal && (
-                  <Badge variant="secondary" className="bg-yellow-600 text-white text-xs">
-                    Internal
+  const CommentItem = ({ comment, isReply = false }: { comment: Comment; isReply?: boolean }) => (
+    <div className={`${isReply ? 'ml-8 border-l-2 border-gray-700 pl-4' : ''}`}>
+      <Card className="bg-gray-800 border-gray-700 mb-3">
+        <CardContent className="p-4">
+          <div className="flex items-start space-x-3">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={comment.author.avatar} />
+              <AvatarFallback className="bg-gray-600 text-white text-sm">
+                {comment.author.name.split(' ').map(n => n[0]).join('')}
+              </AvatarFallback>
+            </Avatar>
+            
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium text-white text-sm">{comment.author.name}</span>
+                  <Badge variant="outline" className="border-gray-600 text-gray-300 text-xs">
+                    {comment.author.role}
                   </Badge>
-                )}
-                {comment.hasDrawing && (
-                  <Badge variant="secondary" className="bg-purple-600 text-white text-xs">
-                    Drawing
+                  <Badge className={`${getStatusColor(comment.status)} text-white text-xs`}>
+                    {comment.status}
                   </Badge>
-                )}
-                {comment.timestamp >= 0 && (
-                  <button
-                    onClick={() => onCommentClick(comment.timestamp)}
-                    className="text-blue-400 hover:text-blue-300 text-sm font-mono"
-                  >
-                    {formatTimestamp(comment.timestamp)}
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-gray-400 text-sm">
-                  {comment.createdAt.toLocaleTimeString()}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onDeleteComment(comment.id)}
-                  className="text-gray-400 hover:text-red-400 h-6 w-6 p-0"
-                >
-                  <Trash2 className="h-3 w-3" />
+                  {comment.isPinned && (
+                    <Pin className="h-3 w-3 text-yellow-400" />
+                  )}
+                </div>
+                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                  <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
-            
-            <p className="text-gray-200 mb-3">{comment.text}</p>
-            
-            {comment.attachments && comment.attachments.length > 0 && (
-              <div className="mb-3">
-                <div className="grid grid-cols-2 gap-2">
-                  {comment.attachments.map((attachment, index) => (
-                    <div key={index} className="bg-gray-600 rounded p-2">
-                      <span className="text-xs text-gray-300">{attachment.name}</span>
-                    </div>
-                  ))}
+
+              {comment.videoTimestamp !== undefined && (
+                <div className="flex items-center space-x-1 text-xs text-gray-400">
+                  <Clock className="h-3 w-3" />
+                  <span>@{formatTimestamp(comment.videoTimestamp)}</span>
+                </div>
+              )}
+
+              <p className="text-gray-300 text-sm">{comment.content}</p>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`text-xs h-6 px-2 ${
+                        comment.reactions.userReaction === 'like'
+                          ? 'text-blue-400 bg-blue-400/10'
+                          : 'text-gray-400 hover:text-blue-400'
+                      }`}
+                    >
+                      <ThumbsUp className="h-3 w-3 mr-1" />
+                      {comment.reactions.likes}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`text-xs h-6 px-2 ${
+                        comment.reactions.userReaction === 'dislike'
+                          ? 'text-red-400 bg-red-400/10'
+                          : 'text-gray-400 hover:text-red-400'
+                      }`}
+                    >
+                      <ThumbsDown className="h-3 w-3 mr-1" />
+                      {comment.reactions.dislikes}
+                    </Button>
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setReplyingTo(comment.id)}
+                    className="text-xs text-gray-400 hover:text-white h-6 px-2"
+                  >
+                    <Reply className="h-3 w-3 mr-1" />
+                    Reply
+                  </Button>
+                </div>
+
+                <div className="flex items-center space-x-1">
+                  {comment.status === 'open' && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onResolveComment(comment.id)}
+                        className="text-xs text-green-400 hover:text-green-300 h-6 px-2"
+                      >
+                        <Check className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-red-400 hover:text-red-300 h-6 px-2"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-gray-400 hover:text-white h-6 px-2"
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onDeleteComment(comment.id)}
+                    className="text-xs text-red-400 hover:text-red-300 h-6 px-2"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
                 </div>
               </div>
-            )}
-            
-            <div className="flex items-center space-x-2">
+
+              <div className="text-xs text-gray-500">
+                {comment.createdAt.toLocaleString()}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Reply Input */}
+      {replyingTo === comment.id && (
+        <div className="ml-8 mb-3">
+          <div className="flex space-x-2">
+            <Textarea
+              placeholder="Write a reply..."
+              value={replyContent}
+              onChange={(e) => setReplyContent(e.target.value)}
+              className="bg-gray-700 border-gray-600 text-white text-sm min-h-[60px]"
+            />
+            <div className="flex flex-col space-y-1">
               <Button
-                variant="ghost"
                 size="sm"
-                onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
-                className="text-gray-400 hover:text-white h-6 px-2"
+                onClick={() => handleReply(comment.id)}
+                className="bg-pink-600 hover:bg-pink-700"
               >
-                <Reply className="h-3 w-3 mr-1" />
                 Reply
               </Button>
-              {replies.length > 0 && (
-                <span className="text-gray-400 text-sm">
-                  {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
-                </span>
-              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setReplyingTo(null)}
+                className="border-gray-600 text-gray-300"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Replies */}
+      {comment.replies.map((reply) => (
+        <CommentItem key={reply.id} comment={reply} isReply />
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="w-80 bg-gray-900 border-l border-gray-800 p-4 h-full overflow-y-auto">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-white flex items-center">
+            <MessageSquare className="h-5 w-5 mr-2" />
+            Comments ({comments.length})
+          </h3>
+        </div>
+
+        {/* New Comment */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardContent className="p-4">
+            <div className="space-y-3">
+              <Textarea
+                placeholder="Add a comment..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                className="bg-gray-700 border-gray-600 text-white min-h-[80px]"
+              />
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleAddComment}
+                  disabled={!newComment.trim()}
+                  className="bg-pink-600 hover:bg-pink-700"
+                >
+                  Comment
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {replyingTo === comment.id && (
-          <div className="mt-2 ml-6">
-            <CommentInput
-              onAddComment={(text, attachments, isInternal, attachTime, hasDrawing) => 
-                handleReply(comment.id, text, attachments, isInternal, attachTime, hasDrawing)
-              }
-              onCancel={() => setReplyingTo(null)}
-              placeholder="Write a reply..."
-              currentTime={currentTime}
-              onStartDrawing={onStartDrawing}
-              isDrawingMode={isDrawingMode}
-            />
-          </div>
-        )}
-
-        {replies.length > 0 && (
-          <div className="mt-3 space-y-3">
-            {replies.map(reply => (
-              <CommentItem key={reply.id} comment={reply} isReply={true} />
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  return (
-    <div className="bg-gray-800 h-full flex flex-col">
-      <div className="p-4 border-b border-gray-700">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-gray-700">
-            <TabsTrigger 
-              value="comments" 
-              className="text-gray-300 data-[state=active]:bg-gray-600 data-[state=active]:text-white"
-            >
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Comments ({comments.length})
-            </TabsTrigger>
-            <TabsTrigger 
-              value="workflow" 
-              className="text-gray-300 data-[state=active]:bg-gray-600 data-[state=active]:text-white"
-            >
-              <Workflow className="h-4 w-4 mr-2" />
-              Workflow
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
-      <div className="flex-1 overflow-hidden">
-        <Tabs value={activeTab} className="h-full flex flex-col">
-          <TabsContent value="comments" className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Comments & Feedback</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowInternal(!showInternal)}
-                className="text-gray-400 hover:text-white"
-              >
-                {showInternal ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                <span className="ml-1">Internal</span>
-              </Button>
+        {/* Comments List */}
+        <div className="space-y-2">
+          {comments.map((comment) => (
+            <CommentItem key={comment.id} comment={comment} />
+          ))}
+          
+          {comments.length === 0 && (
+            <div className="text-center py-8">
+              <MessageSquare className="h-12 w-12 text-gray-500 mx-auto mb-3" />
+              <h4 className="text-gray-400 font-medium">No comments yet</h4>
+              <p className="text-gray-500 text-sm">Start the conversation by adding a comment</p>
             </div>
-
-            <CommentInput
-              onAddComment={onAddComment}
-              placeholder="Add a comment or feedback..."
-              currentTime={currentTime}
-              onStartDrawing={onStartDrawing}
-              isDrawingMode={isDrawingMode}
-            />
-
-            <div className="space-y-4">
-              {filteredComments.length === 0 ? (
-                <div className="text-center py-8">
-                  <MessageSquare className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-                  <p className="text-gray-400">No comments yet</p>
-                  <p className="text-gray-500 text-sm">Be the first to add feedback</p>
-                </div>
-              ) : (
-                filteredComments.map(comment => (
-                  <CommentItem key={comment.id} comment={comment} />
-                ))
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="workflow" className="flex-1 overflow-y-auto p-4">
-            <ReviewWorkflow 
-              assetId="current-asset" 
-              projectId="current-project"
-              onWorkflowComplete={(workflowId) => {
-                console.log('Workflow completed:', workflowId);
-                // Could trigger notifications, status updates, etc.
-              }}
-            />
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
       </div>
     </div>
   );
