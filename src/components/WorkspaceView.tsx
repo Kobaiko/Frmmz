@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +18,8 @@ import {
   SortDesc,
   Calendar
 } from "lucide-react";
+import { RealtimePresence } from "./RealtimePresence";
+import { EnhancedProjectCreation } from "./EnhancedProjectCreation";
 
 interface Project {
   id: string;
@@ -42,8 +43,7 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('lastActivity');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-
-  const projects: Project[] = [
+  const [projects, setProjects] = useState<Project[]>([
     {
       id: 'demo',
       name: 'Summer Campaign 2024',
@@ -77,7 +77,11 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
       lastActivity: new Date('2024-06-09'),
       totalDuration: '8:15'
     }
-  ];
+  ]);
+
+  const handleCreateProject = (newProject: any) => {
+    setProjects([newProject, ...projects]);
+  };
 
   const getStatusColor = (status: Project['status']) => {
     switch (status) {
@@ -224,10 +228,10 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
             <h1 className="text-3xl font-bold text-white mb-2">Projects</h1>
             <p className="text-gray-400">Manage your creative projects and assets</p>
           </div>
-          <Button className="bg-pink-600 hover:bg-pink-700 text-white">
-            <Plus className="h-4 w-4 mr-2" />
-            New Project
-          </Button>
+          <div className="flex items-center space-x-4">
+            <RealtimePresence projectId="workspace" currentUserId="current-user" />
+            <EnhancedProjectCreation onCreateProject={handleCreateProject} />
+          </div>
         </div>
 
         {/* Filters and Controls */}
@@ -306,10 +310,7 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
             <Folder className="h-16 w-16 text-gray-600 mx-auto mb-4" />
             <h3 className="text-xl font-medium text-gray-400 mb-2">No projects found</h3>
             <p className="text-gray-500 mb-6">Create your first project or adjust your filters</p>
-            <Button className="bg-pink-600 hover:bg-pink-700 text-white">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Project
-            </Button>
+            <EnhancedProjectCreation onCreateProject={handleCreateProject} />
           </div>
         ) : (
           <>
