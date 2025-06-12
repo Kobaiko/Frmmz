@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { CommentPanel } from "@/components/CommentPanel";
-import { VideoUpload } from "@/components/VideoUpload";
+import { MediaUpload } from "@/components/MediaUpload";
 import { ProjectHeader } from "@/components/ProjectHeader";
 import { WorkspaceView } from "@/components/WorkspaceView";
 import { ProjectAssetsEnhanced } from "@/components/ProjectAssetsEnhanced";
@@ -177,7 +177,7 @@ const Index = () => {
             <p className="text-gray-400 mb-12 text-lg">
               Upload content or paste a URL to start collecting feedback
             </p>
-            <VideoUpload onVideoLoad={handleVideoLoad} />
+            <MediaUpload onMediaLoad={handleVideoLoad} />
           </div>
         </div>
       </div>
