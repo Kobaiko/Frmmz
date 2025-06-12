@@ -6,6 +6,7 @@ import { ProjectHeader } from "@/components/ProjectHeader";
 import { WorkspaceView } from "@/components/WorkspaceView";
 import { ProjectAssetsEnhanced } from "@/components/ProjectAssetsEnhanced";
 import { Sidebar } from "@/components/Sidebar";
+import { AdvancedVideoPlayer } from "@/components/AdvancedVideoPlayer";
 
 interface AttachmentWithType {
   url: string;
