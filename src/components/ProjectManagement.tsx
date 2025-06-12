@@ -1,124 +1,149 @@
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { 
-  FolderTree, 
-  Users, 
-  Clock, 
-  Target, 
-  FileVideo, 
-  Image,
-  FileAudio,
-  File,
+  Folder,
   Calendar,
+  Users,
+  Clock,
+  Target,
+  TrendingUp,
+  AlertTriangle,
   CheckCircle,
-  AlertCircle,
-  X
+  Plus,
+  Settings,
+  Archive,
+  Star,
+  MoreHorizontal
 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
 
-interface ProjectManagementProps {
-  projectId: string;
-  onClose: () => void;
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  status: 'active' | 'completed' | 'archived' | 'on-hold';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  progress: number;
+  dueDate: Date;
+  createdAt: Date;
+  teamMembers: number;
+  assetsCount: number;
+  commentsCount: number;
+  template?: string;
+  tags: string[];
+  owner: string;
+  lastActivity: Date;
 }
 
-export const ProjectManagement = ({ projectId, onClose }: ProjectManagementProps) => {
-  const [projectData] = useState({
-    name: "Summer Campaign 2024",
-    description: "Complete video campaign for summer product launch",
-    status: "in-progress",
-    progress: 65,
-    deadline: "2024-07-15",
-    budget: "$50,000",
-    teamSize: 8,
-    totalAssets: 156,
-    completedTasks: 23,
-    totalTasks: 35
-  });
+interface ProjectManagementProps {
+  projects: Project[];
+  onProjectSelect: (project: Project) => void;
+  onCreateProject: () => void;
+}
 
-  const [folders] = useState([
-    { id: '1', name: 'Raw Footage', assetCount: 45, type: 'video', size: '12.5 GB' },
-    { id: '2', name: 'Audio Files', assetCount: 23, type: 'audio', size: '2.1 GB' },
-    { id: '3', name: 'Graphics', assetCount: 67, type: 'image', size: '890 MB' },
-    { id: '4', name: 'Final Cuts', assetCount: 12, type: 'video', size: '8.2 GB' },
-    { id: '5', name: 'Client Reviews', assetCount: 9, type: 'mixed', size: '1.5 GB' }
-  ]);
+export const ProjectManagement = ({ projects, onProjectSelect, onCreateProject }: ProjectManagementProps) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedPriority, setSelectedPriority] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('lastActivity');
 
-  const [tasks] = useState([
-    { id: '1', title: 'Color grading - Scene 1', assignee: 'Sarah Johnson', status: 'completed', dueDate: '2024-06-10' },
-    { id: '2', title: 'Audio mixing - Track 3', assignee: 'Mike Chen', status: 'in-progress', dueDate: '2024-06-12' },
-    { id: '3', title: 'Client feedback review', assignee: 'Emily Davis', status: 'pending', dueDate: '2024-06-13' },
-    { id: '4', title: 'Final export - Version 2', assignee: 'John Smith', status: 'pending', dueDate: '2024-06-15' }
-  ]);
-
-  const [milestones] = useState([
-    { id: '1', title: 'First Cut Complete', date: '2024-06-01', status: 'completed' },
-    { id: '2', title: 'Client Review Round 1', date: '2024-06-08', status: 'completed' },
-    { id: '3', title: 'Color & Audio Final', date: '2024-06-15', status: 'in-progress' },
-    { id: '4', title: 'Final Delivery', date: '2024-06-22', status: 'pending' }
-  ]);
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'video': return <FileVideo className="h-4 w-4 text-blue-500" />;
-      case 'audio': return <FileAudio className="h-4 w-4 text-green-500" />;
-      case 'image': return <Image className="h-4 w-4 text-purple-500" />;
-      default: return <File className="h-4 w-4 text-gray-500" />;
+  const getStatusIcon = (status: Project['status']) => {
+    switch (status) {
+      case 'active': return <TrendingUp className="h-4 w-4 text-green-400" />;
+      case 'completed': return <CheckCircle className="h-4 w-4 text-blue-400" />;
+      case 'archived': return <Archive className="h-4 w-4 text-gray-400" />;
+      case 'on-hold': return <AlertTriangle className="h-4 w-4 text-yellow-400" />;
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusColor = (status: Project['status']) => {
     switch (status) {
-      case 'completed': return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'in-progress': return <Clock className="h-4 w-4 text-yellow-500" />;
-      default: return <AlertCircle className="h-4 w-4 text-gray-500" />;
+      case 'active': return 'bg-green-600';
+      case 'completed': return 'bg-blue-600';
+      case 'archived': return 'bg-gray-600';
+      case 'on-hold': return 'bg-yellow-600';
     }
+  };
+
+  const getPriorityColor = (priority: Project['priority']) => {
+    switch (priority) {
+      case 'urgent': return 'bg-red-600';
+      case 'high': return 'bg-orange-600';
+      case 'medium': return 'bg-yellow-600';
+      case 'low': return 'bg-green-600';
+    }
+  };
+
+  const filteredProjects = projects
+    .filter(project => {
+      const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           project.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = selectedStatus === 'all' || project.status === selectedStatus;
+      const matchesPriority = selectedPriority === 'all' || project.priority === selectedPriority;
+      return matchesSearch && matchesStatus && matchesPriority;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'name': return a.name.localeCompare(b.name);
+        case 'dueDate': return a.dueDate.getTime() - b.dueDate.getTime();
+        case 'progress': return b.progress - a.progress;
+        case 'lastActivity': return b.lastActivity.getTime() - a.lastActivity.getTime();
+        default: return 0;
+      }
+    });
+
+  const getProjectStats = () => {
+    const total = projects.length;
+    const active = projects.filter(p => p.status === 'active').length;
+    const completed = projects.filter(p => p.status === 'completed').length;
+    const overdue = projects.filter(p => p.dueDate < new Date() && p.status !== 'completed').length;
+    const avgProgress = projects.reduce((sum, p) => sum + p.progress, 0) / total || 0;
+
+    return { total, active, completed, overdue, avgProgress };
+  };
+
+  const stats = getProjectStats();
+
+  const formatDate = (date: Date) => {
+    const now = new Date();
+    const diffTime = date.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return `${Math.abs(diffDays)} days overdue`;
+    if (diffDays === 0) return 'Due today';
+    if (diffDays === 1) return 'Due tomorrow';
+    return `Due in ${diffDays} days`;
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">{projectData.name}</h1>
-          <p className="text-gray-400">{projectData.description}</p>
+          <h2 className="text-2xl font-bold text-white">Project Management</h2>
+          <p className="text-gray-400">{filteredProjects.length} projects</p>
         </div>
-        <Button onClick={onClose} variant="outline" className="border-gray-600 text-gray-300">
-          <X className="h-4 w-4 mr-2" />
-          Close
+        <Button onClick={onCreateProject} className="bg-pink-600 hover:bg-pink-700">
+          <Plus className="h-4 w-4 mr-2" />
+          New Project
         </Button>
       </div>
 
-      {/* Project Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-gray-800 border-gray-700">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Progress</p>
-                <p className="text-white text-2xl font-bold">{projectData.progress}%</p>
+                <p className="text-gray-400 text-sm">Total Projects</p>
+                <p className="text-2xl font-bold text-white">{stats.total}</p>
               </div>
-              <Target className="h-8 w-8 text-blue-500" />
-            </div>
-            <Progress value={projectData.progress} className="mt-2" />
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Team Size</p>
-                <p className="text-white text-2xl font-bold">{projectData.teamSize}</p>
-              </div>
-              <Users className="h-8 w-8 text-green-500" />
+              <Folder className="h-8 w-8 text-blue-400" />
             </div>
           </CardContent>
         </Card>
@@ -127,10 +152,10 @@ export const ProjectManagement = ({ projectId, onClose }: ProjectManagementProps
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Total Assets</p>
-                <p className="text-white text-2xl font-bold">{projectData.totalAssets}</p>
+                <p className="text-gray-400 text-sm">Active Projects</p>
+                <p className="text-2xl font-bold text-white">{stats.active}</p>
               </div>
-              <FolderTree className="h-8 w-8 text-purple-500" />
+              <TrendingUp className="h-8 w-8 text-green-400" />
             </div>
           </CardContent>
         </Card>
@@ -139,145 +164,149 @@ export const ProjectManagement = ({ projectId, onClose }: ProjectManagementProps
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Tasks</p>
-                <p className="text-white text-2xl font-bold">{projectData.completedTasks}/{projectData.totalTasks}</p>
+                <p className="text-gray-400 text-sm">Completed</p>
+                <p className="text-2xl font-bold text-white">{stats.completed}</p>
               </div>
-              <Calendar className="h-8 w-8 text-yellow-500" />
+              <CheckCircle className="h-8 w-8 text-blue-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-800 border-gray-700">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Avg Progress</p>
+                <p className="text-2xl font-bold text-white">{Math.round(stats.avgProgress)}%</p>
+              </div>
+              <Target className="h-8 w-8 text-purple-400" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="folders" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 bg-gray-800">
-          <TabsTrigger value="folders" className="text-gray-300">Folders & Assets</TabsTrigger>
-          <TabsTrigger value="tasks" className="text-gray-300">Tasks</TabsTrigger>
-          <TabsTrigger value="timeline" className="text-gray-300">Timeline</TabsTrigger>
-          <TabsTrigger value="settings" className="text-gray-300">Settings</TabsTrigger>
-        </TabsList>
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4 items-center">
+        <Input
+          placeholder="Search projects..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="flex-1 min-w-[200px] bg-gray-800 border-gray-700 text-white"
+        />
 
-        <TabsContent value="folders" className="space-y-6">
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white">Project Folders</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4">
-                {folders.map(folder => (
-                  <div key={folder.id} className="flex items-center justify-between p-4 bg-gray-700 rounded-lg hover:bg-gray-600 cursor-pointer transition-colors">
-                    <div className="flex items-center space-x-3">
-                      {getTypeIcon(folder.type)}
-                      <div>
-                        <h3 className="text-white font-medium">{folder.name}</h3>
-                        <p className="text-gray-400 text-sm">{folder.assetCount} assets • {folder.size}</p>
-                      </div>
-                    </div>
-                    <Badge variant="outline">{folder.type}</Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        <div className="flex space-x-2">
+          {['all', 'active', 'completed', 'on-hold', 'archived'].map((status) => (
+            <Button
+              key={status}
+              variant={selectedStatus === status ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSelectedStatus(status)}
+              className={selectedStatus === status ? 'bg-pink-600' : 'border-gray-600 text-gray-300'}
+            >
+              {status === 'all' ? 'All' : status.replace('-', ' ')}
+            </Button>
+          ))}
+        </div>
+      </div>
 
-        <TabsContent value="tasks" className="space-y-6">
-          <Card className="bg-gray-800 border-gray-700">
+      {/* Projects Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredProjects.map((project) => (
+          <Card 
+            key={project.id} 
+            className="bg-gray-800 border-gray-700 hover:border-pink-500 transition-colors cursor-pointer"
+            onClick={() => onProjectSelect(project)}
+          >
             <CardHeader>
-              <CardTitle className="text-white">Project Tasks</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {tasks.map(task => (
-                  <div key={task.id} className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      {getStatusIcon(task.status)}
-                      <div>
-                        <h3 className="text-white font-medium">{task.title}</h3>
-                        <p className="text-gray-400 text-sm">Assigned to {task.assignee} • Due {task.dueDate}</p>
-                      </div>
-                    </div>
-                    <Badge variant={task.status === 'completed' ? 'default' : 'secondary'}>
-                      {task.status}
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <CardTitle className="text-white text-lg">{project.name}</CardTitle>
+                    <Badge className={getPriorityColor(project.priority)}>
+                      {project.priority}
                     </Badge>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="timeline" className="space-y-6">
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white">Project Timeline</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {milestones.map(milestone => (
-                  <div key={milestone.id} className="flex items-center space-x-4">
-                    <div className="flex flex-col items-center">
-                      {getStatusIcon(milestone.status)}
-                      <div className="w-px h-8 bg-gray-600 mt-2"></div>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-white font-medium">{milestone.title}</h3>
-                      <p className="text-gray-400 text-sm">{milestone.date}</p>
-                    </div>
-                    <Badge variant={milestone.status === 'completed' ? 'default' : 'secondary'}>
-                      {milestone.status}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="settings" className="space-y-6">
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white">Project Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-gray-300">Project Name</Label>
-                <Input
-                  defaultValue={projectData.name}
-                  className="bg-gray-700 border-gray-600 text-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-gray-300">Description</Label>
-                <Input
-                  defaultValue={projectData.description}
-                  className="bg-gray-700 border-gray-600 text-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-gray-300">Status</Label>
-                <Select defaultValue={projectData.status}>
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700">
-                    <SelectItem value="planning">Planning</SelectItem>
-                    <SelectItem value="in-progress">In Progress</SelectItem>
-                    <SelectItem value="review">Under Review</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Auto-backup</Label>
-                  <p className="text-sm text-gray-500">Automatically backup project daily</p>
+                  <p className="text-gray-400 text-sm line-clamp-2">{project.description}</p>
                 </div>
-                <Switch />
+                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
               </div>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              {/* Status and Progress */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    {getStatusIcon(project.status)}
+                    <Badge className={getStatusColor(project.status)}>
+                      {project.status.replace('-', ' ')}
+                    </Badge>
+                  </div>
+                  <span className="text-sm text-gray-400">{project.progress}%</span>
+                </div>
+                <Progress value={project.progress} className="h-2" />
+              </div>
+
+              {/* Project Stats */}
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div className="flex items-center space-x-1 text-gray-400">
+                  <Users className="h-4 w-4" />
+                  <span>{project.teamMembers}</span>
+                </div>
+                <div className="flex items-center space-x-1 text-gray-400">
+                  <Folder className="h-4 w-4" />
+                  <span>{project.assetsCount}</span>
+                </div>
+                <div className="flex items-center space-x-1 text-gray-400">
+                  <Clock className="h-4 w-4" />
+                  <span>{project.commentsCount}</span>
+                </div>
+              </div>
+
+              {/* Due Date */}
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center space-x-1 text-gray-400">
+                  <Calendar className="h-4 w-4" />
+                  <span>{formatDate(project.dueDate)}</span>
+                </div>
+                <span className="text-gray-500">
+                  {project.lastActivity.toLocaleDateString()}
+                </span>
+              </div>
+
+              {/* Tags */}
+              {project.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {project.tags.slice(0, 3).map((tag, index) => (
+                    <Badge key={index} variant="outline" className="border-gray-600 text-gray-400 text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                  {project.tags.length > 3 && (
+                    <Badge variant="outline" className="border-gray-600 text-gray-400 text-xs">
+                      +{project.tags.length - 3}
+                    </Badge>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        ))}
+      </div>
+
+      {filteredProjects.length === 0 && (
+        <div className="text-center py-12">
+          <Folder className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+          <h3 className="text-xl font-medium text-gray-400">No projects found</h3>
+          <p className="text-gray-500">Create your first project or adjust your filters</p>
+          <Button onClick={onCreateProject} className="mt-4 bg-pink-600 hover:bg-pink-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Create Project
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,608 +1,394 @@
 
 import { useState } from "react";
-import { ArrowLeft, Plus, Upload, Folder, Lock, MoreHorizontal, Eye, Grid, List, Search, Share, Copy, Trash2, Edit3, Download, ExternalLink } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { toast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Grid3X3,
+  List,
+  Search,
+  Filter,
+  Upload,
+  Folder,
+  Video,
+  Image,
+  FileText,
+  Music,
+  Clock,
+  User,
+  Tag,
+  SortAsc,
+  SortDesc,
+  Calendar,
+  Eye,
+  Download,
+  Share,
+  MoreHorizontal
+} from "lucide-react";
 
-interface Asset {
+export interface Asset {
   id: string;
   name: string;
-  type: 'image' | 'video' | 'document';
-  size: string;
-  status: 'Needs Review' | 'In Progress' | 'Approved';
-  author: string;
-  date: string;
+  type: 'video' | 'image' | 'audio' | 'document';
+  size: number;
+  duration?: number;
+  resolution?: string;
+  format: string;
+  uploadedBy: string;
+  uploadedAt: Date;
+  modifiedAt: Date;
+  tags: string[];
+  status: 'processing' | 'ready' | 'error';
   thumbnail?: string;
-  projectId: string;
+  path: string;
+  metadata?: any;
 }
 
 interface ProjectAssetsEnhancedProps {
-  projectName: string;
   projectId: string;
-  onBack: () => void;
-  onStartFeedback: () => void;
+  assets: Asset[];
+  onAssetSelect: (asset: Asset) => void;
+  onUpload: () => void;
 }
 
-// Global assets store - in a real app this would be in a context or database
-const globalAssets: { [projectId: string]: Asset[] } = {};
+export const ProjectAssetsEnhanced = ({ projectId, assets, onAssetSelect, onUpload }: ProjectAssetsEnhancedProps) => {
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
 
-export const ProjectAssetsEnhanced = ({ projectName, projectId, onBack, onStartFeedback }: ProjectAssetsEnhancedProps) => {
-  const [dragActive, setDragActive] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
-  const [selectedStatus, setSelectedStatus] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showStatusFilter, setShowStatusFilter] = useState<string | null>(null);
-  const [showImageViewer, setShowImageViewer] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<Asset | null>(null);
-
-  // Get project-specific assets
-  const [assets, setAssets] = useState<Asset[]>(() => {
-    if (!globalAssets[projectId]) {
-      globalAssets[projectId] = projectId === 'demo' ? [{
-        id: '1',
-        name: 'IMG_193458D1E9A5-1.jpeg',
-        type: 'image',
-        size: '519 kB',
-        status: 'Needs Review',
-        author: 'Yair Kivalko',
-        date: 'Jun 09, 2025',
-        thumbnail: '/lovable-uploads/848c43be-63ce-4bed-a3af-d20c27c57322.png',
-        projectId
-      }] : [];
-    }
-    return globalAssets[projectId];
-  });
-
-  const statusOptions = [
-    { value: '', label: 'All Status', color: '' },
-    { value: 'Needs Review', label: 'Needs Review', color: 'bg-yellow-500' },
-    { value: 'In Progress', label: 'In Progress', color: 'bg-blue-500' },
-    { value: 'Approved', label: 'Approved', color: 'bg-green-500' }
-  ];
-
-  const filteredAssets = assets.filter(asset => {
-    const matchesStatus = !selectedStatus || asset.status === selectedStatus;
-    const matchesSearch = asset.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
-
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
+  const getAssetIcon = (type: Asset['type']) => {
+    switch (type) {
+      case 'video': return <Video className="h-4 w-4 text-blue-400" />;
+      case 'image': return <Image className="h-4 w-4 text-green-400" />;
+      case 'audio': return <Music className="h-4 w-4 text-purple-400" />;
+      case 'document': return <FileText className="h-4 w-4 text-yellow-400" />;
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    
-    const files = Array.from(e.dataTransfer.files);
-    handleFileUpload(files);
-  };
-
-  const handleFileUpload = (files: File[]) => {
-    files.forEach(file => {
-      const newAsset: Asset = {
-        id: Math.random().toString(36).substr(2, 9),
-        name: file.name,
-        type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'document',
-        size: formatFileSize(file.size),
-        status: 'Needs Review',
-        author: 'You',
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-        projectId,
-        thumbnail: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
-      };
-      
-      const updatedAssets = [...assets, newAsset];
-      setAssets(updatedAssets);
-      globalAssets[projectId] = updatedAssets;
-    });
-    
-    toast({
-      title: "Assets uploaded",
-      description: `${files.length} asset(s) uploaded successfully.`,
-    });
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'kB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-  };
-
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: Asset['status']) => {
     switch (status) {
-      case 'Needs Review': return 'bg-yellow-500';
-      case 'In Progress': return 'bg-blue-500';
-      case 'Approved': return 'bg-green-500';
-      default: return 'bg-gray-500';
+      case 'processing': return 'bg-yellow-600';
+      case 'ready': return 'bg-green-600';
+      case 'error': return 'bg-red-600';
     }
   };
 
-  const handleStatusChange = (assetId: string, newStatus: 'Needs Review' | 'In Progress' | 'Approved') => {
-    const updatedAssets = assets.map(asset => 
-      asset.id === assetId ? { ...asset, status: newStatus } : asset
-    );
-    setAssets(updatedAssets);
-    globalAssets[projectId] = updatedAssets;
-    setShowStatusFilter(null);
-    
-    toast({
-      title: "Status updated",
-      description: `Asset status changed to ${newStatus}.`,
-    });
+  const formatFileSize = (bytes: number) => {
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    if (bytes === 0) return '0 B';
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  const handleImageClick = (asset: Asset) => {
-    if (asset.type === 'image') {
-      setSelectedImage(asset);
-      setShowImageViewer(true);
+  const formatDuration = (seconds?: number) => {
+    if (!seconds) return '';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const filteredAssets = assets
+    .filter(asset => {
+      const matchesSearch = asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           asset.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesType = selectedType === 'all' || asset.type === selectedType;
+      const matchesStatus = selectedStatus === 'all' || asset.status === selectedStatus;
+      return matchesSearch && matchesType && matchesStatus;
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'size':
+          comparison = a.size - b.size;
+          break;
+        case 'uploadedAt':
+          comparison = a.uploadedAt.getTime() - b.uploadedAt.getTime();
+          break;
+        case 'type':
+          comparison = a.type.localeCompare(b.type);
+          break;
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+  const assetCounts = {
+    all: assets.length,
+    video: assets.filter(a => a.type === 'video').length,
+    image: assets.filter(a => a.type === 'image').length,
+    audio: assets.filter(a => a.type === 'audio').length,
+    document: assets.filter(a => a.type === 'document').length
+  };
+
+  const handleAssetSelect = (assetId: string, multiSelect = false) => {
+    if (multiSelect) {
+      setSelectedAssets(prev => 
+        prev.includes(assetId) 
+          ? prev.filter(id => id !== assetId)
+          : [...prev, assetId]
+      );
+    } else {
+      const asset = assets.find(a => a.id === assetId);
+      if (asset) onAssetSelect(asset);
     }
   };
-
-  const handleCreateShareLink = (assetId: string) => {
-    const shareUrl = `${window.location.origin}/asset/${assetId}`;
-    navigator.clipboard.writeText(shareUrl);
-    toast({
-      title: "Share link copied",
-      description: "Asset share link has been copied to clipboard.",
-    });
-  };
-
-  const handleCopyAssetUrl = (assetId: string) => {
-    const assetUrl = `${window.location.origin}/asset/${assetId}`;
-    navigator.clipboard.writeText(assetUrl);
-    toast({
-      title: "Asset URL copied",
-      description: "Asset URL has been copied to clipboard.",
-    });
-  };
-
-  const handleDownload = (asset: Asset) => {
-    toast({
-      title: "Download started",
-      description: `Downloading ${asset.name}...`,
-    });
-  };
-
-  const handleDelete = (assetId: string) => {
-    const updatedAssets = assets.filter(a => a.id !== assetId);
-    setAssets(updatedAssets);
-    globalAssets[projectId] = updatedAssets;
-    toast({
-      title: "Asset deleted",
-      description: "Asset has been deleted successfully.",
-    });
-  };
-
-  if (assets.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-900">
-        {/* Header */}
-        <div className="border-b border-gray-700 bg-gray-800">
-          <div className="container mx-auto px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onBack}
-                  className="text-gray-400 hover:text-white hover:bg-gray-700"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-                <div>
-                  <h1 className="text-xl font-semibold text-white">{projectName}</h1>
-                  <p className="text-sm text-gray-400">0 Items</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
-                    <DropdownMenuItem 
-                      className="text-gray-300 hover:bg-gray-700"
-                      onClick={() => document.getElementById('file-upload')?.click()}
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Asset
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      className="text-gray-300 hover:bg-gray-700"
-                      onClick={() => document.getElementById('folder-upload')?.click()}
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Folder
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
-                      <Folder className="h-4 w-4 mr-2" />
-                      New Folder
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
-                      <Lock className="h-4 w-4 mr-2" />
-                      New Restricted Folder
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                
-                <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800">
-                  Share
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Main content area */}
-        <div className="container mx-auto px-4 py-8">
-          <div 
-            className={`border-2 border-dashed rounded-lg p-16 text-center transition-colors ${
-              dragActive 
-                ? 'border-blue-500 bg-blue-500/10' 
-                : 'border-gray-600 hover:border-gray-500'
-            }`}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-          >
-            <div className="max-w-md mx-auto">
-              <div className="w-16 h-16 mx-auto mb-6 bg-gray-700 rounded-full flex items-center justify-center">
-                <Upload className="w-8 h-8 text-gray-400" />
-              </div>
-              
-              <h3 className="text-xl font-medium text-white mb-2">
-                Drag files and folders to begin.
-              </h3>
-              
-              <p className="text-gray-400 mb-6">
-                Or use the upload button to add your assets
-              </p>
-              
-              <div className="space-y-3">
-                <Button 
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                  onClick={() => document.getElementById('file-upload')?.click()}
-                >
-                  Upload
-                </Button>
-                
-                <input
-                  id="file-upload"
-                  type="file"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    handleFileUpload(files);
-                  }}
-                />
-
-                <input
-                  id="folder-upload"
-                  type="file"
-                  // @ts-ignore
-                  webkitdirectory=""
-                  className="hidden"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    handleFileUpload(files);
-                  }}
-                />
-                
-                <div className="text-center">
-                  <Button 
-                    variant="link" 
-                    className="text-blue-400 hover:text-blue-300"
-                    onClick={onStartFeedback}
-                  >
-                    Or start collecting feedback →
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="border-b border-gray-700 bg-gray-800">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onBack}
-                className="text-gray-400 hover:text-white hover:bg-gray-700"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div>
-                <h1 className="text-xl font-semibold text-white">{projectName}</h1>
-                <p className="text-sm text-gray-400">{filteredAssets.length} Assets • 519 kB</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
-                  <DropdownMenuItem 
-                    className="text-gray-300 hover:bg-gray-700"
-                    onClick={() => document.getElementById('file-upload')?.click()}
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Asset
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    className="text-gray-300 hover:bg-gray-700"
-                    onClick={() => document.getElementById('folder-upload')?.click()}
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Folder
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800">
-                <Search className="h-4 w-4 mr-2" />
-              </Button>
-              
-              <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-gray-800">
-                Share
-              </Button>
-            </div>
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Project Assets</h2>
+          <p className="text-gray-400">{filteredAssets.length} of {assets.length} assets</p>
+        </div>
+        <div className="flex space-x-2">
+          <Button onClick={onUpload} className="bg-pink-600 hover:bg-pink-700">
+            <Upload className="h-4 w-4 mr-2" />
+            Upload Assets
+          </Button>
         </div>
       </div>
 
-      {/* Controls bar */}
-      <div className="border-b border-gray-700 bg-gray-800">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-1">
-                <Eye className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-300">Appearance</span>
-              </div>
-              
-              <div className="flex items-center space-x-1">
-                <span className="text-sm text-gray-300">Fields</span>
-                <span className="text-xs text-gray-500">1 Visible</span>
-              </div>
-              
-              <div className="flex items-center space-x-1">
-                <span className="text-sm text-gray-300">Sorted by</span>
-                <span className="text-xs text-gray-500">Custom</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Button
-                variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                size="icon"
-                onClick={() => setViewMode('grid')}
-                className="h-8 w-8 text-white"
-              >
-                <Grid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === 'list' ? 'default' : 'ghost'}
-                size="icon"
-                onClick={() => setViewMode('list')}
-                className="h-8 w-8 text-white"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+      {/* Filters and Search */}
+      <div className="flex flex-wrap gap-4 items-center">
+        <div className="flex-1 relative min-w-[300px]">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Search assets..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 bg-gray-800 border-gray-700 text-white"
+          />
+        </div>
+
+        <Select value={selectedType} onValueChange={setSelectedType}>
+          <SelectTrigger className="w-32 bg-gray-800 border-gray-700 text-white">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-gray-800 border-gray-700">
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="video">Video</SelectItem>
+            <SelectItem value="image">Image</SelectItem>
+            <SelectItem value="audio">Audio</SelectItem>
+            <SelectItem value="document">Document</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+          <SelectTrigger className="w-32 bg-gray-800 border-gray-700 text-white">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-gray-800 border-gray-700">
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="ready">Ready</SelectItem>
+            <SelectItem value="processing">Processing</SelectItem>
+            <SelectItem value="error">Error</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <div className="flex items-center space-x-2">
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-32 bg-gray-800 border-gray-700 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-800 border-gray-700">
+              <SelectItem value="name">Name</SelectItem>
+              <SelectItem value="size">Size</SelectItem>
+              <SelectItem value="uploadedAt">Date</SelectItem>
+              <SelectItem value="type">Type</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            className="border-gray-600"
+          >
+            {sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+          </Button>
+        </div>
+
+        <div className="flex items-center space-x-1">
+          <Button
+            variant={viewMode === 'grid' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('grid')}
+            className={viewMode === 'grid' ? 'bg-pink-600' : 'border-gray-600'}
+          >
+            <Grid3X3 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('list')}
+            className={viewMode === 'list' ? 'bg-pink-600' : 'border-gray-600'}
+          >
+            <List className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
-      {/* Assets content */}
-      <div className="container mx-auto px-4 py-4">
-        {filteredAssets.map((asset) => (
-          <Card key={asset.id} className="bg-gray-800 border-gray-700 mb-3">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-4">
-                <div 
-                  className="w-16 h-16 bg-gray-700 rounded overflow-hidden flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => handleImageClick(asset)}
-                >
+      {/* Asset Type Tabs */}
+      <div className="flex space-x-1">
+        {Object.entries(assetCounts).map(([type, count]) => (
+          <Button
+            key={type}
+            variant={selectedType === type ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedType(type)}
+            className={selectedType === type ? 'bg-pink-600' : 'border-gray-600 text-gray-300'}
+          >
+            {getAssetIcon(type as Asset['type'])}
+            <span className="ml-2 capitalize">{type}</span>
+            <Badge variant="secondary" className="ml-2 bg-gray-600 text-gray-300">
+              {count}
+            </Badge>
+          </Button>
+        ))}
+      </div>
+
+      {/* Assets Display */}
+      {viewMode === 'grid' ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          {filteredAssets.map((asset) => (
+            <Card 
+              key={asset.id} 
+              className="bg-gray-800 border-gray-700 hover:border-pink-500 transition-colors cursor-pointer"
+              onClick={() => handleAssetSelect(asset.id)}
+            >
+              <CardContent className="p-3">
+                <div className="aspect-video bg-gray-700 rounded mb-2 flex items-center justify-center relative">
                   {asset.thumbnail ? (
-                    <img src={asset.thumbnail} alt={asset.name} className="w-full h-full object-cover" />
+                    <img src={asset.thumbnail} alt={asset.name} className="w-full h-full object-cover rounded" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Folder className="h-8 w-8 text-gray-400" />
+                    getAssetIcon(asset.type)
+                  )}
+                  
+                  <div className="absolute top-2 right-2">
+                    <Badge className={getStatusColor(asset.status)}>
+                      {asset.status}
+                    </Badge>
+                  </div>
+                  
+                  {asset.duration && (
+                    <div className="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white text-xs px-1 rounded">
+                      {formatDuration(asset.duration)}
                     </div>
                   )}
                 </div>
                 
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-white font-medium truncate">{asset.name}</h3>
-                  <p className="text-sm text-gray-400">{asset.author} • {asset.date}</p>
+                <div className="space-y-1">
+                  <p className="text-white text-sm font-medium truncate" title={asset.name}>
+                    {asset.name}
+                  </p>
+                  <p className="text-gray-400 text-xs">
+                    {formatFileSize(asset.size)}
+                  </p>
+                  <div className="flex items-center space-x-1 text-xs text-gray-400">
+                    <Clock className="h-3 w-3" />
+                    <span>{asset.uploadedAt.toLocaleDateString()}</span>
+                  </div>
                 </div>
-                
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filteredAssets.map((asset) => (
+            <Card 
+              key={asset.id} 
+              className="bg-gray-800 border-gray-700 hover:border-pink-500 transition-colors cursor-pointer"
+              onClick={() => handleAssetSelect(asset.id)}
+            >
+              <CardContent className="p-4">
                 <div className="flex items-center space-x-4">
-                  <div className="relative">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-gray-600 text-gray-300 bg-gray-800 hover:bg-gray-700"
-                      onClick={() => setShowStatusFilter(showStatusFilter === asset.id ? null : asset.id)}
-                    >
-                      <div className={`w-2 h-2 rounded-full mr-2 ${getStatusColor(asset.status)}`} />
-                      {asset.status}
-                    </Button>
-                    
-                    {showStatusFilter === asset.id && (
-                      <div className="absolute top-full left-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg p-2 min-w-[200px] z-10">
-                        <div className="space-y-1">
-                          {statusOptions.slice(1).map((option) => (
-                            <div
-                              key={option.value}
-                              className={`p-2 rounded cursor-pointer text-sm hover:bg-gray-700 ${
-                                asset.status === option.label ? 'bg-gray-700' : ''
-                              }`}
-                              onClick={() => handleStatusChange(asset.id, option.label as 'Needs Review' | 'In Progress' | 'Approved')}
-                            >
-                              <div className="flex items-center space-x-2">
-                                <div className={`w-2 h-2 rounded-full ${option.color}`} />
-                                <span className="text-gray-300">{option.label}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                  <div className="w-12 h-12 bg-gray-700 rounded flex items-center justify-center flex-shrink-0">
+                    {asset.thumbnail ? (
+                      <img src={asset.thumbnail} alt={asset.name} className="w-full h-full object-cover rounded" />
+                    ) : (
+                      getAssetIcon(asset.type)
                     )}
                   </div>
                   
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 w-48">
-                      <DropdownMenuItem 
-                        className="text-gray-300 hover:bg-gray-700"
-                        onClick={() => handleCreateShareLink(asset.id)}
-                      >
-                        <Share className="h-4 w-4 mr-2" />
-                        Create Share Link
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Add to Share Links
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator className="bg-gray-600" />
-                      <DropdownMenuItem 
-                        className="text-gray-300 hover:bg-gray-700"
-                        onClick={() => handleDownload(asset)}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        className="text-gray-300 hover:bg-gray-700"
-                        onClick={() => handleCopyAssetUrl(asset.id)}
-                      >
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy Asset URL
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy to
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
-                        Move to
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator className="bg-gray-600" />
-                      <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
-                        <Copy className="h-4 w-4 mr-2" />
-                        Duplicate
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
-                        <Edit3 className="h-4 w-4 mr-2" />
-                        Rename
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator className="bg-gray-600" />
-                      <DropdownMenuItem 
-                        className="text-red-400 hover:bg-gray-700"
-                        onClick={() => handleDelete(asset.id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2">
+                      <p className="text-white font-medium truncate">{asset.name}</p>
+                      <Badge className={getStatusColor(asset.status)}>
+                        {asset.status}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center space-x-4 text-sm text-gray-400 mt-1">
+                      <span>{formatFileSize(asset.size)}</span>
+                      {asset.duration && <span>{formatDuration(asset.duration)}</span>}
+                      {asset.resolution && <span>{asset.resolution}</span>}
+                      <span>{asset.format.toUpperCase()}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 text-sm text-gray-400">
+                    <User className="h-4 w-4" />
+                    <span>{asset.uploadedBy}</span>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 text-sm text-gray-400">
+                    <Calendar className="h-4 w-4" />
+                    <span>{asset.uploadedAt.toLocaleDateString()}</span>
+                  </div>
+                  
+                  <div className="flex space-x-1">
+                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                      <Share className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        
-        {/* Hidden file inputs */}
-        <input
-          id="file-upload"
-          type="file"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            const files = Array.from(e.target.files || []);
-            handleFileUpload(files);
-          }}
-        />
+                
+                {asset.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {asset.tags.map((tag, index) => (
+                      <Badge key={index} variant="outline" className="border-gray-600 text-gray-400 text-xs">
+                        <Tag className="h-3 w-3 mr-1" />
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-        <input
-          id="folder-upload"
-          type="file"
-          // @ts-ignore
-          webkitdirectory=""
-          className="hidden"
-          onChange={(e) => {
-            const files = Array.from(e.target.files || []);
-            handleFileUpload(files);
-          }}
-        />
-      </div>
-
-      {/* Image Viewer Dialog */}
-      <Dialog open={showImageViewer} onOpenChange={setShowImageViewer}>
-        <DialogContent className="bg-gray-800 border-gray-700 max-w-4xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle className="text-white">{selectedImage?.name}</DialogTitle>
-          </DialogHeader>
-          <div className="flex justify-center items-center p-4">
-            {selectedImage?.thumbnail && (
-              <img 
-                src={selectedImage.thumbnail} 
-                alt={selectedImage.name}
-                className="max-w-full max-h-[70vh] object-contain"
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {filteredAssets.length === 0 && (
+        <div className="text-center py-12">
+          <Folder className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+          <h3 className="text-xl font-medium text-gray-400">No assets found</h3>
+          <p className="text-gray-500">Upload your first asset or adjust your filters</p>
+          <Button onClick={onUpload} className="mt-4 bg-pink-600 hover:bg-pink-700">
+            <Upload className="h-4 w-4 mr-2" />
+            Upload Assets
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
