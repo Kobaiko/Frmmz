@@ -42,7 +42,11 @@ interface Project {
   lastActivity: Date;
 }
 
-export const WorkspaceView = () => {
+interface WorkspaceViewProps {
+  onOpenProject: (projectId: string) => void;
+}
+
+export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -197,7 +201,10 @@ export const WorkspaceView = () => {
               {projects.map((project) => (
                 <div
                   key={project.id}
-                  onClick={() => setSelectedProject(project)}
+                  onClick={() => {
+                    setSelectedProject(project);
+                    onOpenProject(project.id);
+                  }}
                   className={`p-3 rounded cursor-pointer transition-colors ${
                     selectedProject?.id === project.id 
                       ? 'bg-pink-600/20 border border-pink-600' 

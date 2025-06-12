@@ -15,22 +15,45 @@ import {
   RotateCw
 } from "lucide-react";
 
+interface Comment {
+  id: string;
+  timestamp: number;
+  text: string;
+  author: string;
+  createdAt: Date;
+  parentId?: string;
+  attachments?: any[];
+  isInternal?: boolean;
+  hasDrawing?: boolean;
+}
+
 interface VideoPlayerProps {
   src: string;
-  poster?: string;
-  onTimeUpdate?: (currentTime: number) => void;
-  onCommentAdd?: (timestamp: number) => void;
+  currentTime: number;
+  onTimeUpdate: (time: number) => void;
+  onDurationChange: (duration: number) => void;
+  comments: Comment[];
+  onTimeClick: (timestamp: number) => void;
+  isDrawingMode: boolean;
+  onDrawingModeChange: (enabled: boolean) => void;
+  annotations: boolean;
+  setAnnotations: (enabled: boolean) => void;
 }
 
 export const VideoPlayer = ({ 
   src, 
-  poster, 
+  currentTime,
   onTimeUpdate, 
-  onCommentAdd 
+  onDurationChange,
+  comments,
+  onTimeClick,
+  isDrawingMode,
+  onDrawingModeChange,
+  annotations,
+  setAnnotations
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
@@ -50,14 +73,15 @@ export const VideoPlayer = ({
   const handleTimeUpdate = () => {
     if (videoRef.current) {
       const time = videoRef.current.currentTime;
-      setCurrentTime(time);
-      onTimeUpdate?.(time);
+      onTimeUpdate(time);
     }
   };
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
-      setDuration(videoRef.current.duration);
+      const videoDuration = videoRef.current.duration;
+      setDuration(videoDuration);
+      onDurationChange(videoDuration);
     }
   };
 
@@ -65,7 +89,7 @@ export const VideoPlayer = ({
     if (videoRef.current) {
       const time = value[0];
       videoRef.current.currentTime = time;
-      setCurrentTime(time);
+      onTimeUpdate(time);
     }
   };
 
@@ -112,14 +136,12 @@ export const VideoPlayer = ({
   };
 
   const handleVideoClick = (event: React.MouseEvent<HTMLVideoElement>) => {
-    if (onCommentAdd) {
-      const rect = event.currentTarget.getBoundingClientRect();
-      const clickX = event.clientX - rect.left;
-      const videoWidth = rect.width;
-      const clickTimePercentage = clickX / videoWidth;
-      const timestamp = clickTimePercentage * duration;
-      onCommentAdd(timestamp);
-    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    const videoWidth = rect.width;
+    const clickTimePercentage = clickX / videoWidth;
+    const timestamp = clickTimePercentage * duration;
+    onTimeClick(timestamp);
   };
 
   return (
@@ -129,7 +151,6 @@ export const VideoPlayer = ({
         <video
           ref={videoRef}
           src={src}
-          poster={poster}
           className="w-full aspect-video cursor-pointer"
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}

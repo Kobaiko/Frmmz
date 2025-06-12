@@ -21,39 +21,36 @@ import {
 
 interface Comment {
   id: string;
-  author: {
-    name: string;
-    avatar?: string;
-    role: string;
-  };
-  content: string;
   timestamp: number;
-  videoTimestamp?: number;
+  text: string;
+  author: string;
   createdAt: Date;
-  replies: Comment[];
-  status: 'open' | 'resolved' | 'approved' | 'rejected';
-  isPinned?: boolean;
-  reactions: {
-    likes: number;
-    dislikes: number;
-    userReaction?: 'like' | 'dislike' | null;
-  };
+  parentId?: string;
+  attachments?: any[];
+  isInternal?: boolean;
+  hasDrawing?: boolean;
 }
 
 interface CommentPanelProps {
   comments: Comment[];
-  onAddComment: (content: string, timestamp?: number) => void;
-  onReplyComment: (commentId: string, content: string) => void;
-  onResolveComment: (commentId: string) => void;
+  currentTime: number;
+  onCommentClick: (timestamp: number) => void;
   onDeleteComment: (commentId: string) => void;
+  onReplyComment: (parentId: string, text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
+  onAddComment: (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
+  onStartDrawing: () => void;
+  isDrawingMode: boolean;
 }
 
 export const CommentPanel = ({
   comments,
-  onAddComment,
+  currentTime,
+  onCommentClick,
+  onDeleteComment,
   onReplyComment,
-  onResolveComment,
-  onDeleteComment
+  onAddComment,
+  onStartDrawing,
+  isDrawingMode
 }: CommentPanelProps) => {
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -63,15 +60,6 @@ export const CommentPanel = ({
     const minutes = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getStatusColor = (status: Comment['status']) => {
-    switch (status) {
-      case 'open': return 'bg-blue-600';
-      case 'resolved': return 'bg-green-600';
-      case 'approved': return 'bg-purple-600';
-      case 'rejected': return 'bg-red-600';
-    }
   };
 
   const handleAddComment = () => {
@@ -95,23 +83,21 @@ export const CommentPanel = ({
         <CardContent className="p-4">
           <div className="flex items-start space-x-3">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={comment.author.avatar} />
               <AvatarFallback className="bg-gray-600 text-white text-sm">
-                {comment.author.name.split(' ').map(n => n[0]).join('')}
+                {comment.author.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
             
             <div className="flex-1 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <span className="font-medium text-white text-sm">{comment.author.name}</span>
-                  <Badge variant="outline" className="border-gray-600 text-gray-300 text-xs">
-                    {comment.author.role}
-                  </Badge>
-                  <Badge className={`${getStatusColor(comment.status)} text-white text-xs`}>
-                    {comment.status}
-                  </Badge>
-                  {comment.isPinned && (
+                  <span className="font-medium text-white text-sm">{comment.author}</span>
+                  {comment.isInternal && (
+                    <Badge variant="outline" className="border-gray-600 text-gray-300 text-xs">
+                      Internal
+                    </Badge>
+                  )}
+                  {comment.hasDrawing && (
                     <Pin className="h-3 w-3 text-yellow-400" />
                   )}
                 </div>
@@ -120,14 +106,19 @@ export const CommentPanel = ({
                 </Button>
               </div>
 
-              {comment.videoTimestamp !== undefined && (
+              {comment.timestamp >= 0 && (
                 <div className="flex items-center space-x-1 text-xs text-gray-400">
                   <Clock className="h-3 w-3" />
-                  <span>@{formatTimestamp(comment.videoTimestamp)}</span>
+                  <button 
+                    onClick={() => onCommentClick(comment.timestamp)}
+                    className="hover:text-blue-400 cursor-pointer"
+                  >
+                    @{formatTimestamp(comment.timestamp)}
+                  </button>
                 </div>
               )}
 
-              <p className="text-gray-300 text-sm">{comment.content}</p>
+              <p className="text-gray-300 text-sm">{comment.text}</p>
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
@@ -135,26 +126,18 @@ export const CommentPanel = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className={`text-xs h-6 px-2 ${
-                        comment.reactions.userReaction === 'like'
-                          ? 'text-blue-400 bg-blue-400/10'
-                          : 'text-gray-400 hover:text-blue-400'
-                      }`}
+                      className="text-xs h-6 px-2 text-gray-400 hover:text-blue-400"
                     >
                       <ThumbsUp className="h-3 w-3 mr-1" />
-                      {comment.reactions.likes}
+                      0
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className={`text-xs h-6 px-2 ${
-                        comment.reactions.userReaction === 'dislike'
-                          ? 'text-red-400 bg-red-400/10'
-                          : 'text-gray-400 hover:text-red-400'
-                      }`}
+                      className="text-xs h-6 px-2 text-gray-400 hover:text-red-400"
                     >
                       <ThumbsDown className="h-3 w-3 mr-1" />
-                      {comment.reactions.dislikes}
+                      0
                     </Button>
                   </div>
 
@@ -170,25 +153,6 @@ export const CommentPanel = ({
                 </div>
 
                 <div className="flex items-center space-x-1">
-                  {comment.status === 'open' && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onResolveComment(comment.id)}
-                        className="text-xs text-green-400 hover:text-green-300 h-6 px-2"
-                      >
-                        <Check className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs text-red-400 hover:text-red-300 h-6 px-2"
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </>
-                  )}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -247,7 +211,7 @@ export const CommentPanel = ({
       )}
 
       {/* Replies */}
-      {comment.replies.map((reply) => (
+      {comments.filter(reply => reply.parentId === comment.id).map((reply) => (
         <CommentItem key={reply.id} comment={reply} isReply />
       ))}
     </div>
@@ -273,7 +237,15 @@ export const CommentPanel = ({
                 onChange={(e) => setNewComment(e.target.value)}
                 className="bg-gray-700 border-gray-600 text-white min-h-[80px]"
               />
-              <div className="flex justify-end">
+              <div className="flex justify-between">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onStartDrawing}
+                  className={`border-gray-600 text-gray-300 ${isDrawingMode ? 'bg-pink-600 text-white' : ''}`}
+                >
+                  Draw
+                </Button>
                 <Button
                   onClick={handleAddComment}
                   disabled={!newComment.trim()}
@@ -288,7 +260,7 @@ export const CommentPanel = ({
 
         {/* Comments List */}
         <div className="space-y-2">
-          {comments.map((comment) => (
+          {comments.filter(comment => !comment.parentId).map((comment) => (
             <CommentItem key={comment.id} comment={comment} />
           ))}
           
