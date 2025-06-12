@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -260,7 +259,6 @@ export const ThirdPartyIntegrations = () => {
                   <Switch 
                     checked={integration.isActive}
                     onCheckedChange={(checked) => handleToggleActive(integration.id, checked)}
-                    size="sm"
                   />
                 )}
               </div>
