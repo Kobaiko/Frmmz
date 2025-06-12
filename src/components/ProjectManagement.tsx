@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,9 +43,11 @@ interface ProjectManagementProps {
   projects: Project[];
   onProjectSelect: (project: Project) => void;
   onCreateProject: () => void;
+  projectId?: string;
+  onClose?: () => void;
 }
 
-export const ProjectManagement = ({ projects, onProjectSelect, onCreateProject }: ProjectManagementProps) => {
+export const ProjectManagement = ({ projects, onProjectSelect, onCreateProject, projectId, onClose }: ProjectManagementProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
@@ -128,10 +129,17 @@ export const ProjectManagement = ({ projects, onProjectSelect, onCreateProject }
           <h2 className="text-2xl font-bold text-white">Project Management</h2>
           <p className="text-gray-400">{filteredProjects.length} projects</p>
         </div>
-        <Button onClick={onCreateProject} className="bg-pink-600 hover:bg-pink-700">
-          <Plus className="h-4 w-4 mr-2" />
-          New Project
-        </Button>
+        <div className="flex space-x-2">
+          <Button onClick={onCreateProject} className="bg-pink-600 hover:bg-pink-700">
+            <Plus className="h-4 w-4 mr-2" />
+            New Project
+          </Button>
+          {onClose && (
+            <Button variant="outline" onClick={onClose} className="border-gray-600 text-gray-300">
+              Back to Workspace
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Stats Cards */}

@@ -156,7 +156,6 @@ const Index = () => {
         <Sidebar activeItem={activeNavItem} onItemClick={handleNavItemClick} />
         <div className="flex-1">
           <ProjectAssetsEnhanced
-            projectName={currentProject}
             projectId={currentProjectId}
             onBack={handleBackToHome}
             onStartFeedback={handleStartFeedback}

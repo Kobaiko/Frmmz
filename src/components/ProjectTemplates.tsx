@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { 
-  Template,
+  FileText,
   Video,
   Film,
   Tv,
@@ -37,9 +36,11 @@ export interface ProjectTemplate {
 
 interface ProjectTemplatesProps {
   onCreateProject: (template: ProjectTemplate, projectName: string) => void;
+  onSelectTemplate?: (template: ProjectTemplate) => void;
+  onClose?: () => void;
 }
 
-export const ProjectTemplates = ({ onCreateProject }: ProjectTemplatesProps) => {
+export const ProjectTemplates = ({ onCreateProject, onSelectTemplate, onClose }: ProjectTemplatesProps) => {
   const [templates] = useState<ProjectTemplate[]>([
     {
       id: '1',
@@ -133,7 +134,7 @@ export const ProjectTemplates = ({ onCreateProject }: ProjectTemplatesProps) => 
       case 'education': return <Users className="h-4 w-4" />;
       case 'entertainment': return <Tv className="h-4 w-4" />;
       case 'corporate': return <Users className="h-4 w-4" />;
-      default: return <Template className="h-4 w-4" />;
+      default: return <FileText className="h-4 w-4" />;
     }
   };
 
@@ -145,10 +146,17 @@ export const ProjectTemplates = ({ onCreateProject }: ProjectTemplatesProps) => 
           <h2 className="text-2xl font-bold text-white">Project Templates</h2>
           <p className="text-gray-400">Choose a template to get started quickly</p>
         </div>
-        <Button className="bg-pink-600 hover:bg-pink-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Create Custom Template
-        </Button>
+        <div className="flex space-x-2">
+          <Button className="bg-pink-600 hover:bg-pink-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Create Custom Template
+          </Button>
+          {onClose && (
+            <Button variant="outline" onClick={onClose} className="border-gray-600 text-gray-300">
+              Back to Workspace
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Search and Filters */}
@@ -302,7 +310,7 @@ export const ProjectTemplates = ({ onCreateProject }: ProjectTemplatesProps) => 
 
       {filteredTemplates.length === 0 && (
         <div className="text-center py-12">
-          <Template className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+          <FileText className="h-12 w-12 text-gray-500 mx-auto mb-4" />
           <h3 className="text-xl font-medium text-gray-400">No templates found</h3>
           <p className="text-gray-500">Try adjusting your search or filter criteria</p>
         </div>

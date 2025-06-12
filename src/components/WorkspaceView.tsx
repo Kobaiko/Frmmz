@@ -16,7 +16,7 @@ import { IntegrationHub } from "./IntegrationHub";
 import { SecurityCompliance } from "./SecurityCompliance";
 import { RealtimeCollaboration } from "./RealtimeCollaboration";
 import { AdvancedWorkflows } from "./AdvancedWorkflows";
-import { ProjectManagement } from "./ProjectManagement";
+import { ProjectManagement, Project } from "./ProjectManagement";
 import { AdvancedSharing } from "./AdvancedSharing";
 import { UserManagement } from "./UserManagement";
 import { toast } from "@/hooks/use-toast";
@@ -83,6 +83,25 @@ export const WorkspaceView = ({
     lastActivity: '3 days ago',
     collaborators: 2
   }]);
+  
+  // Create sample projects data for ProjectManagement component
+  const managementProjects = projects.map(p => ({
+    id: p.id,
+    name: p.name,
+    description: `Description for ${p.name}`,
+    status: p.status as 'active' | 'completed' | 'archived' | 'on-hold',
+    priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent',
+    progress: Math.floor(Math.random() * 100),
+    dueDate: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000),
+    createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
+    teamMembers: p.collaborators || 1,
+    assetsCount: Math.floor(Math.random() * 50),
+    commentsCount: Math.floor(Math.random() * 20),
+    tags: ['video', 'production'],
+    owner: 'Yair Kivalko',
+    lastActivity: new Date()
+  }));
+
   const filterOptions = ['All Projects', 'Active Projects', 'Completed Projects', 'On Hold'];
 
   // Add new project placeholder
@@ -92,6 +111,8 @@ export const WorkspaceView = ({
     size: '',
     isNewProject: true
   }];
+  
+  // ... keep existing code (handler functions)
   const handleCreateProject = (name: string, template: string) => {
     const newProject: Project = {
       id: Math.random().toString(36).substr(2, 9),
@@ -107,6 +128,7 @@ export const WorkspaceView = ({
       description: `${name} has been created successfully.`
     });
   };
+
   const handleDeleteProject = (projectId: string) => {
     setProjects(projects.filter(p => p.id !== projectId));
     toast({
@@ -114,6 +136,7 @@ export const WorkspaceView = ({
       description: "Project has been deleted successfully."
     });
   };
+
   const handleDuplicateProject = (projectId: string) => {
     const project = projects.find(p => p.id === projectId);
     if (project) {
@@ -130,6 +153,7 @@ export const WorkspaceView = ({
       });
     }
   };
+
   const handleRenameProject = (projectId: string, newName: string) => {
     setProjects(projects.map(p => p.id === projectId ? {
       ...p,
@@ -191,9 +215,9 @@ export const WorkspaceView = ({
     return (
       <div className="min-h-screen bg-gray-900 flex-1">
         <ProjectTemplates 
-          onSelectTemplate={(template) => {
+          onCreateProject={(template, projectName) => {
+            handleCreateProject(projectName, template.name);
             setShowTemplates(false);
-            setShowCreateDialog(true);
           }}
           onClose={() => setShowTemplates(false)} 
         />
@@ -254,7 +278,12 @@ export const WorkspaceView = ({
     return (
       <div className="min-h-screen bg-gray-900 flex-1">
         <ProjectManagement 
-          projectId="demo-project" 
+          projects={managementProjects}
+          onProjectSelect={(project) => {
+            onOpenProject(project.id);
+            setShowProjectManagement(false);
+          }}
+          onCreateProject={() => setShowCreateDialog(true)}
           onClose={() => setShowProjectManagement(false)} 
         />
       </div>
