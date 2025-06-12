@@ -1,45 +1,35 @@
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Search,
   Filter,
   Grid3X3,
   List,
-  Play,
-  Clock,
-  Users,
-  MessageSquare,
-  MoreHorizontal,
   Plus,
-  Star,
-  Eye
+  Users,
+  Clock,
+  Video,
+  Folder,
+  SortAsc,
+  SortDesc,
+  Calendar
 } from "lucide-react";
-
-interface Asset {
-  id: string;
-  name: string;
-  type: 'video' | 'image' | 'audio';
-  duration?: string;
-  thumbnail: string;
-  status: 'needs-review' | 'in-progress' | 'approved' | 'final';
-  comments: number;
-  lastModified: Date;
-  collaborators: string[];
-}
 
 interface Project {
   id: string;
   name: string;
   description: string;
   status: 'active' | 'archived' | 'completed';
-  assets: Asset[];
+  thumbnail: string;
+  assetsCount: number;
   collaborators: number;
   lastActivity: Date;
+  totalDuration: string;
 }
 
 interface WorkspaceViewProps {
@@ -49,116 +39,175 @@ interface WorkspaceViewProps {
 export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('lastActivity');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const projects: Project[] = [
     {
-      id: '1',
+      id: 'demo',
       name: 'Summer Campaign 2024',
-      description: 'Product launch video series for Q3 marketing',
+      description: 'Product launch video series for Q3 marketing campaign',
       status: 'active',
-      assets: [
-        {
-          id: 'a1',
-          name: 'Hero Video Final.mp4',
-          type: 'video',
-          duration: '2:34',
-          thumbnail: '/placeholder.svg',
-          status: 'approved',
-          comments: 8,
-          lastModified: new Date('2024-06-10'),
-          collaborators: ['user1', 'user2']
-        },
-        {
-          id: 'a2',
-          name: 'Product Demo.mp4',
-          type: 'video',
-          duration: '1:45',
-          thumbnail: '/placeholder.svg',
-          status: 'needs-review',
-          comments: 3,
-          lastModified: new Date('2024-06-11'),
-          collaborators: ['user1']
-        }
-      ],
+      thumbnail: '/placeholder.svg',
+      assetsCount: 24,
       collaborators: 6,
-      lastActivity: new Date('2024-06-12')
+      lastActivity: new Date('2024-06-12'),
+      totalDuration: '12:34'
     },
     {
-      id: '2',
+      id: 'first',
+      name: "Yair's First Project",
+      description: 'Initial project setup and testing workflows',
+      status: 'active',
+      thumbnail: '/placeholder.svg',
+      assetsCount: 8,
+      collaborators: 3,
+      lastActivity: new Date('2024-06-11'),
+      totalDuration: '5:22'
+    },
+    {
+      id: 'untitled',
       name: 'Client Presentation',
       description: 'Quarterly review materials for stakeholder meeting',
-      status: 'active',
-      assets: [
-        {
-          id: 'a3',
-          name: 'Q2 Results.mp4',
-          type: 'video',
-          duration: '5:12',
-          thumbnail: '/placeholder.svg',
-          status: 'in-progress',
-          comments: 12,
-          lastModified: new Date('2024-06-09'),
-          collaborators: ['user1', 'user2', 'user3']
-        }
-      ],
+      status: 'completed',
+      thumbnail: '/placeholder.svg',
+      assetsCount: 12,
       collaborators: 4,
-      lastActivity: new Date('2024-06-11')
+      lastActivity: new Date('2024-06-09'),
+      totalDuration: '8:15'
     }
   ];
 
-  const getStatusColor = (status: Asset['status']) => {
+  const getStatusColor = (status: Project['status']) => {
     switch (status) {
-      case 'needs-review': return 'bg-yellow-600';
-      case 'in-progress': return 'bg-blue-600';
-      case 'approved': return 'bg-green-600';
-      case 'final': return 'bg-purple-600';
+      case 'active': return 'bg-green-600';
+      case 'completed': return 'bg-blue-600';
+      case 'archived': return 'bg-gray-600';
     }
   };
 
-  const AssetCard = ({ asset }: { asset: Asset }) => (
-    <Card className="bg-gray-800 border-gray-700 hover:border-pink-600 transition-colors cursor-pointer">
-      <CardContent className="p-4">
-        <div className="relative mb-3">
-          <img 
-            src={asset.thumbnail} 
-            alt={asset.name}
-            className="w-full h-32 object-cover rounded bg-gray-700"
-          />
-          {asset.type === 'video' && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Play className="h-8 w-8 text-white/80" />
+  const filteredProjects = projects
+    .filter(project => {
+      const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           project.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'lastActivity':
+          comparison = a.lastActivity.getTime() - b.lastActivity.getTime();
+          break;
+        case 'assetsCount':
+          comparison = a.assetsCount - b.assetsCount;
+          break;
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+  const ProjectCard = ({ project }: { project: Project }) => (
+    <Card 
+      className="bg-gray-800 border-gray-700 hover:border-pink-600 transition-all duration-200 cursor-pointer group"
+      onClick={() => onOpenProject(project.id)}
+    >
+      <CardContent className="p-6">
+        <div className="space-y-4">
+          {/* Thumbnail */}
+          <div className="aspect-video bg-gray-700 rounded-lg overflow-hidden relative">
+            <img 
+              src={project.thumbnail} 
+              alt={project.name}
+              className="w-full h-full object-cover bg-gray-600"
+            />
+            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+            <div className="absolute top-3 right-3">
+              <Badge className={`${getStatusColor(project.status)} text-white`}>
+                {project.status}
+              </Badge>
             </div>
-          )}
-          {asset.duration && (
-            <div className="absolute bottom-2 right-2 bg-black/60 text-white px-2 py-1 rounded text-xs">
-              {asset.duration}
+            <div className="absolute bottom-3 left-3 text-white text-sm font-medium bg-black/50 px-2 py-1 rounded">
+              {project.totalDuration}
             </div>
-          )}
-        </div>
-        
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h4 className="text-white font-medium text-sm truncate">{asset.name}</h4>
-            <Badge className={`${getStatusColor(asset.status)} text-white text-xs`}>
-              {asset.status.replace('-', ' ')}
-            </Badge>
           </div>
-          
-          <div className="flex items-center justify-between text-xs text-gray-400">
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-1">
-                <MessageSquare className="h-3 w-3" />
-                <span>{asset.comments}</span>
+
+          {/* Project Info */}
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-white font-semibold text-lg mb-1 group-hover:text-pink-400 transition-colors">
+                {project.name}
+              </h3>
+              <p className="text-gray-400 text-sm line-clamp-2">
+                {project.description}
+              </p>
+            </div>
+
+            {/* Stats */}
+            <div className="flex items-center justify-between text-sm text-gray-400">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-1">
+                  <Video className="h-4 w-4" />
+                  <span>{project.assetsCount}</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Users className="h-4 w-4" />
+                  <span>{project.collaborators}</span>
+                </div>
               </div>
               <div className="flex items-center space-x-1">
-                <Users className="h-3 w-3" />
-                <span>{asset.collaborators.length}</span>
+                <Clock className="h-4 w-4" />
+                <span>{project.lastActivity.toLocaleDateString()}</span>
               </div>
             </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const ProjectListItem = ({ project }: { project: Project }) => (
+    <Card 
+      className="bg-gray-800 border-gray-700 hover:border-pink-600 transition-all duration-200 cursor-pointer"
+      onClick={() => onOpenProject(project.id)}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-center space-x-4">
+          {/* Thumbnail */}
+          <div className="w-20 h-12 bg-gray-700 rounded overflow-hidden flex-shrink-0 relative">
+            <img 
+              src={project.thumbnail} 
+              alt={project.name}
+              className="w-full h-full object-cover bg-gray-600"
+            />
+          </div>
+
+          {/* Project Info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center space-x-2 mb-1">
+              <h3 className="text-white font-medium truncate">{project.name}</h3>
+              <Badge className={`${getStatusColor(project.status)} text-white`}>
+                {project.status}
+              </Badge>
+            </div>
+            <p className="text-gray-400 text-sm truncate mb-2">
+              {project.description}
+            </p>
+            <div className="flex items-center space-x-4 text-xs text-gray-500">
+              <span>{project.assetsCount} assets</span>
+              <span>{project.collaborators} collaborators</span>
+              <span>{project.totalDuration}</span>
+            </div>
+          </div>
+
+          {/* Last Activity */}
+          <div className="text-right text-sm text-gray-400 flex-shrink-0">
             <div className="flex items-center space-x-1">
-              <Clock className="h-3 w-3" />
-              <span>{asset.lastModified.toLocaleDateString()}</span>
+              <Calendar className="h-4 w-4" />
+              <span>{project.lastActivity.toLocaleDateString()}</span>
             </div>
           </div>
         </div>
@@ -169,163 +218,124 @@ export const WorkspaceView = ({ onOpenProject }: WorkspaceViewProps) => {
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Header */}
-      <div className="border-b border-gray-800 p-4">
-        <div className="flex items-center justify-between">
+      <div className="border-b border-gray-800 p-6">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white">Workspace</h1>
-            <p className="text-gray-400">Manage your projects and assets</p>
+            <h1 className="text-3xl font-bold text-white mb-2">Projects</h1>
+            <p className="text-gray-400">Manage your creative projects and assets</p>
           </div>
-          <Button className="bg-pink-600 hover:bg-pink-700">
+          <Button className="bg-pink-600 hover:bg-pink-700 text-white">
             <Plus className="h-4 w-4 mr-2" />
             New Project
           </Button>
         </div>
-      </div>
 
-      <div className="flex">
-        {/* Sidebar */}
-        <div className="w-64 border-r border-gray-800 p-4">
-          <div className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search projects..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-gray-800 border-gray-700 text-white"
-              />
-            </div>
+        {/* Filters and Controls */}
+        <div className="flex flex-wrap gap-4 items-center">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[300px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search projects..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+            />
+          </div>
 
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-gray-300">Projects</h3>
-              {projects.map((project) => (
-                <div
-                  key={project.id}
-                  onClick={() => {
-                    setSelectedProject(project);
-                    onOpenProject(project.id);
-                  }}
-                  className={`p-3 rounded cursor-pointer transition-colors ${
-                    selectedProject?.id === project.id 
-                      ? 'bg-pink-600/20 border border-pink-600' 
-                      : 'hover:bg-gray-800'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-white font-medium text-sm">{project.name}</h4>
-                      <p className="text-gray-400 text-xs">{project.assets.length} assets</p>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Users className="h-3 w-3 text-gray-400" />
-                      <span className="text-xs text-gray-400">{project.collaborators}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+          {/* Status Filter */}
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-40 bg-gray-800 border-gray-700 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-800 border-gray-700">
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="archived">Archived</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Sort */}
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-40 bg-gray-800 border-gray-700 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-800 border-gray-700">
+              <SelectItem value="lastActivity">Last Activity</SelectItem>
+              <SelectItem value="name">Name</SelectItem>
+              <SelectItem value="assetsCount">Assets Count</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            className="border-gray-600 text-gray-300 hover:text-white"
+          >
+            {sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+          </Button>
+
+          {/* View Toggle */}
+          <div className="flex rounded-lg border border-gray-700 overflow-hidden">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className={`rounded-none ${viewMode === 'grid' ? 'bg-pink-600 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className={`rounded-none ${viewMode === 'list' ? 'bg-pink-600 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              <List className="h-4 w-4" />
+            </Button>
           </div>
         </div>
+      </div>
 
-        {/* Main Content */}
-        <div className="flex-1 p-6">
-          {selectedProject ? (
-            <div className="space-y-6">
-              {/* Project Header */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-white">{selectedProject.name}</h2>
-                  <p className="text-gray-400">{selectedProject.description}</p>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                    className="border-gray-600 text-gray-300"
-                  >
-                    {viewMode === 'grid' ? <List className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
-                  </Button>
-                  <Button variant="outline" size="sm" className="border-gray-600 text-gray-300">
-                    <Filter className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+      {/* Projects Display */}
+      <div className="p-6">
+        {filteredProjects.length === 0 ? (
+          <div className="text-center py-12">
+            <Folder className="h-16 w-16 text-gray-600 mx-auto mb-4" />
+            <h3 className="text-xl font-medium text-gray-400 mb-2">No projects found</h3>
+            <p className="text-gray-500 mb-6">Create your first project or adjust your filters</p>
+            <Button className="bg-pink-600 hover:bg-pink-700 text-white">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Project
+            </Button>
+          </div>
+        ) : (
+          <>
+            {/* Results Summary */}
+            <div className="mb-6">
+              <p className="text-gray-400">
+                Showing {filteredProjects.length} of {projects.length} projects
+              </p>
+            </div>
 
-              {/* Project Stats */}
-              <div className="grid grid-cols-4 gap-4">
-                <Card className="bg-gray-800 border-gray-700">
-                  <CardContent className="p-4">
-                    <div className="flex items-center space-x-2">
-                      <Eye className="h-5 w-5 text-blue-400" />
-                      <div>
-                        <p className="text-sm text-gray-400">Total Assets</p>
-                        <p className="text-xl font-bold text-white">{selectedProject.assets.length}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="bg-gray-800 border-gray-700">
-                  <CardContent className="p-4">
-                    <div className="flex items-center space-x-2">
-                      <MessageSquare className="h-5 w-5 text-green-400" />
-                      <div>
-                        <p className="text-sm text-gray-400">Comments</p>
-                        <p className="text-xl font-bold text-white">
-                          {selectedProject.assets.reduce((sum, asset) => sum + asset.comments, 0)}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="bg-gray-800 border-gray-700">
-                  <CardContent className="p-4">
-                    <div className="flex items-center space-x-2">
-                      <Users className="h-5 w-5 text-purple-400" />
-                      <div>
-                        <p className="text-sm text-gray-400">Collaborators</p>
-                        <p className="text-xl font-bold text-white">{selectedProject.collaborators}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="bg-gray-800 border-gray-700">
-                  <CardContent className="p-4">
-                    <div className="flex items-center space-x-2">
-                      <Clock className="h-5 w-5 text-yellow-400" />
-                      <div>
-                        <p className="text-sm text-gray-400">Last Activity</p>
-                        <p className="text-sm font-bold text-white">
-                          {selectedProject.lastActivity.toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Assets Grid */}
-              <div className={viewMode === 'grid' 
-                ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4' 
-                : 'space-y-2'
-              }>
-                {selectedProject.assets.map((asset) => (
-                  <AssetCard key={asset.id} asset={asset} />
+            {/* Projects Grid/List */}
+            {viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredProjects.map((project) => (
+                  <ProjectCard key={project.id} project={project} />
                 ))}
               </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-64">
-              <div className="text-center">
-                <h3 className="text-lg font-medium text-gray-400 mb-2">Select a project</h3>
-                <p className="text-gray-500">Choose a project from the sidebar to view its assets</p>
+            ) : (
+              <div className="space-y-3">
+                {filteredProjects.map((project) => (
+                  <ProjectListItem key={project.id} project={project} />
+                ))}
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
