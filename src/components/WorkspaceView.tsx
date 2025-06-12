@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Grid, List, Filter, Plus, MoreHorizontal, Pencil, Trash2, Settings, BarChart3, Users, FileText, Zap, Shield, Workflow, Share2, Database, FolderTree } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -206,7 +207,12 @@ export const WorkspaceView = ({
   if (showSettings) {
     return (
       <div className="min-h-screen bg-gray-900 flex-1">
-        <WorkspaceSettings onClose={() => setShowSettings(false)} />
+        <WorkspaceSettings workspaceId="workspace-1" isOwner={true} />
+        <div className="fixed top-4 right-4">
+          <Button onClick={() => setShowSettings(false)} variant="outline" className="border-gray-600 text-gray-300">
+            Back to Workspace
+          </Button>
+        </div>
       </div>
     );
   }
@@ -261,7 +267,12 @@ export const WorkspaceView = ({
   if (showSecurityCompliance) {
     return (
       <div className="min-h-screen bg-gray-900 flex-1">
-        <SecurityCompliance onClose={() => setShowSecurityCompliance(false)} />
+        <SecurityCompliance workspaceId="workspace-1" />
+        <div className="fixed top-4 right-4">
+          <Button onClick={() => setShowSecurityCompliance(false)} variant="outline" className="border-gray-600 text-gray-300">
+            Back to Workspace
+          </Button>
+        </div>
       </div>
     );
   }
@@ -301,7 +312,12 @@ export const WorkspaceView = ({
   if (showUserManagement) {
     return (
       <div className="min-h-screen bg-gray-900 flex-1">
-        <UserManagement onClose={() => setShowUserManagement(false)} />
+        <UserManagement workspaceId="workspace-1" currentUserId="user-1" />
+        <div className="fixed top-4 right-4">
+          <Button onClick={() => setShowUserManagement(false)} variant="outline" className="border-gray-600 text-gray-300">
+            Back to Workspace
+          </Button>
+        </div>
       </div>
     );
   }
