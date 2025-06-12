@@ -9,13 +9,12 @@ import {
   Tablet, 
   Wifi, 
   WifiOff, 
-  sync, 
+  RefreshCw, 
   Check, 
   Clock, 
   AlertTriangle,
   Download,
-  Upload,
-  RefreshCw
+  Upload
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -186,7 +185,7 @@ export const CrossPlatformSync = ({
             {isSyncing ? (
               <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
             ) : (
-              <sync className="h-4 w-4 mr-2" />
+              <RefreshCw className="h-4 w-4 mr-2" />
             )}
             Sync All
           </Button>
@@ -316,7 +315,7 @@ export const CrossPlatformSync = ({
                     {device.syncStatus === 'syncing' ? (
                       <RefreshCw className="h-4 w-4 animate-spin" />
                     ) : (
-                      <sync className="h-4 w-4" />
+                      <RefreshCw className="h-4 w-4" />
                     )}
                   </Button>
                 </div>
