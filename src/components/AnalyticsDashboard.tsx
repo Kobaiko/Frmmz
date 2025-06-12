@@ -3,208 +3,264 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { TrendingUp, TrendingDown, Users, Clock, FileVideo, MessageCircle, Download, Eye } from "lucide-react";
+import { 
+  BarChart, 
+  Bar, 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from "recharts";
+import { 
+  TrendingUp, 
+  Users, 
+  Clock, 
+  MessageSquare, 
+  Play, 
+  Download,
+  FileVideo,
+  Eye,
+  Calendar,
+  Filter
+} from "lucide-react";
 
-export const AnalyticsDashboard = () => {
-  const [timeRange, setTimeRange] = useState("30d");
+interface AnalyticsDashboardProps {
+  workspaceId: string;
+  dateRange: string;
+}
 
-  // Sample data - in real app this would come from API
-  const projectData = [
-    { name: 'Week 1', projects: 12, comments: 45, views: 234 },
-    { name: 'Week 2', projects: 19, comments: 67, views: 456 },
-    { name: 'Week 3', projects: 15, comments: 34, views: 323 },
-    { name: 'Week 4', projects: 22, comments: 89, views: 567 }
+export const AnalyticsDashboard = ({ workspaceId, dateRange }: AnalyticsDashboardProps) => {
+  const [selectedMetric, setSelectedMetric] = useState("overview");
+
+  // Mock data - in real implementation, this would come from API
+  const overviewStats = [
+    { label: "Total Videos", value: "2,847", change: "+12%", icon: FileVideo, color: "text-blue-500" },
+    { label: "Active Users", value: "394", change: "+8%", icon: Users, color: "text-green-500" },
+    { label: "Comments", value: "15,692", change: "+23%", icon: MessageSquare, color: "text-purple-500" },
+    { label: "Watch Time", value: "847h", change: "+15%", icon: Clock, color: "text-orange-500" }
   ];
 
-  const storageData = [
-    { name: 'Video', value: 45.2, color: '#3B82F6' },
-    { name: 'Images', value: 12.8, color: '#10B981' },
-    { name: 'Audio', value: 8.3, color: '#F59E0B' },
-    { name: 'Documents', value: 3.7, color: '#EF4444' }
+  const usageData = [
+    { name: "Jan", uploads: 65, reviews: 45, approvals: 30 },
+    { name: "Feb", uploads: 78, reviews: 52, approvals: 38 },
+    { name: "Mar", uploads: 85, reviews: 61, approvals: 42 },
+    { name: "Apr", uploads: 92, reviews: 68, approvals: 48 },
+    { name: "May", uploads: 105, reviews: 75, approvals: 55 },
+    { name: "Jun", uploads: 118, reviews: 82, approvals: 62 }
   ];
 
-  const teamActivityData = [
-    { name: 'Mon', uploads: 15, comments: 23, reviews: 8 },
-    { name: 'Tue', uploads: 12, comments: 19, reviews: 12 },
-    { name: 'Wed', uploads: 18, comments: 31, reviews: 15 },
-    { name: 'Thu', uploads: 14, comments: 25, reviews: 9 },
-    { name: 'Fri', uploads: 20, comments: 35, reviews: 18 },
-    { name: 'Sat', uploads: 8, comments: 12, reviews: 5 },
-    { name: 'Sun', uploads: 6, comments: 8, reviews: 3 }
+  const collaborationData = [
+    { name: "Comments", value: 45, color: "#8884d8" },
+    { name: "Approvals", value: 30, color: "#82ca9d" },
+    { name: "Reviews", value: 25, color: "#ffc658" }
   ];
 
-  const StatCard = ({ title, value, change, icon: Icon, trend }: any) => (
-    <Card className="bg-gray-800 border-gray-700">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-gray-400 text-sm">{title}</p>
-            <p className="text-2xl font-bold text-white">{value}</p>
-            <div className="flex items-center mt-1">
-              {trend === 'up' ? (
-                <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-              ) : (
-                <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
-              )}
-              <span className={`text-sm ${trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                {change}
-              </span>
-            </div>
-          </div>
-          <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Icon className="h-6 w-6 text-white" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+  const projectPerformance = [
+    { name: "Campaign A", completion: 95, onTime: true, team: 8 },
+    { name: "Campaign B", completion: 78, onTime: false, team: 12 },
+    { name: "Campaign C", completion: 88, onTime: true, team: 6 },
+    { name: "Campaign D", completion: 92, onTime: true, team: 10 }
+  ];
+
+  const userActivity = [
+    { name: "Sarah Johnson", role: "Creative Director", activity: 92, lastActive: "2 hours ago" },
+    { name: "Mike Chen", role: "Video Editor", activity: 88, lastActive: "30 min ago" },
+    { name: "Emily Davis", role: "Producer", activity: 85, lastActive: "1 hour ago" },
+    { name: "Alex Rodriguez", role: "Motion Designer", activity: 79, lastActive: "4 hours ago" }
+  ];
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Analytics Dashboard</h1>
-          <p className="text-gray-400">Track workspace performance and team activity</p>
+          <h2 className="text-2xl font-bold text-white">Analytics Dashboard</h2>
+          <p className="text-gray-400">Insights and metrics for your video collaboration</p>
         </div>
         <div className="flex items-center space-x-3">
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-40 bg-gray-800 border-gray-600 text-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-gray-700">
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-              <SelectItem value="1y">Last year</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" className="border-gray-600 text-gray-300">
-            Export Report
+          <Button variant="outline" size="sm" className="text-gray-300 border-gray-600">
+            <Filter className="h-4 w-4 mr-2" />
+            Filter
+          </Button>
+          <Button variant="outline" size="sm" className="text-gray-300 border-gray-600">
+            <Calendar className="h-4 w-4 mr-2" />
+            {dateRange}
+          </Button>
+          <Button variant="outline" size="sm" className="text-gray-300 border-gray-600">
+            <Download className="h-4 w-4 mr-2" />
+            Export
           </Button>
         </div>
       </div>
 
-      {/* Key Metrics */}
+      {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Active Projects"
-          value="24"
-          change="+12.5%"
-          icon={FileVideo}
-          trend="up"
-        />
-        <StatCard
-          title="Team Members"
-          value="18"
-          change="+2"
-          icon={Users}
-          trend="up"
-        />
-        <StatCard
-          title="Total Comments"
-          value="1,247"
-          change="+23.8%"
-          icon={MessageCircle}
-          trend="up"
-        />
-        <StatCard
-          title="Asset Views"
-          value="5,432"
-          change="-5.2%"
-          icon={Eye}
-          trend="down"
-        />
+        {overviewStats.map((stat, index) => (
+          <Card key={index} className="bg-gray-800 border-gray-700">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-sm">{stat.label}</p>
+                  <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
+                  <div className="flex items-center mt-2">
+                    <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+                    <span className="text-green-500 text-xs">{stat.change}</span>
+                  </div>
+                </div>
+                <stat.icon className={`h-8 w-8 ${stat.color}`} />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
+      {/* Main Analytics Tabs */}
+      <Tabs value={selectedMetric} onValueChange={setSelectedMetric} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4 bg-gray-800">
-          <TabsTrigger value="overview" className="text-gray-300">Overview</TabsTrigger>
+          <TabsTrigger value="overview" className="text-gray-300">Usage Trends</TabsTrigger>
+          <TabsTrigger value="collaboration" className="text-gray-300">Collaboration</TabsTrigger>
           <TabsTrigger value="projects" className="text-gray-300">Projects</TabsTrigger>
-          <TabsTrigger value="team" className="text-gray-300">Team Activity</TabsTrigger>
-          <TabsTrigger value="storage" className="text-gray-300">Storage</TabsTrigger>
+          <TabsTrigger value="users" className="text-gray-300">Users</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-white">Upload & Review Activity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={usageData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="name" stroke="#9CA3AF" />
+                  <YAxis stroke="#9CA3AF" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1F2937', 
+                      border: '1px solid #374151',
+                      borderRadius: '8px',
+                      color: '#F3F4F6'
+                    }} 
+                  />
+                  <Bar dataKey="uploads" fill="#3B82F6" name="Uploads" />
+                  <Bar dataKey="reviews" fill="#10B981" name="Reviews" />
+                  <Bar dataKey="approvals" fill="#F59E0B" name="Approvals" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="collaboration" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle className="text-white">Project Activity</CardTitle>
+                <CardTitle className="text-white">Collaboration Distribution</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={projectData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="name" stroke="#9CA3AF" />
-                    <YAxis stroke="#9CA3AF" />
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={collaborationData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      dataKey="value"
+                    >
+                      {collaborationData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
                     <Tooltip 
                       contentStyle={{ 
                         backgroundColor: '#1F2937', 
-                        border: '1px solid #374151', 
-                        borderRadius: '6px',
-                        color: '#F9FAFB'
+                        border: '1px solid #374151',
+                        borderRadius: '8px',
+                        color: '#F3F4F6'
                       }} 
                     />
-                    <Line type="monotone" dataKey="projects" stroke="#3B82F6" strokeWidth={2} />
-                    <Line type="monotone" dataKey="comments" stroke="#10B981" strokeWidth={2} />
-                  </LineChart>
+                  </PieChart>
                 </ResponsiveContainer>
+                <div className="flex justify-center space-x-4 mt-4">
+                  {collaborationData.map((item, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <span className="text-gray-300 text-sm">{item.name}</span>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle className="text-white">Storage Usage</CardTitle>
+                <CardTitle className="text-white">Response Times</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={storageData}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, value }) => `${name}: ${value}GB`}
-                    >
-                      {storageData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-300">Avg. Review Time</span>
+                    <Badge variant="secondary" className="bg-blue-600 text-white">2.3 hours</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-300">Avg. Approval Time</span>
+                    <Badge variant="secondary" className="bg-green-600 text-white">4.7 hours</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-300">Comment Response Time</span>
+                    <Badge variant="secondary" className="bg-purple-600 text-white">1.2 hours</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-300">Client Response Time</span>
+                    <Badge variant="secondary" className="bg-orange-600 text-white">8.4 hours</Badge>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
 
+        <TabsContent value="projects" className="space-y-6">
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader>
-              <CardTitle className="text-white">Recent Activity</CardTitle>
+              <CardTitle className="text-white">Project Performance</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[
-                  { user: "Sarah Johnson", action: "uploaded video", asset: "Final_Cut_v3.mp4", time: "2 minutes ago" },
-                  { user: "Mike Chen", action: "commented on", asset: "Project_Draft.mp4", time: "15 minutes ago" },
-                  { user: "Alex Rivera", action: "approved", asset: "Commercial_Spot.mp4", time: "1 hour ago" },
-                  { user: "Emma Davis", action: "shared", asset: "Client_Review_Pack", time: "3 hours ago" }
-                ].map((activity, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                        <span className="text-white text-sm font-medium">
-                          {activity.user.split(' ').map(n => n[0]).join('')}
-                        </span>
-                      </div>
+                {projectPerformance.map((project, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                    <div className="flex items-center space-x-4">
                       <div>
-                        <p className="text-white text-sm">
-                          <span className="font-medium">{activity.user}</span> {activity.action} <span className="font-medium">{activity.asset}</span>
-                        </p>
-                        <p className="text-gray-400 text-xs">{activity.time}</p>
+                        <h4 className="text-white font-medium">{project.name}</h4>
+                        <p className="text-gray-400 text-sm">{project.team} team members</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <div className="text-right">
+                        <p className="text-white font-medium">{project.completion}%</p>
+                        <Badge 
+                          variant={project.onTime ? "default" : "destructive"}
+                          className={project.onTime ? "bg-green-600" : "bg-red-600"}
+                        >
+                          {project.onTime ? "On Time" : "Delayed"}
+                        </Badge>
+                      </div>
+                      <div className="w-16 h-2 bg-gray-600 rounded-full">
+                        <div 
+                          className="h-full bg-blue-500 rounded-full"
+                          style={{ width: `${project.completion}%` }}
+                        />
                       </div>
                     </div>
                   </div>
@@ -214,125 +270,43 @@ export const AnalyticsDashboard = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="projects" className="space-y-6">
+        <TabsContent value="users" className="space-y-6">
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader>
-              <CardTitle className="text-white">Project Performance</CardTitle>
+              <CardTitle className="text-white">User Activity</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={projectData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="name" stroke="#9CA3AF" />
-                  <YAxis stroke="#9CA3AF" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1F2937', 
-                      border: '1px solid #374151', 
-                      borderRadius: '6px',
-                      color: '#F9FAFB'
-                    }} 
-                  />
-                  <Bar dataKey="projects" fill="#3B82F6" />
-                  <Bar dataKey="views" fill="#10B981" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="team" className="space-y-6">
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white">Team Activity Trends</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={teamActivityData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="name" stroke="#9CA3AF" />
-                  <YAxis stroke="#9CA3AF" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1F2937', 
-                      border: '1px solid #374151', 
-                      borderRadius: '6px',
-                      color: '#F9FAFB'
-                    }} 
-                  />
-                  <Bar dataKey="uploads" fill="#3B82F6" />
-                  <Bar dataKey="comments" fill="#10B981" />
-                  <Bar dataKey="reviews" fill="#F59E0B" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="storage" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white">Storage Overview</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Used</span>
-                    <span className="text-white">70.0 GB</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Available</span>
-                    <span className="text-white">30.0 GB</span>
-                  </div>
-                  <div className="w-full bg-gray-700 rounded-full h-2">
-                    <div className="bg-blue-600 h-2 rounded-full" style={{ width: '70%' }}></div>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  {storageData.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: item.color }}
-                        ></div>
-                        <span className="text-gray-300 text-sm">{item.name}</span>
+              <div className="space-y-4">
+                {userActivity.map((user, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                        <span className="text-white font-medium">
+                          {user.name.split(' ').map(n => n[0]).join('')}
+                        </span>
                       </div>
-                      <span className="text-white text-sm">{item.value} GB</span>
+                      <div>
+                        <h4 className="text-white font-medium">{user.name}</h4>
+                        <p className="text-gray-400 text-sm">{user.role}</p>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="lg:col-span-2">
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader>
-                  <CardTitle className="text-white">Storage Trends</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={projectData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                      <XAxis dataKey="name" stroke="#9CA3AF" />
-                      <YAxis stroke="#9CA3AF" />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: '#1F2937', 
-                          border: '1px solid #374151', 
-                          borderRadius: '6px',
-                          color: '#F9FAFB'
-                        }} 
-                      />
-                      <Line type="monotone" dataKey="views" stroke="#3B82F6" strokeWidth={2} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                    <div className="flex items-center space-x-4">
+                      <div className="text-right">
+                        <p className="text-white font-medium">{user.activity}% active</p>
+                        <p className="text-gray-400 text-sm">{user.lastActive}</p>
+                      </div>
+                      <div className="w-16 h-2 bg-gray-600 rounded-full">
+                        <div 
+                          className="h-full bg-green-500 rounded-full"
+                          style={{ width: `${user.activity}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

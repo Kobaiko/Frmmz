@@ -1,415 +1,333 @@
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { 
-  Palette, 
-  Camera, 
-  Cloud, 
-  Slack, 
-  Github, 
-  FileText, 
-  Zap, 
   Settings, 
-  Plus,
-  CheckCircle,
-  AlertCircle
+  Plus, 
+  ExternalLink, 
+  CheckCircle, 
+  AlertCircle,
+  Search,
+  Zap,
+  Camera,
+  Cloud,
+  FileVideo,
+  Palette,
+  Mail,
+  MessageSquare,
+  Calendar,
+  Archive,
+  Shield
 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
 
-interface IntegrationHubProps {
-  onClose: () => void;
+interface Integration {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  status: 'connected' | 'available' | 'disconnected';
+  icon: any;
+  color: string;
+  features: string[];
+  lastSync?: string;
+  version?: string;
 }
 
-export const IntegrationHub = ({ onClose }: IntegrationHubProps) => {
-  const [showConnectDialog, setShowConnectDialog] = useState(false);
-  const [selectedIntegration, setSelectedIntegration] = useState<any>(null);
-  const [integrations, setIntegrations] = useState([
-    {
-      id: 'adobe-premiere',
-      name: 'Adobe Premiere Pro',
-      description: 'Direct integration with Premiere Pro for seamless editing workflows',
-      icon: Palette,
-      category: 'creative',
-      status: 'connected',
-      config: { autoSync: true, proxySettings: 'auto' }
-    },
-    {
-      id: 'adobe-after-effects',
-      name: 'Adobe After Effects',
-      description: 'Connect with After Effects for motion graphics and VFX',
-      icon: Palette,
-      category: 'creative',
-      status: 'available',
-      config: {}
-    },
-    {
-      id: 'camera-to-cloud',
-      name: 'Camera to Cloud',
-      description: 'Direct upload from professional cameras',
-      icon: Camera,
-      category: 'capture',
-      status: 'connected',
-      config: { autoUpload: true, qualitySettings: 'original' }
-    },
-    {
-      id: 'aws-s3',
-      name: 'AWS S3',
-      description: 'Connect your own S3 bucket for storage',
-      icon: Cloud,
-      category: 'storage',
-      status: 'available',
-      config: {}
-    },
-    {
-      id: 'slack',
-      name: 'Slack',
-      description: 'Get notifications and updates in Slack',
-      icon: Slack,
-      category: 'communication',
-      status: 'connected',
-      config: { channels: ['#video-team', '#general'], notifications: true }
-    },
-    {
-      id: 'github',
-      name: 'GitHub',
-      description: 'Version control for project assets',
-      icon: Github,
-      category: 'development',
-      status: 'available',
-      config: {}
-    },
-    {
-      id: 'asana',
-      name: 'Asana',
-      description: 'Sync project tasks and deadlines',
-      icon: FileText,
-      category: 'project-management',
-      status: 'available',
-      config: {}
-    },
-    {
-      id: 'zapier',
-      name: 'Zapier',
-      description: 'Connect with 5000+ apps through Zapier',
-      icon: Zap,
-      category: 'automation',
-      status: 'available',
-      config: {}
-    }
-  ]);
+export const IntegrationHub = () => {
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const categories = [
-    { value: 'all', label: 'All Integrations' },
-    { value: 'creative', label: 'Creative Tools' },
-    { value: 'capture', label: 'Capture & Upload' },
-    { value: 'storage', label: 'Storage' },
-    { value: 'communication', label: 'Communication' },
-    { value: 'project-management', label: 'Project Management' },
-    { value: 'automation', label: 'Automation' }
+  const integrations: Integration[] = [
+    {
+      id: "adobe-premiere",
+      name: "Adobe Premiere Pro",
+      description: "Direct integration with Premiere Pro for seamless editing workflows",
+      category: "creative",
+      status: "connected",
+      icon: Palette,
+      color: "bg-purple-600",
+      features: ["Direct export", "Timeline sync", "Asset linking"],
+      lastSync: "2 hours ago",
+      version: "v2.1.0"
+    },
+    {
+      id: "adobe-aftereffects",
+      name: "Adobe After Effects",
+      description: "Motion graphics and VFX integration",
+      category: "creative",
+      status: "connected",
+      icon: Zap,
+      color: "bg-blue-600",
+      features: ["Composition sync", "Asset import", "Render queue"],
+      lastSync: "1 hour ago",
+      version: "v1.8.3"
+    },
+    {
+      id: "camera-to-cloud",
+      name: "Camera to Cloud",
+      description: "Direct upload from professional cameras",
+      category: "capture",
+      status: "connected",
+      icon: Camera,
+      color: "bg-green-600",
+      features: ["Real-time upload", "Multiple camera support", "Metadata sync"],
+      lastSync: "30 min ago",
+      version: "v3.0.1"
+    },
+    {
+      id: "aws-s3",
+      name: "AWS S3",
+      description: "Cloud storage integration for scalable asset management",
+      category: "storage",
+      status: "connected",
+      icon: Cloud,
+      color: "bg-orange-600",
+      features: ["Unlimited storage", "CDN integration", "Backup automation"],
+      lastSync: "15 min ago",
+      version: "v2.4.0"
+    },
+    {
+      id: "slack",
+      name: "Slack",
+      description: "Team communication and notifications",
+      category: "communication",
+      status: "available",
+      icon: MessageSquare,
+      color: "bg-green-500",
+      features: ["Comment notifications", "Approval alerts", "Status updates"]
+    },
+    {
+      id: "teams",
+      name: "Microsoft Teams",
+      description: "Enterprise communication platform",
+      category: "communication",
+      status: "available",
+      icon: MessageSquare,
+      color: "bg-blue-500",
+      features: ["Video calls", "Chat integration", "File sharing"]
+    },
+    {
+      id: "google-drive",
+      name: "Google Drive",
+      description: "Cloud storage and collaboration",
+      category: "storage",
+      status: "disconnected",
+      icon: Archive,
+      color: "bg-yellow-600",
+      features: ["File sync", "Collaborative editing", "Version control"]
+    },
+    {
+      id: "okta",
+      name: "Okta",
+      description: "Enterprise identity and access management",
+      category: "security",
+      status: "available",
+      icon: Shield,
+      color: "bg-indigo-600",
+      features: ["SSO", "Multi-factor auth", "User provisioning"]
+    }
   ];
 
-  const [activeCategory, setActiveCategory] = useState('all');
+  const categories = [
+    { id: "all", name: "All Integrations", count: integrations.length },
+    { id: "creative", name: "Creative Tools", count: integrations.filter(i => i.category === "creative").length },
+    { id: "capture", name: "Capture & Upload", count: integrations.filter(i => i.category === "capture").length },
+    { id: "storage", name: "Storage", count: integrations.filter(i => i.category === "storage").length },
+    { id: "communication", name: "Communication", count: integrations.filter(i => i.category === "communication").length },
+    { id: "security", name: "Security", count: integrations.filter(i => i.category === "security").length }
+  ];
 
-  const filteredIntegrations = activeCategory === 'all' 
-    ? integrations 
-    : integrations.filter(integration => integration.category === activeCategory);
+  const filteredIntegrations = integrations.filter(integration => {
+    const matchesCategory = selectedCategory === "all" || integration.category === selectedCategory;
+    const matchesSearch = integration.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         integration.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
-  const handleConnect = (integration: any) => {
-    setSelectedIntegration(integration);
-    setShowConnectDialog(true);
-  };
-
-  const handleDisconnect = (integrationId: string) => {
-    setIntegrations(prev => prev.map(integration => 
-      integration.id === integrationId 
-        ? { ...integration, status: 'available', config: {} }
-        : integration
-    ));
-    toast({
-      title: "Integration disconnected",
-      description: `${integrations.find(i => i.id === integrationId)?.name} has been disconnected.`
-    });
-  };
-
-  const handleConfigSave = (integrationId: string, config: any) => {
-    setIntegrations(prev => prev.map(integration => 
-      integration.id === integrationId 
-        ? { ...integration, status: 'connected', config }
-        : integration
-    ));
-    setShowConnectDialog(false);
-    toast({
-      title: "Integration connected",
-      description: `${selectedIntegration?.name} has been connected successfully.`
-    });
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'connected':
+        return <Badge className="bg-green-600 text-white">Connected</Badge>;
+      case 'disconnected':
+        return <Badge variant="destructive">Disconnected</Badge>;
+      default:
+        return <Badge variant="secondary">Available</Badge>;
+    }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'connected':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'error':
+      case 'disconnected':
         return <AlertCircle className="h-4 w-4 text-red-500" />;
       default:
-        return null;
+        return <Plus className="h-4 w-4 text-gray-400" />;
     }
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Integration Hub</h1>
-          <p className="text-gray-400">Connect Frmzz with your favorite tools and services</p>
+          <h2 className="text-2xl font-bold text-white">Integration Hub</h2>
+          <p className="text-gray-400">Connect your favorite tools and services</p>
         </div>
-        <Button onClick={onClose} variant="outline" className="border-gray-600 text-gray-300">
-          Close
+        <Button className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Integration
         </Button>
       </div>
 
-      <Tabs defaultValue="browse" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 bg-gray-800">
-          <TabsTrigger value="browse" className="text-gray-300">
-            Browse Integrations
-          </TabsTrigger>
-          <TabsTrigger value="connected" className="text-gray-300">
-            Connected ({integrations.filter(i => i.status === 'connected').length})
-          </TabsTrigger>
-          <TabsTrigger value="api" className="text-gray-300">
-            API & Webhooks
-          </TabsTrigger>
+      {/* Search and Filters */}
+      <div className="flex items-center space-x-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search integrations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 bg-gray-800 border-gray-700 text-white"
+          />
+        </div>
+      </div>
+
+      {/* Category Tabs */}
+      <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
+        <TabsList className="grid grid-cols-6 bg-gray-800">
+          {categories.map((category) => (
+            <TabsTrigger key={category.id} value={category.id} className="text-gray-300">
+              {category.name} ({category.count})
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        <TabsContent value="browse" className="space-y-6">
-          <div className="flex flex-wrap gap-2 mb-6">
-            {categories.map(category => (
-              <Button
-                key={category.value}
-                variant={activeCategory === category.value ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveCategory(category.value)}
-                className={activeCategory === category.value 
-                  ? "bg-blue-600 hover:bg-blue-700" 
-                  : "border-gray-600 text-gray-300 hover:bg-gray-700"
-                }
-              >
-                {category.label}
-              </Button>
-            ))}
-          </div>
-
+        <TabsContent value={selectedCategory} className="space-y-6 mt-6">
+          {/* Integration Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredIntegrations.map(integration => {
-              const IconComponent = integration.icon;
-              return (
-                <Card key={integration.id} className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-colors">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                          <IconComponent className="h-5 w-5 text-white" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-white text-lg">{integration.name}</CardTitle>
-                          <Badge 
-                            variant={integration.status === 'connected' ? 'default' : 'secondary'}
-                            className={integration.status === 'connected' ? 'bg-green-600' : ''}
-                          >
-                            {integration.status}
-                          </Badge>
-                        </div>
+            {filteredIntegrations.map((integration) => (
+              <Card key={integration.id} className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-lg ${integration.color}`}>
+                        <integration.icon className="h-6 w-6 text-white" />
                       </div>
-                      {getStatusIcon(integration.status)}
+                      <div>
+                        <CardTitle className="text-white text-lg">{integration.name}</CardTitle>
+                        {integration.version && (
+                          <p className="text-gray-400 text-sm">{integration.version}</p>
+                        )}
+                      </div>
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-gray-400 text-sm">{integration.description}</p>
-                    
-                    <div className="flex space-x-2">
-                      {integration.status === 'connected' ? (
-                        <>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="border-gray-600 text-gray-300 flex-1"
-                            onClick={() => handleConnect(integration)}
-                          >
-                            <Settings className="h-4 w-4 mr-1" />
-                            Configure
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="border-red-600 text-red-400 hover:bg-red-600"
-                            onClick={() => handleDisconnect(integration.id)}
-                          >
-                            Disconnect
-                          </Button>
-                        </>
-                      ) : (
-                        <Button 
-                          size="sm" 
-                          className="bg-blue-600 hover:bg-blue-700 w-full"
-                          onClick={() => handleConnect(integration)}
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          Connect
+                    {getStatusIcon(integration.status)}
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="space-y-4">
+                  <p className="text-gray-300 text-sm">{integration.description}</p>
+                  
+                  {/* Features */}
+                  <div className="space-y-2">
+                    <p className="text-gray-400 text-xs font-medium uppercase tracking-wide">Features</p>
+                    <div className="flex flex-wrap gap-1">
+                      {integration.features.map((feature, index) => (
+                        <Badge key={index} variant="outline" className="text-xs border-gray-600 text-gray-300">
+                          {feature}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Status and Actions */}
+                  <div className="flex items-center justify-between pt-2">
+                    {getStatusBadge(integration.status)}
+                    <div className="flex items-center space-x-2">
+                      {integration.status === 'connected' && (
+                        <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                          <Settings className="h-4 w-4" />
                         </Button>
                       )}
+                      <Button 
+                        variant={integration.status === 'connected' ? 'outline' : 'default'}
+                        size="sm"
+                        className={integration.status === 'connected' ? 'border-gray-600' : 'bg-blue-600 hover:bg-blue-700'}
+                      >
+                        {integration.status === 'connected' ? 'Configure' : 'Connect'}
+                        <ExternalLink className="h-3 w-3 ml-1" />
+                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                  </div>
+                  
+                  {/* Last Sync */}
+                  {integration.lastSync && (
+                    <p className="text-gray-500 text-xs">Last sync: {integration.lastSync}</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </TabsContent>
-
-        <TabsContent value="connected" className="space-y-6">
-          <div className="space-y-4">
-            {integrations.filter(i => i.status === 'connected').map(integration => {
-              const IconComponent = integration.icon;
-              return (
-                <Card key={integration.id} className="bg-gray-800 border-gray-700">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                          <IconComponent className="h-6 w-6 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="text-white font-medium">{integration.name}</h3>
-                          <p className="text-gray-400 text-sm">{integration.description}</p>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                            <span className="text-green-500 text-sm">Connected</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="border-gray-600 text-gray-300"
-                          onClick={() => handleConnect(integration)}
-                        >
-                          Configure
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="border-red-600 text-red-400"
-                          onClick={() => handleDisconnect(integration.id)}
-                        >
-                          Disconnect
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="api" className="space-y-6">
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white">API Access</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-gray-300">API Key</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    value="frmzz_api_key_********************"
-                    readOnly
-                    className="bg-gray-700 border-gray-600 text-white"
-                  />
-                  <Button className="bg-blue-600 hover:bg-blue-700">Regenerate</Button>
-                </div>
+          
+          {filteredIntegrations.length === 0 && (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gray-700 rounded-full flex items-center justify-center">
+                <Search className="h-8 w-8 text-gray-400" />
               </div>
-              <div className="space-y-2">
-                <Label className="text-gray-300">Webhook URL</Label>
-                <Input
-                  placeholder="https://yourapp.com/webhook"
-                  className="bg-gray-700 border-gray-600 text-white"
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Enable Webhooks</Label>
-                  <p className="text-sm text-gray-500">Receive real-time notifications</p>
-                </div>
-                <Switch />
-              </div>
-            </CardContent>
-          </Card>
+              <h3 className="text-white text-lg font-medium mb-2">No integrations found</h3>
+              <p className="text-gray-400">Try adjusting your search or category filter</p>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
-      {/* Connect/Configure Dialog */}
-      <Dialog open={showConnectDialog} onOpenChange={setShowConnectDialog}>
-        <DialogContent className="bg-gray-800 border-gray-700 max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-white">
-              {selectedIntegration?.status === 'connected' ? 'Configure' : 'Connect'} {selectedIntegration?.name}
-            </DialogTitle>
-          </DialogHeader>
-          
-          {selectedIntegration?.id === 'adobe-premiere' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-gray-300">Auto-sync projects</Label>
-                  <p className="text-sm text-gray-500">Automatically sync Premiere Pro projects</p>
-                </div>
-                <Switch defaultChecked={selectedIntegration.config.autoSync} />
+      {/* Quick Setup Guide */}
+      <Card className="bg-gray-800 border-gray-700">
+        <CardHeader>
+          <CardTitle className="text-white">Quick Setup</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-gray-700 rounded-lg">
+              <div className="w-12 h-12 mx-auto mb-3 bg-blue-600 rounded-full flex items-center justify-center">
+                <Palette className="h-6 w-6 text-white" />
               </div>
-              <div className="space-y-2">
-                <Label className="text-gray-300">Proxy Settings</Label>
-                <select className="w-full bg-gray-700 border-gray-600 text-white rounded px-3 py-2">
-                  <option value="auto">Auto</option>
-                  <option value="low">Low Quality</option>
-                  <option value="medium">Medium Quality</option>
-                  <option value="high">High Quality</option>
-                </select>
-              </div>
+              <h4 className="text-white font-medium mb-2">Creative Tools</h4>
+              <p className="text-gray-400 text-sm">Connect Adobe Creative Cloud for seamless editing workflows</p>
+              <Button variant="outline" size="sm" className="mt-3 border-gray-600">
+                Get Started
+              </Button>
             </div>
-          )}
-
-          {selectedIntegration?.id === 'slack' && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-gray-300">Slack Workspace</Label>
-                <Input placeholder="your-workspace.slack.com" className="bg-gray-700 border-gray-600 text-white" />
+            
+            <div className="text-center p-4 bg-gray-700 rounded-lg">
+              <div className="w-12 h-12 mx-auto mb-3 bg-green-600 rounded-full flex items-center justify-center">
+                <Camera className="h-6 w-6 text-white" />
               </div>
-              <div className="space-y-2">
-                <Label className="text-gray-300">Channels to notify</Label>
-                <Input placeholder="#video-team, #general" className="bg-gray-700 border-gray-600 text-white" />
-              </div>
+              <h4 className="text-white font-medium mb-2">Camera Integration</h4>
+              <p className="text-gray-400 text-sm">Set up Camera to Cloud for direct uploads from your cameras</p>
+              <Button variant="outline" size="sm" className="mt-3 border-gray-600">
+                Configure
+              </Button>
             </div>
-          )}
-
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button variant="outline" onClick={() => setShowConnectDialog(false)} className="border-gray-600 text-gray-300">
-              Cancel
-            </Button>
-            <Button 
-              onClick={() => handleConfigSave(selectedIntegration?.id, selectedIntegration?.config)}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {selectedIntegration?.status === 'connected' ? 'Save Changes' : 'Connect'}
-            </Button>
+            
+            <div className="text-center p-4 bg-gray-700 rounded-lg">
+              <div className="w-12 h-12 mx-auto mb-3 bg-orange-600 rounded-full flex items-center justify-center">
+                <Cloud className="h-6 w-6 text-white" />
+              </div>
+              <h4 className="text-white font-medium mb-2">Cloud Storage</h4>
+              <p className="text-gray-400 text-sm">Connect your preferred cloud storage for expanded capacity</p>
+              <Button variant="outline" size="sm" className="mt-3 border-gray-600">
+                Setup
+              </Button>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </CardContent>
+      </Card>
     </div>
   );
 };
