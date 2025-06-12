@@ -204,7 +204,7 @@ export const WorkspaceView = ({
   if (showAnalytics) {
     return (
       <div className="min-h-screen bg-gray-900 flex-1">
-        <AnalyticsDashboard />
+        <AnalyticsDashboard workspaceId="workspace-1" dateRange="Last 30 days" />
         <div className="fixed top-4 right-4">
           <Button onClick={() => setShowAnalytics(false)} variant="outline" className="border-gray-600 text-gray-300">
             Back to Workspace

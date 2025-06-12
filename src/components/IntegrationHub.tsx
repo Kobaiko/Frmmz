@@ -1,173 +1,84 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
 import { 
   Settings, 
-  Plus, 
-  ExternalLink, 
-  CheckCircle, 
+  Link, 
+  Cloud, 
+  Camera, 
+  Palette, 
+  Database,
+  ArrowLeft,
+  Plus,
+  CheckCircle,
   AlertCircle,
-  Search,
-  Zap,
-  Camera,
-  Cloud,
-  FileVideo,
-  Palette,
-  Mail,
-  MessageSquare,
-  Calendar,
-  Archive,
-  Shield
+  Clock
 } from "lucide-react";
 
-interface Integration {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  status: 'connected' | 'available' | 'disconnected';
-  icon: any;
-  color: string;
-  features: string[];
-  lastSync?: string;
-  version?: string;
+interface IntegrationHubProps {
+  onClose: () => void;
 }
 
-export const IntegrationHub = () => {
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const integrations: Integration[] = [
+export const IntegrationHub = ({ onClose }: IntegrationHubProps) => {
+  const [activeTab, setActiveTab] = useState("overview");
+  
+  const integrations = [
     {
       id: "adobe-premiere",
       name: "Adobe Premiere Pro",
-      description: "Direct integration with Premiere Pro for seamless editing workflows",
+      description: "Direct integration with Adobe Premiere Pro for seamless workflow",
       category: "creative",
       status: "connected",
       icon: Palette,
-      color: "bg-purple-600",
-      features: ["Direct export", "Timeline sync", "Asset linking"],
-      lastSync: "2 hours ago",
-      version: "v2.1.0"
+      features: ["Direct asset access", "Timeline sync", "Auto-save"]
     },
     {
-      id: "adobe-aftereffects",
-      name: "Adobe After Effects",
-      description: "Motion graphics and VFX integration",
-      category: "creative",
-      status: "connected",
-      icon: Zap,
-      color: "bg-blue-600",
-      features: ["Composition sync", "Asset import", "Render queue"],
-      lastSync: "1 hour ago",
-      version: "v1.8.3"
-    },
-    {
-      id: "camera-to-cloud",
+      id: "camera-cloud",
       name: "Camera to Cloud",
       description: "Direct upload from professional cameras",
-      category: "capture",
+      category: "camera",
       status: "connected",
       icon: Camera,
-      color: "bg-green-600",
-      features: ["Real-time upload", "Multiple camera support", "Metadata sync"],
-      lastSync: "30 min ago",
-      version: "v3.0.1"
+      features: ["Real-time upload", "Automatic backup", "Metadata sync"]
     },
     {
       id: "aws-s3",
       name: "AWS S3",
-      description: "Cloud storage integration for scalable asset management",
+      description: "Custom storage integration with Amazon S3",
       category: "storage",
-      status: "connected",
+      status: "pending",
       icon: Cloud,
-      color: "bg-orange-600",
-      features: ["Unlimited storage", "CDN integration", "Backup automation"],
-      lastSync: "15 min ago",
-      version: "v2.4.0"
+      features: ["Custom buckets", "Cost optimization", "Global CDN"]
     },
     {
       id: "slack",
       name: "Slack",
-      description: "Team communication and notifications",
+      description: "Notifications and updates in your Slack workspace",
       category: "communication",
       status: "available",
-      icon: MessageSquare,
-      color: "bg-green-500",
-      features: ["Comment notifications", "Approval alerts", "Status updates"]
-    },
-    {
-      id: "teams",
-      name: "Microsoft Teams",
-      description: "Enterprise communication platform",
-      category: "communication",
-      status: "available",
-      icon: MessageSquare,
-      color: "bg-blue-500",
-      features: ["Video calls", "Chat integration", "File sharing"]
-    },
-    {
-      id: "google-drive",
-      name: "Google Drive",
-      description: "Cloud storage and collaboration",
-      category: "storage",
-      status: "disconnected",
-      icon: Archive,
-      color: "bg-yellow-600",
-      features: ["File sync", "Collaborative editing", "Version control"]
-    },
-    {
-      id: "okta",
-      name: "Okta",
-      description: "Enterprise identity and access management",
-      category: "security",
-      status: "available",
-      icon: Shield,
-      color: "bg-indigo-600",
-      features: ["SSO", "Multi-factor auth", "User provisioning"]
+      icon: Link,
+      features: ["Comment notifications", "Review alerts", "Status updates"]
     }
   ];
 
-  const categories = [
-    { id: "all", name: "All Integrations", count: integrations.length },
-    { id: "creative", name: "Creative Tools", count: integrations.filter(i => i.category === "creative").length },
-    { id: "capture", name: "Capture & Upload", count: integrations.filter(i => i.category === "capture").length },
-    { id: "storage", name: "Storage", count: integrations.filter(i => i.category === "storage").length },
-    { id: "communication", name: "Communication", count: integrations.filter(i => i.category === "communication").length },
-    { id: "security", name: "Security", count: integrations.filter(i => i.category === "security").length }
-  ];
-
-  const filteredIntegrations = integrations.filter(integration => {
-    const matchesCategory = selectedCategory === "all" || integration.category === selectedCategory;
-    const matchesSearch = integration.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         integration.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
-
-  const getStatusBadge = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'connected':
-        return <Badge className="bg-green-600 text-white">Connected</Badge>;
-      case 'disconnected':
-        return <Badge variant="destructive">Disconnected</Badge>;
-      default:
-        return <Badge variant="secondary">Available</Badge>;
+      case 'connected': return 'bg-green-600';
+      case 'pending': return 'bg-yellow-600';
+      case 'available': return 'bg-gray-600';
+      default: return 'bg-gray-600';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'connected':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'disconnected':
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
-      default:
-        return <Plus className="h-4 w-4 text-gray-400" />;
+      case 'connected': return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'pending': return <Clock className="h-4 w-4 text-yellow-500" />;
+      case 'available': return <Plus className="h-4 w-4 text-gray-400" />;
+      default: return <AlertCircle className="h-4 w-4 text-gray-400" />;
     }
   };
 
@@ -175,9 +86,14 @@ export const IntegrationHub = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Integration Hub</h2>
-          <p className="text-gray-400">Connect your favorite tools and services</p>
+        <div className="flex items-center space-x-4">
+          <Button onClick={onClose} variant="ghost" size="icon" className="text-gray-400">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold text-white">Integration Hub</h2>
+            <p className="text-gray-400">Connect and manage third-party integrations</p>
+          </div>
         </div>
         <Button className="bg-blue-600 hover:bg-blue-700">
           <Plus className="h-4 w-4 mr-2" />
@@ -185,149 +101,180 @@ export const IntegrationHub = () => {
         </Button>
       </div>
 
-      {/* Search and Filters */}
-      <div className="flex items-center space-x-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search integrations..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-gray-800 border-gray-700 text-white"
-          />
-        </div>
-      </div>
-
-      {/* Category Tabs */}
-      <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
-        <TabsList className="grid grid-cols-6 bg-gray-800">
-          {categories.map((category) => (
-            <TabsTrigger key={category.id} value={category.id} className="text-gray-300">
-              {category.name} ({category.count})
-            </TabsTrigger>
-          ))}
+      {/* Integration Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4 bg-gray-800">
+          <TabsTrigger value="overview" className="text-gray-300">Overview</TabsTrigger>
+          <TabsTrigger value="creative" className="text-gray-300">Creative Tools</TabsTrigger>
+          <TabsTrigger value="storage" className="text-gray-300">Storage</TabsTrigger>
+          <TabsTrigger value="enterprise" className="text-gray-300">Enterprise</TabsTrigger>
         </TabsList>
 
-        <TabsContent value={selectedCategory} className="space-y-6 mt-6">
-          {/* Integration Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredIntegrations.map((integration) => (
-              <Card key={integration.id} className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors">
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {integrations.map((integration) => (
+              <Card key={integration.id} className="bg-gray-800 border-gray-700">
                 <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-lg ${integration.color}`}>
-                        <integration.icon className="h-6 w-6 text-white" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-white text-lg">{integration.name}</CardTitle>
-                        {integration.version && (
-                          <p className="text-gray-400 text-sm">{integration.version}</p>
-                        )}
-                      </div>
-                    </div>
+                  <div className="flex items-center justify-between">
+                    <integration.icon className="h-8 w-8 text-blue-500" />
                     {getStatusIcon(integration.status)}
                   </div>
+                  <div>
+                    <CardTitle className="text-white text-lg">{integration.name}</CardTitle>
+                    <Badge className={`${getStatusColor(integration.status)} text-white mt-2`}>
+                      {integration.status}
+                    </Badge>
+                  </div>
                 </CardHeader>
-                
-                <CardContent className="space-y-4">
-                  <p className="text-gray-300 text-sm">{integration.description}</p>
-                  
-                  {/* Features */}
+                <CardContent>
+                  <p className="text-gray-400 text-sm mb-4">{integration.description}</p>
                   <div className="space-y-2">
-                    <p className="text-gray-400 text-xs font-medium uppercase tracking-wide">Features</p>
-                    <div className="flex flex-wrap gap-1">
-                      {integration.features.map((feature, index) => (
-                        <Badge key={index} variant="outline" className="text-xs border-gray-600 text-gray-300">
-                          {feature}
-                        </Badge>
-                      ))}
-                    </div>
+                    {integration.features.map((feature, index) => (
+                      <div key={index} className="flex items-center space-x-2">
+                        <CheckCircle className="h-3 w-3 text-green-500" />
+                        <span className="text-gray-300 text-xs">{feature}</span>
+                      </div>
+                    ))}
                   </div>
-                  
-                  {/* Status and Actions */}
-                  <div className="flex items-center justify-between pt-2">
-                    {getStatusBadge(integration.status)}
-                    <div className="flex items-center space-x-2">
-                      {integration.status === 'connected' && (
-                        <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-                          <Settings className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button 
-                        variant={integration.status === 'connected' ? 'outline' : 'default'}
-                        size="sm"
-                        className={integration.status === 'connected' ? 'border-gray-600' : 'bg-blue-600 hover:bg-blue-700'}
-                      >
-                        {integration.status === 'connected' ? 'Configure' : 'Connect'}
-                        <ExternalLink className="h-3 w-3 ml-1" />
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  {/* Last Sync */}
-                  {integration.lastSync && (
-                    <p className="text-gray-500 text-xs">Last sync: {integration.lastSync}</p>
-                  )}
+                  <Button 
+                    className="w-full mt-4" 
+                    variant={integration.status === 'connected' ? 'outline' : 'default'}
+                    size="sm"
+                  >
+                    {integration.status === 'connected' ? 'Configure' : 'Connect'}
+                  </Button>
                 </CardContent>
               </Card>
             ))}
           </div>
-          
-          {filteredIntegrations.length === 0 && (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gray-700 rounded-full flex items-center justify-center">
-                <Search className="h-8 w-8 text-gray-400" />
+        </TabsContent>
+
+        <TabsContent value="creative" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {integrations.filter(i => i.category === 'creative').map((integration) => (
+              <Card key={integration.id} className="bg-gray-800 border-gray-700">
+                <CardHeader>
+                  <div className="flex items-center space-x-4">
+                    <integration.icon className="h-10 w-10 text-blue-500" />
+                    <div>
+                      <CardTitle className="text-white">{integration.name}</CardTitle>
+                      <p className="text-gray-400 text-sm">{integration.description}</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-300">Auto-sync timeline</span>
+                      <Switch defaultChecked />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-300">Real-time collaboration</span>
+                      <Switch defaultChecked />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-300">Asset management</span>
+                      <Switch defaultChecked />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="storage" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {integrations.filter(i => i.category === 'storage').map((integration) => (
+              <Card key={integration.id} className="bg-gray-800 border-gray-700">
+                <CardHeader>
+                  <div className="flex items-center space-x-4">
+                    <integration.icon className="h-10 w-10 text-blue-500" />
+                    <div>
+                      <CardTitle className="text-white">{integration.name}</CardTitle>
+                      <p className="text-gray-400 text-sm">{integration.description}</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-gray-300 text-sm">Bucket Name</label>
+                      <input 
+                        type="text" 
+                        className="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                        placeholder="my-frmzz-bucket"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-gray-300 text-sm">Region</label>
+                      <select className="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded text-white">
+                        <option>us-east-1</option>
+                        <option>us-west-2</option>
+                        <option>eu-west-1</option>
+                      </select>
+                    </div>
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                      Configure Storage
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="enterprise" className="space-y-6">
+          <Card className="bg-gray-800 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-white">Enterprise Integrations</CardTitle>
+              <p className="text-gray-400">Advanced integrations for enterprise workflows</p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    <Database className="h-8 w-8 text-blue-500" />
+                    <div>
+                      <h4 className="text-white font-medium">LDAP/Active Directory</h4>
+                      <p className="text-gray-400 text-sm">Enterprise user authentication</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" className="border-gray-600 text-gray-300">
+                    Configure
+                  </Button>
+                </div>
+                
+                <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    <Settings className="h-8 w-8 text-blue-500" />
+                    <div>
+                      <h4 className="text-white font-medium">SAML SSO</h4>
+                      <p className="text-gray-400 text-sm">Single sign-on integration</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" className="border-gray-600 text-gray-300">
+                    Configure
+                  </Button>
+                </div>
+                
+                <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    <Cloud className="h-8 w-8 text-blue-500" />
+                    <div>
+                      <h4 className="text-white font-medium">Custom API</h4>
+                      <p className="text-gray-400 text-sm">Build custom integrations</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" className="border-gray-600 text-gray-300">
+                    View Docs
+                  </Button>
+                </div>
               </div>
-              <h3 className="text-white text-lg font-medium mb-2">No integrations found</h3>
-              <p className="text-gray-400">Try adjusting your search or category filter</p>
-            </div>
-          )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Quick Setup Guide */}
-      <Card className="bg-gray-800 border-gray-700">
-        <CardHeader>
-          <CardTitle className="text-white">Quick Setup</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-gray-700 rounded-lg">
-              <div className="w-12 h-12 mx-auto mb-3 bg-blue-600 rounded-full flex items-center justify-center">
-                <Palette className="h-6 w-6 text-white" />
-              </div>
-              <h4 className="text-white font-medium mb-2">Creative Tools</h4>
-              <p className="text-gray-400 text-sm">Connect Adobe Creative Cloud for seamless editing workflows</p>
-              <Button variant="outline" size="sm" className="mt-3 border-gray-600">
-                Get Started
-              </Button>
-            </div>
-            
-            <div className="text-center p-4 bg-gray-700 rounded-lg">
-              <div className="w-12 h-12 mx-auto mb-3 bg-green-600 rounded-full flex items-center justify-center">
-                <Camera className="h-6 w-6 text-white" />
-              </div>
-              <h4 className="text-white font-medium mb-2">Camera Integration</h4>
-              <p className="text-gray-400 text-sm">Set up Camera to Cloud for direct uploads from your cameras</p>
-              <Button variant="outline" size="sm" className="mt-3 border-gray-600">
-                Configure
-              </Button>
-            </div>
-            
-            <div className="text-center p-4 bg-gray-700 rounded-lg">
-              <div className="w-12 h-12 mx-auto mb-3 bg-orange-600 rounded-full flex items-center justify-center">
-                <Cloud className="h-6 w-6 text-white" />
-              </div>
-              <h4 className="text-white font-medium mb-2">Cloud Storage</h4>
-              <p className="text-gray-400 text-sm">Connect your preferred cloud storage for expanded capacity</p>
-              <Button variant="outline" size="sm" className="mt-3 border-gray-600">
-                Setup
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };
