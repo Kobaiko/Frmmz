@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -131,7 +132,13 @@ export const CommentPanel = ({
             
             {comment.attachments && comment.attachments.length > 0 && (
               <div className="mb-3">
-                <AttachmentViewer attachments={comment.attachments} />
+                <div className="grid grid-cols-2 gap-2">
+                  {comment.attachments.map((attachment, index) => (
+                    <div key={index} className="bg-gray-600 rounded p-2">
+                      <span className="text-xs text-gray-300">{attachment.name}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             
@@ -157,12 +164,11 @@ export const CommentPanel = ({
         {replyingTo === comment.id && (
           <div className="mt-2 ml-6">
             <CommentInput
-              onSubmit={(text, attachments, isInternal, attachTime, hasDrawing) => 
+              onAddComment={(text, attachments, isInternal, attachTime, hasDrawing) => 
                 handleReply(comment.id, text, attachments, isInternal, attachTime, hasDrawing)
               }
               onCancel={() => setReplyingTo(null)}
               placeholder="Write a reply..."
-              submitLabel="Reply"
               currentTime={currentTime}
               onStartDrawing={onStartDrawing}
               isDrawingMode={isDrawingMode}
@@ -221,9 +227,8 @@ export const CommentPanel = ({
             </div>
 
             <CommentInput
-              onSubmit={onAddComment}
+              onAddComment={onAddComment}
               placeholder="Add a comment or feedback..."
-              submitLabel="Comment"
               currentTime={currentTime}
               onStartDrawing={onStartDrawing}
               isDrawingMode={isDrawingMode}
