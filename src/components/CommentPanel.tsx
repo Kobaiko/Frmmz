@@ -100,20 +100,20 @@ export const CommentPanel = ({
   };
 
   const CommentItem = ({ comment, isReply = false }: { comment: Comment; isReply?: boolean }) => (
-    <div className={`${isReply ? 'ml-6 border-l-2 border-gray-700 pl-3' : ''}`}>
-      <Card className="bg-gray-800 border-gray-700 mb-3">
-        <CardContent className="p-3">
-          <div className="flex items-start space-x-3">
+    <div className={`${isReply ? 'ml-6 border-l-2 border-gray-700 pl-3' : ''} max-w-full`}>
+      <Card className="bg-gray-800 border-gray-700 mb-3 max-w-full">
+        <CardContent className="p-3 max-w-full overflow-hidden">
+          <div className="flex items-start space-x-3 max-w-full">
             <Avatar className="h-8 w-8 flex-shrink-0">
               <AvatarFallback className="bg-gray-600 text-white text-sm">
                 {comment.author.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
             
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-2 min-w-0 flex-1">
-                  <span className="font-medium text-white text-sm truncate">{comment.author}</span>
+            <div className="flex-1 min-w-0 max-w-full overflow-hidden">
+              <div className="flex items-center justify-between mb-2 max-w-full">
+                <div className="flex items-center space-x-2 min-w-0 flex-1 max-w-full overflow-hidden">
+                  <span className="font-medium text-white text-sm truncate max-w-[120px]">{comment.author}</span>
                   {comment.isInternal && (
                     <Badge variant="outline" className="border-gray-600 text-gray-300 text-xs flex-shrink-0">
                       Internal
@@ -123,48 +123,50 @@ export const CommentPanel = ({
                     <Pin className="h-3 w-3 text-yellow-400 flex-shrink-0" />
                   )}
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white flex-shrink-0 h-6 w-6 p-0">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="bg-gray-800 border-gray-600 text-white" align="end">
-                    <DropdownMenuItem className="hover:bg-gray-700 focus:bg-gray-700">
-                      <Edit className="h-3 w-3 mr-2" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => onDeleteComment(comment.id)}
-                      className="hover:bg-gray-700 focus:bg-gray-700 text-red-400"
-                    >
-                      <Trash2 className="h-3 w-3 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex-shrink-0">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white h-6 w-6 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="bg-gray-800 border-gray-600 text-white" align="end">
+                      <DropdownMenuItem className="hover:bg-gray-700 focus:bg-gray-700">
+                        <Edit className="h-3 w-3 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => onDeleteComment(comment.id)}
+                        className="hover:bg-gray-700 focus:bg-gray-700 text-red-400"
+                      >
+                        <Trash2 className="h-3 w-3 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
 
               {comment.timestamp >= 0 && (
-                <div className="flex items-center space-x-1 text-xs text-gray-400 mb-2">
+                <div className="flex items-center space-x-1 text-xs text-gray-400 mb-2 max-w-full">
                   <Clock className="h-3 w-3 flex-shrink-0" />
                   <button 
                     onClick={() => onCommentClick(comment.timestamp)}
-                    className="hover:text-blue-400 cursor-pointer"
+                    className="hover:text-blue-400 cursor-pointer truncate"
                   >
                     @{formatTimestamp(comment.timestamp)}
                   </button>
                 </div>
               )}
 
-              <div className="mb-3">
-                <p className="text-gray-300 text-sm break-words whitespace-pre-wrap leading-relaxed">
+              <div className="mb-3 max-w-full">
+                <p className="text-gray-300 text-sm break-words whitespace-pre-wrap leading-relaxed max-w-full overflow-hidden">
                   {comment.text}
                 </p>
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
+              <div className="flex items-center justify-between max-w-full">
+                <div className="flex items-center space-x-3 min-w-0 flex-1">
                   <div className="flex items-center space-x-1">
                     <Button
                       variant="ghost"
@@ -195,7 +197,7 @@ export const CommentPanel = ({
                   </Button>
                 </div>
 
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-gray-500 flex-shrink-0 truncate max-w-[80px]">
                   {comment.createdAt.toLocaleString()}
                 </div>
               </div>
@@ -206,13 +208,13 @@ export const CommentPanel = ({
 
       {/* Reply Input */}
       {replyingTo === comment.id && (
-        <div className="ml-6 mb-3">
-          <div className="flex space-x-2">
+        <div className="ml-6 mb-3 max-w-full">
+          <div className="flex space-x-2 max-w-full">
             <Textarea
               placeholder="Write a reply..."
               value={replyContent}
               onChange={(e) => setReplyContent(e.target.value)}
-              className="bg-gray-700 border-gray-600 text-white text-sm min-h-[60px] flex-1"
+              className="bg-gray-700 border-gray-600 text-white text-sm min-h-[60px] flex-1 max-w-full"
             />
             <div className="flex flex-col space-y-1 flex-shrink-0">
               <Button
@@ -243,7 +245,7 @@ export const CommentPanel = ({
   );
 
   return (
-    <div className="w-80 bg-gray-900 border-l border-gray-800 h-full flex flex-col">
+    <div className="w-80 bg-gray-900 border-l border-gray-800 h-full flex flex-col max-w-full">
       {/* Header */}
       <div className="p-4 border-b border-gray-700 flex-shrink-0">
         <h3 className="text-lg font-semibold text-white flex items-center">
@@ -253,7 +255,7 @@ export const CommentPanel = ({
       </div>
 
       {/* Comments List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0">
+      <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0 max-w-full">
         {comments.filter(comment => !comment.parentId).map((comment) => (
           <CommentItem key={comment.id} comment={comment} />
         ))}
@@ -268,9 +270,9 @@ export const CommentPanel = ({
       </div>
 
       {/* New Comment Input - Fixed at bottom */}
-      <div className="p-4 border-t border-gray-700 bg-gray-800/50 flex-shrink-0">
-        <div className="space-y-3">
-          <div className="relative">
+      <div className="p-4 border-t border-gray-700 bg-gray-800/50 flex-shrink-0 max-w-full">
+        <div className="space-y-3 max-w-full">
+          <div className="relative max-w-full">
             {attachTime && (
               <div className="absolute top-3 left-3 z-10 pointer-events-none">
                 <div className="flex items-center space-x-1 bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full text-sm font-medium">
@@ -290,20 +292,20 @@ export const CommentPanel = ({
                   video.pause();
                 }
               }}
-              className={`bg-gray-700 border-gray-600 text-white min-h-[80px] resize-none ${
+              className={`bg-gray-700 border-gray-600 text-white min-h-[80px] resize-none max-w-full ${
                 attachTime ? 'pl-20' : ''
               }`}
             />
           </div>
           
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-1">
+          <div className="flex items-center justify-between max-w-full">
+            <div className="flex items-center space-x-1 min-w-0 flex-1">
               {/* Time attach button */}
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => setAttachTime(!attachTime)}
-                className={`p-2 rounded-lg ${
+                className={`p-2 rounded-lg flex-shrink-0 ${
                   attachTime 
                     ? "text-blue-400 bg-blue-500/20" 
                     : "text-gray-400 hover:text-white hover:bg-gray-600"
@@ -317,7 +319,7 @@ export const CommentPanel = ({
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-gray-400 hover:text-white hover:bg-gray-600 p-2 rounded-lg"
+                className="text-gray-400 hover:text-white hover:bg-gray-600 p-2 rounded-lg flex-shrink-0"
                 title="Attach files"
               >
                 <Paperclip size={16} />
@@ -328,7 +330,7 @@ export const CommentPanel = ({
                 size="sm"
                 variant="ghost"
                 onClick={handleDrawingClick}
-                className={`p-2 rounded-lg ${
+                className={`p-2 rounded-lg flex-shrink-0 ${
                   isDrawingMode
                     ? "text-blue-400 bg-blue-500/20" 
                     : "text-gray-400 hover:text-white hover:bg-gray-600"
@@ -347,24 +349,24 @@ export const CommentPanel = ({
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-gray-400 hover:text-white hover:bg-gray-600 p-2 rounded-lg"
+                className="text-gray-400 hover:text-white hover:bg-gray-600 p-2 rounded-lg flex-shrink-0"
                 title="Add emoji"
               >
                 <Smile size={16} />
               </Button>
             </div>
             
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 flex-shrink-0">
               {/* Public/Internal dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-gray-300 hover:text-white hover:bg-gray-600 p-2 rounded-lg"
+                    className="text-gray-300 hover:text-white hover:bg-gray-600 p-2 rounded-lg min-w-0"
                   >
                     <Globe size={16} />
-                    <span className="ml-1 text-sm">{isInternal ? "Internal" : "Public"}</span>
+                    <span className="ml-1 text-sm hidden sm:inline">{isInternal ? "Internal" : "Public"}</span>
                     <ChevronDown size={12} className="ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -391,7 +393,7 @@ export const CommentPanel = ({
                 size="sm"
                 onClick={handleAddComment}
                 disabled={!newComment.trim()}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg disabled:opacity-50"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg disabled:opacity-50 flex-shrink-0"
               >
                 <Send size={14} />
               </Button>
