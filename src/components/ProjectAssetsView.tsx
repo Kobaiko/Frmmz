@@ -99,17 +99,30 @@ export const ProjectAssetsView = ({
   };
 
   const handleUpload = () => {
-    // Trigger file upload dialog
+    console.log('🚀 Upload button clicked');
     const input = document.createElement('input');
     input.type = 'file';
     input.multiple = true;
     input.accept = 'video/*,image/*,audio/*';
     input.onchange = (e) => {
       const files = Array.from((e.target as HTMLInputElement).files || []);
-      console.log('Files selected for upload:', files);
-      // TODO: Implement actual upload logic
+      console.log('📁 Files selected for upload:', files);
+      files.forEach(file => {
+        console.log(`- ${file.name} (${file.size} bytes, ${file.type})`);
+      });
+      // TODO: Implement actual upload logic here
     };
     input.click();
+  };
+
+  const handleCreateFolder = () => {
+    console.log('📁 Create folder clicked');
+    // TODO: Implement folder creation
+  };
+
+  const handleRecordVideo = () => {
+    console.log('🎥 Record video clicked');
+    // TODO: Implement video recording
   };
 
   const filteredAssets = mockAssets.filter(asset => {
@@ -167,7 +180,7 @@ export const ProjectAssetsView = ({
                 variant={viewMode === 'grid' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setViewMode('grid')}
-                className={`rounded-none ${viewMode === 'grid' ? 'bg-pink-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                className={`rounded-none ${viewMode === 'grid' ? 'bg-pink-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
               >
                 <Grid3X3 className="h-4 w-4" />
               </Button>
@@ -175,15 +188,15 @@ export const ProjectAssetsView = ({
                 variant={viewMode === 'list' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setViewMode('list')}
-                className={`rounded-none ${viewMode === 'list' ? 'bg-pink-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                className={`rounded-none ${viewMode === 'list' ? 'bg-pink-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
               >
                 <List className="h-4 w-4" />
               </Button>
             </div>
 
             <Button
-              variant="outline"
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              variant="ghost"
+              className="bg-gray-800 border border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
             >
               <Share2 className="h-4 w-4 mr-2" />
               Share Project
@@ -191,7 +204,7 @@ export const ProjectAssetsView = ({
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="bg-pink-600 hover:bg-pink-700">
+                <Button className="bg-pink-600 hover:bg-pink-700 text-white">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Assets
                 </Button>
@@ -199,16 +212,22 @@ export const ProjectAssetsView = ({
               <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
                 <DropdownMenuItem 
                   onClick={handleUpload}
-                  className="text-gray-300 hover:bg-gray-700 focus:bg-gray-700"
+                  className="text-gray-300 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer"
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   Upload Files
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-gray-300 hover:bg-gray-700 focus:bg-gray-700">
+                <DropdownMenuItem 
+                  onClick={handleRecordVideo}
+                  className="text-gray-300 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer"
+                >
                   <FileVideo className="h-4 w-4 mr-2" />
                   Record Video
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-gray-300 hover:bg-gray-700 focus:bg-gray-700">
+                <DropdownMenuItem 
+                  onClick={handleCreateFolder}
+                  className="text-gray-300 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Create Folder
                 </DropdownMenuItem>

@@ -181,7 +181,7 @@ const Index = () => {
     const selectedProject = mockProjects.find(p => p.id === selectedProjectId);
     return (
       <div className="min-h-screen bg-black text-white flex">
-        <Sidebar />
+        <Sidebar onNavigateToProjects={handleBackToProjects} />
         <div className="flex-1">
           <ProjectAssetsView
             projectName={selectedProject?.name || selectedProjectId}
@@ -196,7 +196,7 @@ const Index = () => {
   // Projects Dashboard (default view)
   return (
     <div className="min-h-screen bg-black text-white flex">
-      <Sidebar />
+      <Sidebar onNavigateToProjects={handleBackToProjects} />
       <div className="flex-1 p-6">
         <ProjectManagement
           projects={mockProjects}

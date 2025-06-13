@@ -21,7 +21,11 @@ import {
   PlayCircle
 } from "lucide-react";
 
-export const Sidebar = () => {
+interface SidebarProps {
+  onNavigateToProjects?: () => void;
+}
+
+export const Sidebar = ({ onNavigateToProjects }: SidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     projects: true,
@@ -35,14 +39,19 @@ export const Sidebar = () => {
     }));
   };
 
+  const handleProjectsClick = () => {
+    console.log('🏠 Navigate to projects dashboard');
+    onNavigateToProjects?.();
+  };
+
   const sidebarItems = [
-    { icon: Home, label: "Dashboard", badge: null, active: true },
-    { icon: Folder, label: "All Projects", badge: "12", active: false },
-    { icon: Users, label: "Team", badge: null, active: false },
-    { icon: Star, label: "Starred", badge: null, active: false },
-    { icon: Clock, label: "Recent", badge: null, active: false },
-    { icon: Share2, label: "Shared with me", badge: "3", active: false },
-    { icon: Archive, label: "Archive", badge: null, active: false },
+    { icon: Home, label: "Dashboard", badge: null, active: true, onClick: handleProjectsClick },
+    { icon: Folder, label: "All Projects", badge: "12", active: false, onClick: handleProjectsClick },
+    { icon: Users, label: "Team", badge: null, active: false, onClick: () => console.log('Team clicked') },
+    { icon: Star, label: "Starred", badge: null, active: false, onClick: () => console.log('Starred clicked') },
+    { icon: Clock, label: "Recent", badge: null, active: false, onClick: () => console.log('Recent clicked') },
+    { icon: Share2, label: "Shared with me", badge: "3", active: false, onClick: () => console.log('Shared clicked') },
+    { icon: Archive, label: "Archive", badge: null, active: false, onClick: () => console.log('Archive clicked') },
   ];
 
   const recentProjects = [
@@ -77,7 +86,10 @@ export const Sidebar = () => {
         </div>
         
         {!isCollapsed && (
-          <Button className="w-full mt-3 bg-pink-600 hover:bg-pink-700">
+          <Button 
+            onClick={handleProjectsClick}
+            className="w-full mt-3 bg-pink-600 hover:bg-pink-700 text-white"
+          >
             <Plus className="h-4 w-4 mr-2" />
             New Project
           </Button>
@@ -105,6 +117,7 @@ export const Sidebar = () => {
             <Button
               key={index}
               variant="ghost"
+              onClick={item.onClick}
               className={`w-full justify-start mb-1 text-gray-300 hover:text-white hover:bg-gray-800 ${
                 item.active ? 'bg-gray-800 text-white' : ''
               } ${isCollapsed ? 'px-2' : 'px-3'}`}
@@ -149,6 +162,7 @@ export const Sidebar = () => {
                     <Button
                       key={index}
                       variant="ghost"
+                      onClick={handleProjectsClick}
                       className="w-full justify-start text-sm text-gray-400 hover:text-white hover:bg-gray-800 px-3 py-2"
                     >
                       <div className={`w-2 h-2 rounded-full mr-3 ${
