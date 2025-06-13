@@ -29,6 +29,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { CommentFilterMenu, type CommentFilters } from "./CommentFilterMenu";
+import { CommentTypeFilter, type CommentType } from "./CommentTypeFilter";
+import { AdvancedCommentFilters, type CommentFilters as AdvancedFilters } from "./AdvancedCommentFilters";
 
 interface Comment {
   id: string;
@@ -68,6 +71,25 @@ export const CommentPanel = ({
   const [replyContent, setReplyContent] = useState('');
   const [isInternal, setIsInternal] = useState(false);
   const [attachTime, setAttachTime] = useState(true);
+  
+  // Filter states
+  const [commentFilters, setCommentFilters] = useState<CommentFilters>({
+    annotations: false,
+    attachments: false,
+    completed: false,
+    incomplete: false,
+    unread: false,
+    mentionsAndReactions: false,
+  });
+  const [commentType, setCommentType] = useState<CommentType>('all');
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>({
+    search: '',
+    author: '',
+    status: 'all',
+    dateRange: { from: null, to: null },
+    tags: [],
+    type: 'all'
+  });
 
   const formatTimestamp = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -91,7 +113,6 @@ export const CommentPanel = ({
   };
 
   const handleDrawingClick = () => {
-    // Pause video when drawing starts
     const video = document.querySelector('video') as HTMLVideoElement;
     if (video && !video.paused) {
       video.pause();
@@ -99,21 +120,55 @@ export const CommentPanel = ({
     onStartDrawing();
   };
 
+  const clearCommentFilters = () => {
+    setCommentFilters({
+      annotations: false,
+      attachments: false,
+      completed: false,
+      incomplete: false,
+      unread: false,
+      mentionsAndReactions: false,
+    });
+  };
+
+  // Filter comments based on current filters
+  const filteredComments = comments.filter(comment => {
+    // Filter by comment type
+    if (commentType === 'public' && comment.isInternal) return false;
+    if (commentType === 'internal' && !comment.isInternal) return false;
+    
+    // Filter by search
+    if (advancedFilters.search && !comment.text.toLowerCase().includes(advancedFilters.search.toLowerCase())) {
+      return false;
+    }
+    
+    // Filter by author
+    if (advancedFilters.author && comment.author !== advancedFilters.author) return false;
+    
+    return true;
+  });
+
+  const commentCounts = {
+    all: comments.length,
+    public: comments.filter(c => !c.isInternal).length,
+    internal: comments.filter(c => c.isInternal).length,
+  };
+
   const CommentItem = ({ comment, isReply = false }: { comment: Comment; isReply?: boolean }) => (
-    <div className={`${isReply ? 'ml-6 border-l-2 border-gray-700 pl-3' : ''} max-w-full`}>
-      <Card className="bg-gray-800 border-gray-700 mb-3 max-w-full">
-        <CardContent className="p-3 max-w-full overflow-hidden">
-          <div className="flex items-start space-x-3 max-w-full">
+    <div className={`${isReply ? 'ml-6 border-l-2 border-gray-700 pl-3' : ''}`}>
+      <Card className="bg-gray-800 border-gray-700 mb-3">
+        <CardContent className="p-3">
+          <div className="flex items-start space-x-3">
             <Avatar className="h-8 w-8 flex-shrink-0">
               <AvatarFallback className="bg-gray-600 text-white text-sm">
                 {comment.author.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
             
-            <div className="flex-1 min-w-0 max-w-full overflow-hidden">
-              <div className="flex items-center justify-between mb-2 max-w-full">
-                <div className="flex items-center space-x-2 min-w-0 flex-1 max-w-full overflow-hidden">
-                  <span className="font-medium text-white text-sm truncate max-w-[120px]">{comment.author}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2 min-w-0 flex-1">
+                  <span className="font-medium text-white text-sm truncate">{comment.author}</span>
                   {comment.isInternal && (
                     <Badge variant="outline" className="border-gray-600 text-gray-300 text-xs flex-shrink-0">
                       Internal
@@ -148,25 +203,25 @@ export const CommentPanel = ({
               </div>
 
               {comment.timestamp >= 0 && (
-                <div className="flex items-center space-x-1 text-xs text-gray-400 mb-2 max-w-full">
+                <div className="flex items-center space-x-1 text-xs text-gray-400 mb-2">
                   <Clock className="h-3 w-3 flex-shrink-0" />
                   <button 
                     onClick={() => onCommentClick(comment.timestamp)}
-                    className="hover:text-blue-400 cursor-pointer truncate"
+                    className="hover:text-blue-400 cursor-pointer"
                   >
                     @{formatTimestamp(comment.timestamp)}
                   </button>
                 </div>
               )}
 
-              <div className="mb-3 max-w-full">
-                <p className="text-gray-300 text-sm break-words whitespace-pre-wrap leading-relaxed max-w-full overflow-hidden">
+              <div className="mb-3">
+                <p className="text-gray-300 text-sm break-words whitespace-pre-wrap leading-relaxed">
                   {comment.text}
                 </p>
               </div>
 
-              <div className="flex items-center justify-between max-w-full">
-                <div className="flex items-center space-x-3 min-w-0 flex-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
                   <div className="flex items-center space-x-1">
                     <Button
                       variant="ghost"
@@ -197,7 +252,7 @@ export const CommentPanel = ({
                   </Button>
                 </div>
 
-                <div className="text-xs text-gray-500 flex-shrink-0 truncate max-w-[80px]">
+                <div className="text-xs text-gray-500 flex-shrink-0">
                   {comment.createdAt.toLocaleString()}
                 </div>
               </div>
@@ -208,13 +263,13 @@ export const CommentPanel = ({
 
       {/* Reply Input */}
       {replyingTo === comment.id && (
-        <div className="ml-6 mb-3 max-w-full">
-          <div className="flex space-x-2 max-w-full">
+        <div className="ml-6 mb-3">
+          <div className="flex space-x-2">
             <Textarea
               placeholder="Write a reply..."
               value={replyContent}
               onChange={(e) => setReplyContent(e.target.value)}
-              className="bg-gray-700 border-gray-600 text-white text-sm min-h-[60px] flex-1 max-w-full"
+              className="bg-gray-700 border-gray-600 text-white text-sm min-h-[60px] flex-1"
             />
             <div className="flex flex-col space-y-1 flex-shrink-0">
               <Button
@@ -238,41 +293,60 @@ export const CommentPanel = ({
       )}
 
       {/* Replies */}
-      {comments.filter(reply => reply.parentId === comment.id).map((reply) => (
+      {filteredComments.filter(reply => reply.parentId === comment.id).map((reply) => (
         <CommentItem key={reply.id} comment={reply} isReply />
       ))}
     </div>
   );
 
   return (
-    <div className="w-80 bg-gray-900 border-l border-gray-800 h-full flex flex-col max-w-full">
+    <div className="w-80 bg-gray-900 border-l border-gray-800 h-full flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-gray-700 flex-shrink-0">
-        <h3 className="text-lg font-semibold text-white flex items-center">
-          <MessageSquare className="h-5 w-5 mr-2" />
-          Comments ({comments.length})
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold text-white flex items-center">
+            <MessageSquare className="h-5 w-5 mr-2" />
+            Comments
+          </h3>
+          <CommentFilterMenu 
+            filters={commentFilters}
+            onFiltersChange={setCommentFilters}
+            onClearFilters={clearCommentFilters}
+          />
+        </div>
+        
+        {/* Comment Type Filter */}
+        <div className="mb-3">
+          <CommentTypeFilter
+            selectedType={commentType}
+            onTypeChange={setCommentType}
+            commentCounts={commentCounts}
+          />
+        </div>
+        
+        {/* Advanced Filters */}
+        <AdvancedCommentFilters onFilterChange={setAdvancedFilters} />
       </div>
 
       {/* Comments List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0 max-w-full">
-        {comments.filter(comment => !comment.parentId).map((comment) => (
+      <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0">
+        {filteredComments.filter(comment => !comment.parentId).map((comment) => (
           <CommentItem key={comment.id} comment={comment} />
         ))}
         
-        {comments.length === 0 && (
+        {filteredComments.length === 0 && (
           <div className="text-center py-8">
             <MessageSquare className="h-12 w-12 text-gray-500 mx-auto mb-3" />
-            <h4 className="text-gray-400 font-medium">No comments yet</h4>
-            <p className="text-gray-500 text-sm">Start the conversation by adding a comment</p>
+            <h4 className="text-gray-400 font-medium">No comments found</h4>
+            <p className="text-gray-500 text-sm">Try adjusting your filters or add a new comment</p>
           </div>
         )}
       </div>
 
-      {/* New Comment Input - Fixed at bottom */}
-      <div className="p-4 border-t border-gray-700 bg-gray-800/50 flex-shrink-0 max-w-full">
-        <div className="space-y-3 max-w-full">
-          <div className="relative max-w-full">
+      {/* New Comment Input */}
+      <div className="p-4 border-t border-gray-700 bg-gray-800/50 flex-shrink-0">
+        <div className="space-y-3">
+          <div className="relative">
             {attachTime && (
               <div className="absolute top-3 left-3 z-10 pointer-events-none">
                 <div className="flex items-center space-x-1 bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full text-sm font-medium">
@@ -286,21 +360,19 @@ export const CommentPanel = ({
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               onFocus={() => {
-                // Pause video when starting to type
                 const video = document.querySelector('video') as HTMLVideoElement;
                 if (video && !video.paused) {
                   video.pause();
                 }
               }}
-              className={`bg-gray-700 border-gray-600 text-white min-h-[80px] resize-none max-w-full ${
+              className={`bg-gray-700 border-gray-600 text-white min-h-[80px] resize-none ${
                 attachTime ? 'pl-20' : ''
               }`}
             />
           </div>
           
-          <div className="flex items-center justify-between max-w-full">
-            <div className="flex items-center space-x-1 min-w-0 flex-1">
-              {/* Time attach button */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-1">
               <Button
                 size="sm"
                 variant="ghost"
@@ -315,7 +387,6 @@ export const CommentPanel = ({
                 <Clock size={16} />
               </Button>
               
-              {/* Attachment button */}
               <Button
                 size="sm"
                 variant="ghost"
@@ -325,7 +396,6 @@ export const CommentPanel = ({
                 <Paperclip size={16} />
               </Button>
               
-              {/* Drawing tools button */}
               <Button
                 size="sm"
                 variant="ghost"
@@ -345,7 +415,6 @@ export const CommentPanel = ({
                 </svg>
               </Button>
               
-              {/* Emoji button */}
               <Button
                 size="sm"
                 variant="ghost"
@@ -357,13 +426,12 @@ export const CommentPanel = ({
             </div>
             
             <div className="flex items-center space-x-2 flex-shrink-0">
-              {/* Public/Internal dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-gray-300 hover:text-white hover:bg-gray-600 p-2 rounded-lg min-w-0"
+                    className="text-gray-300 hover:text-white hover:bg-gray-600 p-2 rounded-lg"
                   >
                     <Globe size={16} />
                     <span className="ml-1 text-sm hidden sm:inline">{isInternal ? "Internal" : "Public"}</span>
@@ -388,7 +456,6 @@ export const CommentPanel = ({
                 </DropdownMenuContent>
               </DropdownMenu>
               
-              {/* Send button */}
               <Button
                 size="sm"
                 onClick={handleAddComment}
