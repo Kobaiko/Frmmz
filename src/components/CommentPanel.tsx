@@ -110,9 +110,9 @@ export const CommentPanel = ({
               </AvatarFallback>
             </Avatar>
             
-            <div className="flex-1 min-w-0 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2 min-w-0">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2 min-w-0 flex-1">
                   <span className="font-medium text-white text-sm truncate">{comment.author}</span>
                   {comment.isInternal && (
                     <Badge variant="outline" className="border-gray-600 text-gray-300 text-xs flex-shrink-0">
@@ -123,13 +123,30 @@ export const CommentPanel = ({
                     <Pin className="h-3 w-3 text-yellow-400 flex-shrink-0" />
                   )}
                 </div>
-                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white flex-shrink-0">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white flex-shrink-0 h-6 w-6 p-0">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="bg-gray-800 border-gray-600 text-white" align="end">
+                    <DropdownMenuItem className="hover:bg-gray-700 focus:bg-gray-700">
+                      <Edit className="h-3 w-3 mr-2" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => onDeleteComment(comment.id)}
+                      className="hover:bg-gray-700 focus:bg-gray-700 text-red-400"
+                    >
+                      <Trash2 className="h-3 w-3 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               {comment.timestamp >= 0 && (
-                <div className="flex items-center space-x-1 text-xs text-gray-400">
+                <div className="flex items-center space-x-1 text-xs text-gray-400 mb-2">
                   <Clock className="h-3 w-3 flex-shrink-0" />
                   <button 
                     onClick={() => onCommentClick(comment.timestamp)}
@@ -140,7 +157,11 @@ export const CommentPanel = ({
                 </div>
               )}
 
-              <p className="text-gray-300 text-sm break-words whitespace-pre-wrap overflow-wrap-anywhere">{comment.text}</p>
+              <div className="mb-3">
+                <p className="text-gray-300 text-sm break-words whitespace-pre-wrap leading-relaxed">
+                  {comment.text}
+                </p>
+              </div>
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -174,27 +195,9 @@ export const CommentPanel = ({
                   </Button>
                 </div>
 
-                <div className="flex items-center space-x-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-gray-400 hover:text-white h-6 px-2"
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDeleteComment(comment.id)}
-                    className="text-xs text-red-400 hover:text-red-300 h-6 px-2"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+                <div className="text-xs text-gray-500">
+                  {comment.createdAt.toLocaleString()}
                 </div>
-              </div>
-
-              <div className="text-xs text-gray-500">
-                {comment.createdAt.toLocaleString()}
               </div>
             </div>
           </div>
