@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -268,14 +269,15 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         </div>
 
         {/* Video Player Container */}
-        <div className="flex-1 relative bg-black">
-          {/* Video Element */}
+        <div className="flex-1 relative bg-black flex items-center justify-center">
+          {/* Video Element - Fixed to be visible */}
           <video
             ref={videoPlayer.videoRef}
             src={asset.url}
-            className="w-full h-full object-contain"
+            className="max-w-full max-h-full object-contain"
             crossOrigin="anonymous"
-            controls={false}
+            preload="metadata"
+            style={{ display: 'block' }}
           />
           
           {/* Drawing Canvas Overlay */}
