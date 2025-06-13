@@ -4,18 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { CommentPanel } from "./CommentPanel";
+import { AdvancedVideoPlayer } from "./AdvancedVideoPlayer";
+import { VideoReviewInterface } from "./VideoReviewInterface";
+import { useVideoPlayer } from "@/hooks/useVideoPlayer";
 import { 
   ArrowLeft, 
   Download, 
   Share2, 
   MoreHorizontal, 
-  Play,
-  Pause,
-  Volume2,
-  VolumeX,
-  Maximize,
-  MessageSquare,
   Eye,
   Clock,
   User,
@@ -48,16 +44,15 @@ interface Asset {
   version: string;
 }
 
-interface Comment {
+interface VideoComment {
   id: string;
   timestamp: number;
-  text: string;
+  content: string;
   author: string;
+  authorColor: string;
   createdAt: Date;
-  parentId?: string;
-  attachments?: Array<{ url: string; type: string; name: string }>;
-  isInternal?: boolean;
-  hasDrawing?: boolean;
+  resolved?: boolean;
+  replies?: VideoComment[];
 }
 
 interface AssetViewerProps {
@@ -67,12 +62,10 @@ interface AssetViewerProps {
 
 export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [asset, setAsset] = useState<Asset | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<VideoComment[]>([]);
   const [currentTime, setCurrentTime] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [duration, setDuration] = useState(0);
   const [showComments, setShowComments] = useState(true);
-  const [isDrawingMode, setIsDrawingMode] = useState(false);
 
   // Mock data - in real app this would come from API
   useEffect(() => {
@@ -141,28 +134,34 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     if (foundAsset) {
       setAsset(foundAsset);
       
-      // Mock comments
+      // Mock comments with proper structure
       setComments([
         {
           id: '1',
           timestamp: 15.5,
-          text: 'The transition here feels a bit abrupt. Can we smooth it out?',
+          content: 'The transition here feels a bit abrupt. We should smooth it out?',
           author: 'Sarah Kim',
+          authorColor: '#3B82F6',
           createdAt: new Date('2024-06-12T10:30:00'),
+          resolved: false,
         },
         {
           id: '2',
           timestamp: 45.2,
-          text: 'Love the color grading in this section!',
+          content: 'Love the color grading in this section!',
           author: 'Mike Johnson',
+          authorColor: '#10B981',
           createdAt: new Date('2024-06-12T11:15:00'),
+          resolved: false,
         },
         {
           id: '3',
           timestamp: -1,
-          text: 'Overall looking great! Just a few minor tweaks needed.',
+          content: 'Overall looking great! Just a few minor tweaks needed.',
           author: 'Alex Chen',
+          authorColor: '#F59E0B',
           createdAt: new Date('2024-06-12T14:20:00'),
+          resolved: false,
         }
       ]);
     }
@@ -188,53 +187,34 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     }
   };
 
-  const handleAddComment = (text: string, attachments?: Array<{ url: string; type: string; name: string }>, isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
-    const newComment: Comment = {
+  const handleAddComment = (timestamp: number, content: string) => {
+    const newComment: VideoComment = {
       id: Math.random().toString(36).substr(2, 9),
-      timestamp: attachTime ? currentTime : -1,
-      text,
+      timestamp,
+      content,
       author: "Current User",
+      authorColor: "#FF0080",
       createdAt: new Date(),
-      attachments,
-      isInternal: isInternal || false,
-      hasDrawing: hasDrawing || false,
+      resolved: false,
     };
     
     setComments([...comments, newComment]);
   };
 
-  const handleReplyComment = (parentId: string, text: string, attachments?: Array<{ url: string; type: string; name: string }>, isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
-    const newComment: Comment = {
-      id: Math.random().toString(36).substr(2, 9),
-      timestamp: attachTime ? currentTime : -1,
-      text,
-      author: "Current User",
-      createdAt: new Date(),
-      parentId,
-      attachments,
-      isInternal: isInternal || false,
-      hasDrawing: hasDrawing || false,
-    };
-    
-    setComments([...comments, newComment]);
+  const handleResolveComment = (commentId: string) => {
+    setComments(comments.map(comment => 
+      comment.id === commentId 
+        ? { ...comment, resolved: true }
+        : comment
+    ));
   };
 
   const handleDeleteComment = (commentId: string) => {
-    setComments(comments.filter(comment => comment.id !== commentId && comment.parentId !== commentId));
+    setComments(comments.filter(comment => comment.id !== commentId));
   };
 
-  const handleCommentClick = (timestamp: number) => {
-    if (timestamp >= 0 && asset?.type === 'video') {
-      setCurrentTime(timestamp);
-      const video = document.querySelector('video') as HTMLVideoElement;
-      if (video) {
-        video.currentTime = timestamp;
-      }
-    }
-  };
-
-  const handleStartDrawing = () => {
-    setIsDrawingMode(true);
+  const handleSeekToComment = (timestamp: number) => {
+    setCurrentTime(timestamp);
   };
 
   const renderMediaViewer = () => {
@@ -243,68 +223,59 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     switch (asset.type) {
       case 'video':
         return (
-          <div className="relative bg-black rounded-lg overflow-hidden">
-            <video
+          <div className="relative">
+            <AdvancedVideoPlayer
               src={asset.url}
-              className="w-full aspect-video"
-              controls
-              onTimeUpdate={(e) => setCurrentTime((e.target as HTMLVideoElement).currentTime)}
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
-              onVolumeChange={(e) => setIsMuted((e.target as HTMLVideoElement).muted)}
+              title={asset.name}
+              duration={duration}
+              comments={comments}
+              onAddComment={handleAddComment}
+              onSeekToComment={handleSeekToComment}
             />
           </div>
         );
       
       case 'image':
         return (
-          <div className="bg-black rounded-lg overflow-hidden flex items-center justify-center">
+          <div className="bg-black rounded-lg overflow-hidden flex items-center justify-center" style={{ minHeight: '60vh' }}>
             <img
               src={asset.url}
               alt={asset.name}
-              className="max-w-full max-h-[60vh] object-contain"
+              className="max-w-full max-h-full object-contain"
             />
           </div>
         );
       
       case 'audio':
         return (
-          <div className="bg-gray-800 rounded-lg p-8 flex flex-col items-center space-y-6">
-            <div className="flex items-center space-x-3">
-              <FileAudio className="h-12 w-12 text-green-400" />
+          <div className="bg-gray-800 rounded-lg p-12 flex flex-col items-center space-y-6">
+            <div className="flex items-center space-x-4">
+              <FileAudio className="h-16 w-16 text-green-400" />
               <div>
-                <h3 className="text-xl font-medium text-white">{asset.name}</h3>
-                <p className="text-gray-400">{asset.format} • {asset.fileSize}</p>
+                <h3 className="text-2xl font-medium text-white">{asset.name}</h3>
+                <p className="text-gray-400 text-lg">{asset.format} • {asset.fileSize}</p>
               </div>
             </div>
             <audio
               src={asset.url}
               controls
-              className="w-full max-w-md"
+              className="w-full max-w-lg"
               onTimeUpdate={(e) => setCurrentTime((e.target as HTMLAudioElement).currentTime)}
-            />
-          </div>
-        );
-      
-      case 'document':
-        return (
-          <div className="bg-white rounded-lg overflow-hidden" style={{ height: '60vh' }}>
-            <iframe
-              src={asset.url}
-              className="w-full h-full"
-              title={asset.name}
             />
           </div>
         );
       
       default:
         return (
-          <div className="bg-gray-800 rounded-lg p-8 flex flex-col items-center space-y-6">
-            <File className="h-16 w-16 text-gray-400" />
+          <div className="bg-gray-800 rounded-lg p-12 flex flex-col items-center space-y-6">
+            <File className="h-20 w-20 text-gray-400" />
             <div className="text-center">
-              <h3 className="text-xl font-medium text-white mb-2">{asset.name}</h3>
-              <p className="text-gray-400 mb-4">{asset.format} • {asset.fileSize}</p>
-              <Button onClick={() => window.open(asset.url, '_blank')}>
+              <h3 className="text-2xl font-medium text-white mb-3">{asset.name}</h3>
+              <p className="text-gray-400 text-lg mb-6">{asset.format} • {asset.fileSize}</p>
+              <Button 
+                onClick={() => window.open(asset.url, '_blank')}
+                className="bg-pink-600 hover:bg-pink-700"
+              >
                 <Download className="h-4 w-4 mr-2" />
                 Download File
               </Button>
@@ -320,7 +291,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">Asset not found</h2>
           <p className="text-gray-400 mb-4">The requested asset could not be loaded.</p>
-          <Button onClick={onBack}>
+          <Button onClick={onBack} variant="outline" className="border-gray-600 text-gray-300">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Go Back
           </Button>
@@ -332,10 +303,10 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   return (
     <div className="min-h-screen bg-black text-white flex">
       {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col ${showComments ? 'mr-96' : ''}`}>
+      <div className={`flex-1 flex flex-col ${showComments ? 'mr-80' : ''}`}>
         {/* Header */}
-        <div className="border-b border-gray-800 p-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="border-b border-gray-800 px-6 py-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
@@ -346,7 +317,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div className="flex items-center space-x-3">
-                {getFileIcon(asset.type)}
+                <div className="text-pink-500">
+                  {getFileIcon(asset.type)}
+                </div>
                 <div>
                   <h1 className="text-2xl font-bold text-white">{asset.name}</h1>
                   <div className="flex items-center space-x-4 text-sm text-gray-400">
@@ -371,18 +344,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             </div>
             
             <div className="flex items-center space-x-3">
-              <Badge className={`${getStatusColor(asset.status)} text-white`}>
+              <Badge className={`${getStatusColor(asset.status)} text-white border-0`}>
                 {asset.status.replace('_', ' ')}
               </Badge>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowComments(!showComments)}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700"
-              >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Comments ({comments.length})
-              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -417,11 +381,11 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
         {/* Asset Details */}
         <div className="border-t border-gray-800 p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Description */}
-            <div className="md:col-span-2">
-              <h3 className="text-lg font-medium text-white mb-3">Description</h3>
-              <p className="text-gray-300 mb-4">
+            <div className="lg:col-span-2">
+              <h3 className="text-lg font-semibold text-white mb-4">Description</h3>
+              <p className="text-gray-300 mb-6 leading-relaxed">
                 {asset.description || 'No description provided.'}
               </p>
               
@@ -431,7 +395,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                   <Badge
                     key={tag}
                     variant="outline"
-                    className="border-gray-600 text-gray-400"
+                    className="border-gray-600 text-gray-400 hover:border-pink-500 hover:text-pink-400 transition-colors"
                   >
                     {tag}
                   </Badge>
@@ -441,36 +405,36 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
             {/* Metadata */}
             <div>
-              <h3 className="text-lg font-medium text-white mb-3">Details</h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center space-x-3">
-                  <User className="h-4 w-4 text-gray-400" />
+              <h3 className="text-lg font-semibold text-white mb-4">Details</h3>
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <User className="h-5 w-5 text-gray-400 mt-0.5" />
                   <div>
-                    <p className="text-gray-400">Uploaded by</p>
-                    <p className="text-white">{asset.uploadedBy}</p>
+                    <p className="text-gray-400 text-sm">Uploaded by</p>
+                    <p className="text-white font-medium">{asset.uploadedBy}</p>
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-3">
-                  <Calendar className="h-4 w-4 text-gray-400" />
+                <div className="flex items-start space-x-3">
+                  <Calendar className="h-5 w-5 text-gray-400 mt-0.5" />
                   <div>
-                    <p className="text-gray-400">Created</p>
+                    <p className="text-gray-400 text-sm">Created</p>
                     <p className="text-white">{asset.uploadedAt.toLocaleDateString()}</p>
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-3">
-                  <Clock className="h-4 w-4 text-gray-400" />
+                <div className="flex items-start space-x-3">
+                  <Clock className="h-5 w-5 text-gray-400 mt-0.5" />
                   <div>
-                    <p className="text-gray-400">Modified</p>
+                    <p className="text-gray-400 text-sm">Modified</p>
                     <p className="text-white">{asset.lastModified.toLocaleDateString()}</p>
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-3">
-                  <Eye className="h-4 w-4 text-gray-400" />
+                <div className="flex items-start space-x-3">
+                  <Eye className="h-5 w-5 text-gray-400 mt-0.5" />
                   <div>
-                    <p className="text-gray-400">Views</p>
+                    <p className="text-gray-400 text-sm">Views</p>
                     <p className="text-white">{asset.views}</p>
                   </div>
                 </div>
@@ -480,18 +444,15 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         </div>
       </div>
 
-      {/* Comments Panel */}
-      {showComments && (
-        <div className="fixed right-0 top-0 bottom-0 w-96 bg-gray-900 border-l border-gray-700">
-          <CommentPanel
+      {/* Comments Panel for Video */}
+      {showComments && asset.type === 'video' && (
+        <div className="fixed right-0 top-0 bottom-0 w-80">
+          <VideoReviewInterface
             comments={comments}
-            currentTime={currentTime}
-            onCommentClick={handleCommentClick}
-            onDeleteComment={handleDeleteComment}
-            onReplyComment={handleReplyComment}
             onAddComment={handleAddComment}
-            onStartDrawing={handleStartDrawing}
-            isDrawingMode={isDrawingMode}
+            onResolveComment={handleResolveComment}
+            onDeleteComment={handleDeleteComment}
+            currentTime={currentTime}
           />
         </div>
       )}
