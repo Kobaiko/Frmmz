@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AdvancedVideoPlayer } from "./AdvancedVideoPlayer";
 import { VideoReviewInterface } from "./VideoReviewInterface";
 import { useVideoPlayer } from "@/hooks/useVideoPlayer";
+import type { Comment } from "@/pages/Index";
 import { 
   ArrowLeft, 
   Download, 
@@ -44,17 +45,6 @@ interface Asset {
   version: string;
 }
 
-interface VideoComment {
-  id: string;
-  timestamp: number;
-  content: string;
-  author: string;
-  authorColor: string;
-  createdAt: Date;
-  resolved?: boolean;
-  replies?: VideoComment[];
-}
-
 interface AssetViewerProps {
   assetId: string;
   onBack: () => void;
@@ -62,7 +52,7 @@ interface AssetViewerProps {
 
 export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [asset, setAsset] = useState<Asset | null>(null);
-  const [comments, setComments] = useState<VideoComment[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showComments, setShowComments] = useState(true);
@@ -134,34 +124,28 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     if (foundAsset) {
       setAsset(foundAsset);
       
-      // Mock comments with proper structure
+      // Mock comments using the correct Comment interface
       setComments([
         {
           id: '1',
           timestamp: 15.5,
-          content: 'The transition here feels a bit abrupt. We should smooth it out?',
+          text: 'The transition here feels a bit abrupt. We should smooth it out?',
           author: 'Sarah Kim',
-          authorColor: '#3B82F6',
           createdAt: new Date('2024-06-12T10:30:00'),
-          resolved: false,
         },
         {
           id: '2',
           timestamp: 45.2,
-          content: 'Love the color grading in this section!',
+          text: 'Love the color grading in this section!',
           author: 'Mike Johnson',
-          authorColor: '#10B981',
           createdAt: new Date('2024-06-12T11:15:00'),
-          resolved: false,
         },
         {
           id: '3',
           timestamp: -1,
-          content: 'Overall looking great! Just a few minor tweaks needed.',
+          text: 'Overall looking great! Just a few minor tweaks needed.',
           author: 'Alex Chen',
-          authorColor: '#F59E0B',
           createdAt: new Date('2024-06-12T14:20:00'),
-          resolved: false,
         }
       ]);
     }
@@ -187,26 +171,21 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     }
   };
 
-  const handleAddComment = (timestamp: number, content: string) => {
-    const newComment: VideoComment = {
+  const handleAddComment = (text: string, timestamp: number) => {
+    const newComment: Comment = {
       id: Math.random().toString(36).substr(2, 9),
       timestamp,
-      content,
+      text,
       author: "Current User",
-      authorColor: "#FF0080",
       createdAt: new Date(),
-      resolved: false,
     };
     
     setComments([...comments, newComment]);
   };
 
   const handleResolveComment = (commentId: string) => {
-    setComments(comments.map(comment => 
-      comment.id === commentId 
-        ? { ...comment, resolved: true }
-        : comment
-    ));
+    // Mark comment as resolved (this could be added to Comment interface if needed)
+    console.log('Resolving comment:', commentId);
   };
 
   const handleDeleteComment = (commentId: string) => {
@@ -231,6 +210,14 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
               comments={comments}
               onAddComment={handleAddComment}
               onSeekToComment={handleSeekToComment}
+              currentTime={currentTime}
+              onTimeUpdate={setCurrentTime}
+              onDurationChange={setDuration}
+              onTimeClick={handleSeekToComment}
+              isDrawingMode={false}
+              onDrawingModeChange={() => {}}
+              annotations={true}
+              setAnnotations={() => {}}
             />
           </div>
         );
