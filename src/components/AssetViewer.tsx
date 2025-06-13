@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -106,6 +105,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     const handleLoadedMetadata = () => {
       setDuration(video.duration);
       console.log('✅ Video loaded with duration:', video.duration);
+      console.log('📺 Video dimensions:', video.videoWidth, 'x', video.videoHeight);
     };
 
     const handleTimeUpdate = () => {
@@ -116,11 +116,22 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     const handlePause = () => setIsPlaying(false);
 
     const handleCanPlay = () => {
-      console.log('✅ Video can play');
+      console.log('✅ Video can play - ready state:', video.readyState);
     };
 
     const handleLoadStart = () => {
       console.log('🚀 Video load started');
+    };
+
+    const handleError = (e: Event) => {
+      console.error('❌ Video error:', e);
+      const target = e.target as HTMLVideoElement;
+      if (target && target.error) {
+        console.error('Video error details:', {
+          code: target.error.code,
+          message: target.error.message
+        });
+      }
     };
 
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
@@ -129,14 +140,30 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     video.addEventListener('pause', handlePause);
     video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('loadstart', handleLoadStart);
+    video.addEventListener('error', handleError);
 
-    // Set video properties
-    video.src = asset.file_url;
+    // Clear any existing source first
+    video.src = '';
+    
+    // Set video properties and source
     video.volume = volume;
     video.playbackRate = playbackSpeed;
     video.loop = isLooping;
+    video.muted = false; // Ensure not muted by default
+    
+    // Remove crossOrigin to avoid CORS issues
+    video.removeAttribute('crossorigin');
+    
+    // Set the source
+    video.src = asset.file_url;
+    video.load(); // Force reload
     
     console.log('🎬 Setting video source:', asset.file_url);
+    console.log('🎬 Video element properties:', {
+      src: video.src,
+      readyState: video.readyState,
+      networkState: video.networkState
+    });
 
     return () => {
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
@@ -145,6 +172,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('loadstart', handleLoadStart);
+      video.removeEventListener('error', handleError);
     };
   }, [asset?.file_url, volume, playbackSpeed, isLooping]);
 
@@ -272,7 +300,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     if (isPlaying) {
       video.pause();
     } else {
-      video.play();
+      video.play().catch(error => {
+        console.error('❌ Play failed:', error);
+      });
     }
   };
 
@@ -416,24 +446,32 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         </div>
 
         {/* Media Player Container */}
-        <div className="flex-1 relative bg-black flex items-center justify-center">
+        <div className="flex-1 relative bg-black flex items-center justify-center min-h-[60vh]">
           {asset.file_type === 'video' ? (
-            <div className="relative w-full h-full flex items-center justify-center">
+            <div className="relative w-full h-full max-w-full max-h-full flex items-center justify-center">
               <video
                 ref={videoRef}
-                className="max-w-full max-h-full object-contain"
-                crossOrigin="anonymous"
+                className="w-full h-full object-contain"
+                style={{ 
+                  display: 'block', 
+                  backgroundColor: '#000',
+                  maxWidth: '100%',
+                  maxHeight: '100%'
+                }}
+                playsInline
                 preload="metadata"
                 controls={false}
-                style={{ display: 'block', background: '#000' }}
               />
               
-              <DrawingCanvas
-                currentTime={currentTime}
-                videoRef={videoRef}
-                isDrawingMode={isDrawingMode}
-                annotations={annotations}
-              />
+              {/* Only show drawing canvas when video is loaded */}
+              {duration > 0 && (
+                <DrawingCanvas
+                  currentTime={currentTime}
+                  videoRef={videoRef}
+                  isDrawingMode={isDrawingMode}
+                  annotations={annotations}
+                />
+              )}
             </div>
           ) : asset.file_type === 'image' ? (
             <img
@@ -457,7 +495,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         </div>
 
         {/* Video Controls (only for video files) */}
-        {asset.file_type === 'video' && (
+        {asset.file_type === 'video' && duration > 0 && (
           <div className="bg-gray-900 border-t border-gray-700 p-4">
             <VideoControls
               isPlaying={isPlaying}
