@@ -7,6 +7,7 @@ import { DrawingCanvas } from "./DrawingCanvas";
 import { CommentPanel } from "./CommentPanel";
 import { useVideoPlayer } from "@/hooks/useVideoPlayer";
 import { useVideoKeyboardShortcuts } from "@/hooks/useVideoKeyboardShortcuts";
+import { supabase } from "@/integrations/supabase/client";
 import type { Comment } from "@/pages/Index";
 import { 
   ArrowLeft, 
@@ -18,22 +19,15 @@ import {
 interface Asset {
   id: string;
   name: string;
-  type: 'video' | 'image' | 'audio' | 'document';
-  url: string;
-  thumbnail?: string;
+  file_type: 'video' | 'image' | 'audio' | 'document';
+  file_url: string;
+  thumbnail_url?: string;
   duration?: string;
-  fileSize: string;
-  format: string;
+  file_size: number;
   resolution?: string;
-  uploadedBy: string;
-  uploadedAt: Date;
-  lastModified: Date;
   status: 'processing' | 'ready' | 'needs_review' | 'approved' | 'rejected';
-  comments: number;
-  views: number;
-  description?: string;
-  tags: string[];
-  version: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface AssetViewerProps {
@@ -55,64 +49,50 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   });
   const [zoom, setZoom] = useState("Fit");
   const [encodeComments, setEncodeComments] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - in real app this would come from API
   useEffect(() => {
-    const mockAssets: { [key: string]: Asset } = {
-      '1': {
-        id: '1',
-        name: 'hero_video_final_v3.mp4',
-        type: 'video',
-        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        thumbnail: '/placeholder.svg',
-        duration: '2:34',
-        fileSize: '524 MB',
-        format: 'MP4',
-        resolution: '4K (3840x2160)',
-        uploadedBy: 'Alex Chen',
-        uploadedAt: new Date('2024-06-12'),
-        lastModified: new Date('2024-06-12'),
-        status: 'approved',
-        comments: 8,
-        views: 23,
-        description: 'Final version of the hero video for the main campaign. Includes all approved changes from the client review.',
-        tags: ['hero', 'final', 'approved', 'campaign'],
-        version: 'v3'
+    const fetchAsset = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('assets')
+          .select('*')
+          .eq('id', assetId)
+          .single();
+
+        if (error) throw error;
+        setAsset(data);
+        
+        // Fetch comments for this asset
+        const { data: commentsData, error: commentsError } = await supabase
+          .from('comments')
+          .select('*')
+          .eq('asset_id', assetId)
+          .order('created_at', { ascending: true });
+
+        if (!commentsError && commentsData) {
+          const formattedComments: Comment[] = commentsData.map(comment => ({
+            id: comment.id,
+            timestamp: comment.timestamp_seconds || -1,
+            text: comment.content,
+            author: 'User', // TODO: Get from user profile
+            createdAt: new Date(comment.created_at),
+            parentId: comment.parent_id || undefined
+          }));
+          setComments(formattedComments);
+        }
+      } catch (error) {
+        console.error('Error fetching asset:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    const foundAsset = mockAssets[assetId];
-    if (foundAsset) {
-      setAsset(foundAsset);
-      
-      setComments([
-        {
-          id: '1',
-          timestamp: 15.5,
-          text: 'The transition here feels a bit abrupt. We should smooth it out?',
-          author: 'Sarah Kim',
-          createdAt: new Date('2024-06-12T10:30:00'),
-        },
-        {
-          id: '2',
-          timestamp: 45.2,
-          text: 'Love the color grading in this section!',
-          author: 'Mike Johnson',
-          createdAt: new Date('2024-06-12T11:15:00'),
-        },
-        {
-          id: '3',
-          timestamp: -1,
-          text: 'Overall looking great! Just a few minor tweaks needed.',
-          author: 'Alex Chen',
-          createdAt: new Date('2024-06-12T14:20:00'),
-        }
-      ]);
-    }
+    fetchAsset();
   }, [assetId]);
 
   const videoPlayer = useVideoPlayer({
-    src: asset?.url || '',
+    src: asset?.file_url || '',
     currentTime,
     onTimeUpdate: setCurrentTime,
     onDurationChange: () => {}
@@ -136,33 +116,90 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     }
   };
 
-  const handleAddComment = (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
-    const newComment: Comment = {
-      id: Math.random().toString(36).substr(2, 9),
-      timestamp: attachTime ? currentTime : -1,
-      text,
-      author: "Current User",
-      createdAt: new Date(),
-    };
-    
-    setComments([...comments, newComment]);
+  const handleAddComment = async (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
+    if (!asset) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('comments')
+        .insert([
+          {
+            asset_id: asset.id,
+            user_id: (await supabase.auth.getUser()).data.user?.id,
+            content: text,
+            timestamp_seconds: attachTime ? currentTime : null,
+            is_internal: isInternal || false,
+            has_drawing: hasDrawing || false
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newComment: Comment = {
+        id: data.id,
+        timestamp: data.timestamp_seconds || -1,
+        text: data.content,
+        author: "Current User",
+        createdAt: new Date(data.created_at),
+      };
+      
+      setComments([...comments, newComment]);
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
   };
 
-  const handleReplyComment = (parentId: string, text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
-    const newComment: Comment = {
-      id: Math.random().toString(36).substr(2, 9),
-      timestamp: attachTime ? currentTime : -1,
-      text,
-      author: "Current User",
-      createdAt: new Date(),
-      parentId
-    };
-    
-    setComments([...comments, newComment]);
+  const handleReplyComment = async (parentId: string, text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
+    if (!asset) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('comments')
+        .insert([
+          {
+            asset_id: asset.id,
+            user_id: (await supabase.auth.getUser()).data.user?.id,
+            content: text,
+            parent_id: parentId,
+            timestamp_seconds: attachTime ? currentTime : null,
+            is_internal: isInternal || false,
+            has_drawing: hasDrawing || false
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newComment: Comment = {
+        id: data.id,
+        timestamp: data.timestamp_seconds || -1,
+        text: data.content,
+        author: "Current User",
+        createdAt: new Date(data.created_at),
+        parentId
+      };
+      
+      setComments([...comments, newComment]);
+    } catch (error) {
+      console.error('Error replying to comment:', error);
+    }
   };
 
-  const handleDeleteComment = (commentId: string) => {
-    setComments(comments.filter(comment => comment.id !== commentId));
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .delete()
+        .eq('id', commentId);
+
+      if (error) throw error;
+      setComments(comments.filter(comment => comment.id !== commentId));
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+    }
   };
 
   const handleSeekToComment = (timestamp: number) => {
@@ -174,7 +211,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
   const handleStartDrawing = () => {
     setIsDrawingMode(true);
-    // Pause video when drawing starts
     if (videoPlayer.videoRef.current && !videoPlayer.videoRef.current.paused) {
       videoPlayer.videoRef.current.pause();
     }
@@ -185,6 +221,19 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     const secs = Math.floor(seconds % 60);
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 bg-pink-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+            <FileVideo className="h-5 w-5 text-white animate-pulse" />
+          </div>
+          <p className="text-gray-400">Loading asset...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!asset) {
     return (
@@ -224,9 +273,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                 <div>
                   <h1 className="text-xl font-semibold text-white">{asset.name}</h1>
                   <div className="flex items-center space-x-4 text-sm text-gray-400">
-                    <span>{asset.format}</span>
+                    <span>{asset.file_type.toUpperCase()}</span>
                     <span>•</span>
-                    <span>{asset.fileSize}</span>
+                    <span>{Math.round(asset.file_size / 1024 / 1024)} MB</span>
                     {asset.resolution && (
                       <>
                         <span>•</span>
@@ -260,6 +309,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                 variant="outline"
                 size="sm"
                 className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                onClick={() => window.open(asset.file_url, '_blank')}
               >
                 <Download className="h-4 w-4 mr-2" />
                 Download
@@ -268,66 +318,88 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           </div>
         </div>
 
-        {/* Video Player Container */}
+        {/* Media Player Container */}
         <div className="flex-1 relative bg-black flex items-center justify-center">
-          {/* Video Element - Fixed to be visible */}
-          <video
-            ref={videoPlayer.videoRef}
-            src={asset.url}
-            className="max-w-full max-h-full object-contain"
-            crossOrigin="anonymous"
-            preload="metadata"
-            style={{ display: 'block' }}
-          />
-          
-          {/* Drawing Canvas Overlay */}
-          <DrawingCanvas
-            currentTime={currentTime}
-            videoRef={videoPlayer.videoRef}
-            isDrawingMode={isDrawingMode}
-            annotations={annotations}
-          />
+          {asset.file_type === 'video' ? (
+            <>
+              <video
+                ref={videoPlayer.videoRef}
+                src={asset.file_url}
+                className="max-w-full max-h-full object-contain"
+                crossOrigin="anonymous"
+                preload="metadata"
+                style={{ display: 'block' }}
+              />
+              
+              <DrawingCanvas
+                currentTime={currentTime}
+                videoRef={videoPlayer.videoRef}
+                isDrawingMode={isDrawingMode}
+                annotations={annotations}
+              />
+            </>
+          ) : asset.file_type === 'image' ? (
+            <img
+              src={asset.file_url}
+              alt={asset.name}
+              className="max-w-full max-h-full object-contain"
+            />
+          ) : (
+            <div className="text-center">
+              <FileVideo className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-400 mb-4">Preview not available for this file type</p>
+              <Button
+                onClick={() => window.open(asset.file_url, '_blank')}
+                className="bg-pink-600 hover:bg-pink-700"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download File
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* Video Controls */}
-        <div className="bg-gray-900 border-t border-gray-700">
-          <VideoControls
-            isPlaying={videoPlayer.isPlaying}
-            onTogglePlayPause={videoPlayer.togglePlayPause}
-            isLooping={videoPlayer.isLooping}
-            onToggleLoop={videoPlayer.toggleLoop}
-            playbackSpeed={videoPlayer.playbackSpeed}
-            onSpeedChange={videoPlayer.handleSpeedChange}
-            volume={videoPlayer.volume}
-            onVolumeToggle={videoPlayer.handleVolumeToggle}
-            onVolumeChange={videoPlayer.handleVolumeChange}
-            currentTime={currentTime}
-            duration={videoPlayer.duration}
-            timeFormat={videoPlayer.timeFormat}
-            onTimeFormatChange={videoPlayer.setTimeFormat}
-            quality={videoPlayer.quality}
-            availableQualities={videoPlayer.availableQualities}
-            onQualityChange={videoPlayer.handleQualityChange}
-            guides={guides}
-            onGuidesToggle={() => setGuides(prev => ({ ...prev, enabled: !prev.enabled }))}
-            onGuidesRatioChange={(ratio) => setGuides(prev => ({ ...prev, ratio }))}
-            onGuidesMaskToggle={() => setGuides(prev => ({ ...prev, mask: !prev.mask }))}
-            zoom={zoom}
-            onZoomChange={setZoom}
-            encodeComments={encodeComments}
-            setEncodeComments={setEncodeComments}
-            annotations={annotations}
-            setAnnotations={setAnnotations}
-            onSetFrameAsThumb={() => console.log('Set frame as thumbnail')}
-            onDownloadStill={() => console.log('Download still')}
-            onToggleFullscreen={() => {
-              if (videoPlayer.videoRef.current) {
-                videoPlayer.videoRef.current.requestFullscreen();
-              }
-            }}
-            formatTime={formatTime}
-          />
-        </div>
+        {/* Video Controls (only for video files) */}
+        {asset.file_type === 'video' && (
+          <div className="bg-gray-900 border-t border-gray-700">
+            <VideoControls
+              isPlaying={videoPlayer.isPlaying}
+              onTogglePlayPause={videoPlayer.togglePlayPause}
+              isLooping={videoPlayer.isLooping}
+              onToggleLoop={videoPlayer.toggleLoop}
+              playbackSpeed={videoPlayer.playbackSpeed}
+              onSpeedChange={videoPlayer.handleSpeedChange}
+              volume={videoPlayer.volume}
+              onVolumeToggle={videoPlayer.handleVolumeToggle}
+              onVolumeChange={videoPlayer.handleVolumeChange}
+              currentTime={currentTime}
+              duration={videoPlayer.duration}
+              timeFormat={videoPlayer.timeFormat}
+              onTimeFormatChange={videoPlayer.setTimeFormat}
+              quality={videoPlayer.quality}
+              availableQualities={videoPlayer.availableQualities}
+              onQualityChange={videoPlayer.handleQualityChange}
+              guides={guides}
+              onGuidesToggle={() => setGuides(prev => ({ ...prev, enabled: !prev.enabled }))}
+              onGuidesRatioChange={(ratio) => setGuides(prev => ({ ...prev, ratio }))}
+              onGuidesMaskToggle={() => setGuides(prev => ({ ...prev, mask: !prev.mask }))}
+              zoom={zoom}
+              onZoomChange={setZoom}
+              encodeComments={encodeComments}
+              setEncodeComments={setEncodeComments}
+              annotations={annotations}
+              setAnnotations={setAnnotations}
+              onSetFrameAsThumb={() => console.log('Set frame as thumbnail')}
+              onDownloadStill={() => console.log('Download still')}
+              onToggleFullscreen={() => {
+                if (videoPlayer.videoRef.current) {
+                  videoPlayer.videoRef.current.requestFullscreen();
+                }
+              }}
+              formatTime={formatTime}
+            />
+          </div>
+        )}
       </div>
 
       {/* Comments Panel */}

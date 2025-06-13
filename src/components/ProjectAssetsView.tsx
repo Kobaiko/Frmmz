@@ -1,9 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AssetGrid } from "./AssetGrid";
 import { AssetFilters } from "./AssetFilters";
+import { useAssets } from "@/hooks/useAssets";
 import { 
   ArrowLeft, 
   Upload, 
@@ -11,7 +12,6 @@ import {
   Grid3X3, 
   List, 
   Share2,
-  Settings,
   Users,
   FileVideo
 } from "lucide-react";
@@ -22,30 +22,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-interface Asset {
-  id: string;
-  name: string;
-  type: 'video' | 'image' | 'audio' | 'document';
-  thumbnail: string;
-  duration?: string;
-  fileSize: string;
-  status: 'processing' | 'ready' | 'needs_review' | 'approved' | 'rejected';
-  uploadedBy: string;
-  uploadedAt: Date;
-  lastModified: Date;
-  comments: number;
-  views: number;
-  tags: string[];
-  resolution?: string;
-}
-
 interface ProjectAssetsViewProps {
+  projectId: string;
   projectName: string;
   onBack: () => void;
   onAssetOpen: (assetId: string) => void;
 }
 
 export const ProjectAssetsView = ({ 
+  projectId,
   projectName, 
   onBack, 
   onAssetOpen 
@@ -59,45 +44,11 @@ export const ProjectAssetsView = ({
     uploadedBy: [],
     tags: [],
     dateRange: {},
-    sortBy: 'lastModified',
+    sortBy: 'created_at',
     sortOrder: 'desc' as 'asc' | 'desc'
   });
 
-  // Initial mock data
-  const [assets, setAssets] = useState<Asset[]>([
-    {
-      id: '1',
-      name: 'Commercial_Final_V2.mp4',
-      type: 'video' as const,
-      thumbnail: '/placeholder.svg',
-      duration: '2:34',
-      fileSize: '245 MB',
-      status: 'ready' as const,
-      uploadedBy: 'John Doe',
-      uploadedAt: new Date('2024-06-12'),
-      lastModified: new Date('2024-06-12'),
-      comments: 5,
-      views: 23,
-      tags: ['commercial', 'final'],
-      resolution: '1920x1080'
-    },
-    {
-      id: '2',
-      name: 'Behind_Scenes.mp4',
-      type: 'video' as const,
-      thumbnail: '/placeholder.svg',
-      duration: '5:12',
-      fileSize: '512 MB',
-      status: 'needs_review' as const,
-      uploadedBy: 'Jane Smith',
-      uploadedAt: new Date('2024-06-11'),
-      lastModified: new Date('2024-06-11'),
-      comments: 2,
-      views: 8,
-      tags: ['behind-scenes'],
-      resolution: '1920x1080'
-    }
-  ]);
+  const { assets, loading, uploadAsset } = useAssets(projectId);
 
   const handleAssetSelect = (assetId: string) => {
     setSelectedAssets(prev => 
@@ -115,77 +66,25 @@ export const ProjectAssetsView = ({
     setSelectedAssets([]);
   };
 
-  const generateAssetId = () => {
-    return Date.now().toString() + Math.random().toString(36).substr(2, 9);
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const getFileType = (file: File): 'video' | 'image' | 'audio' | 'document' => {
-    if (file.type.startsWith('video/')) return 'video';
-    if (file.type.startsWith('image/')) return 'image';
-    if (file.type.startsWith('audio/')) return 'audio';
-    return 'document';
-  };
-
   const handleUpload = () => {
-    console.log('🚀 Upload button clicked');
     const input = document.createElement('input');
     input.type = 'file';
     input.multiple = true;
     input.accept = 'video/*,image/*,audio/*,application/*';
     
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const files = Array.from((e.target as HTMLInputElement).files || []);
-      console.log('📁 Files selected for upload:', files);
-      
       if (files.length === 0) return;
 
-      // Process each file and add to assets
-      files.forEach(file => {
-        console.log(`- ${file.name} (${file.size} bytes, ${file.type})`);
-        
-        const newAsset: Asset = {
-          id: generateAssetId(),
-          name: file.name,
-          type: getFileType(file),
-          thumbnail: '/placeholder.svg',
-          duration: file.type.startsWith('video/') ? '0:00' : undefined,
-          fileSize: formatFileSize(file.size),
-          status: 'processing',
-          uploadedBy: 'Current User',
-          uploadedAt: new Date(),
-          lastModified: new Date(),
-          comments: 0,
-          views: 0,
-          tags: [],
-          resolution: file.type.startsWith('video/') ? '1920x1080' : undefined
-        };
-
-        // Add the new asset to the list
-        setAssets(prev => [newAsset, ...prev]);
-
-        // Simulate processing completion after 2 seconds
-        setTimeout(() => {
-          setAssets(prev => prev.map(asset => 
-            asset.id === newAsset.id 
-              ? { ...asset, status: 'ready' as const }
-              : asset
-          ));
-        }, 2000);
-
-        // Open the asset in the viewer after a short delay
-        setTimeout(() => {
-          console.log('📹 Opening uploaded asset in viewer:', newAsset.id);
-          onAssetOpen(newAsset.id);
-        }, 500);
-      });
+      for (const file of files) {
+        const asset = await uploadAsset(file, projectId);
+        if (asset) {
+          // Open the first uploaded asset in the viewer
+          setTimeout(() => {
+            onAssetOpen(asset.id);
+          }, 500);
+        }
+      }
     };
     
     input.click();
@@ -202,23 +101,51 @@ export const ProjectAssetsView = ({
   };
 
   const filteredAssets = assets.filter(asset => {
-    // Apply search filter
     if (filters.search && !asset.name.toLowerCase().includes(filters.search.toLowerCase())) {
       return false;
     }
     
-    // Apply file type filter
-    if (filters.fileTypes.length > 0 && !filters.fileTypes.includes(asset.type)) {
+    if (filters.fileTypes.length > 0 && !filters.fileTypes.includes(asset.file_type)) {
       return false;
     }
     
-    // Apply status filter
     if (filters.status.length > 0 && !filters.status.includes(asset.status)) {
       return false;
     }
     
     return true;
   });
+
+  // Convert Supabase assets to AssetGrid format
+  const gridAssets = filteredAssets.map(asset => ({
+    id: asset.id,
+    name: asset.name,
+    type: asset.file_type,
+    thumbnail: asset.thumbnail_url || '/placeholder.svg',
+    duration: asset.duration,
+    fileSize: `${Math.round(asset.file_size / 1024 / 1024)} MB`,
+    status: asset.status,
+    uploadedBy: 'User', // TODO: Get from user profile
+    uploadedAt: new Date(asset.created_at),
+    lastModified: new Date(asset.updated_at),
+    comments: 0, // TODO: Get from comments count
+    views: 0, // TODO: Implement views tracking
+    tags: [], // TODO: Implement tags
+    resolution: asset.resolution
+  }));
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 bg-pink-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+            <FileVideo className="h-5 w-5 text-white animate-pulse" />
+          </div>
+          <p className="text-gray-400">Loading project assets...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -239,12 +166,7 @@ export const ProjectAssetsView = ({
               <div className="flex items-center space-x-4 text-sm text-gray-400">
                 <span>{assets.length} assets</span>
                 <span>•</span>
-                <span>Last updated 2 hours ago</span>
-                <span>•</span>
-                <div className="flex items-center space-x-1">
-                  <Users className="h-4 w-4" />
-                  <span>6 collaborators</span>
-                </div>
+                <span>Last updated {new Date().toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -316,8 +238,8 @@ export const ProjectAssetsView = ({
         <AssetFilters
           filters={filters}
           onFiltersChange={setFilters}
-          availableUsers={['John Doe', 'Jane Smith', 'Mike Johnson', 'Current User']}
-          availableTags={['commercial', 'final', 'behind-scenes']}
+          availableUsers={['User']} // TODO: Get from project collaborators
+          availableTags={[]} // TODO: Get from asset tags
           totalAssets={assets.length}
           filteredAssets={filteredAssets.length}
         />
@@ -326,7 +248,7 @@ export const ProjectAssetsView = ({
       {/* Assets content */}
       <div className="p-6">
         <AssetGrid
-          assets={filteredAssets}
+          assets={gridAssets}
           viewMode={viewMode}
           selectedAssets={selectedAssets}
           onAssetSelect={handleAssetSelect}
