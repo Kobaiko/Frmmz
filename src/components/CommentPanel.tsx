@@ -29,6 +29,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { CommentContextMenu } from "./CommentContextMenu";
 import { CommentFilterMenu, type CommentFilters } from "./CommentFilterMenu";
 import { CommentTypeFilter, type CommentType } from "./CommentTypeFilter";
 import { AdvancedCommentFilters, type CommentFilters as AdvancedFilters } from "./AdvancedCommentFilters";
@@ -43,6 +44,10 @@ interface Comment {
   attachments?: any[];
   isInternal?: boolean;
   hasDrawing?: boolean;
+  likes?: number;
+  dislikes?: number;
+  isLiked?: boolean;
+  isDisliked?: boolean;
 }
 
 interface CommentPanelProps {
@@ -71,6 +76,7 @@ export const CommentPanel = ({
   const [replyContent, setReplyContent] = useState('');
   const [isInternal, setIsInternal] = useState(false);
   const [attachTime, setAttachTime] = useState(true);
+  const [commentLikes, setCommentLikes] = useState<Record<string, { likes: number; dislikes: number; isLiked: boolean; isDisliked: boolean }>>({});
   
   // Filter states
   const [commentFilters, setCommentFilters] = useState<CommentFilters>({
@@ -95,6 +101,59 @@ export const CommentPanel = ({
     const minutes = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatRelativeTime = (date: Date) => {
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'now';
+    if (diffInHours < 24) return `${diffInHours}h`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `${diffInDays}d`;
+    return date.toLocaleDateString();
+  };
+
+  const handleLike = (commentId: string) => {
+    setCommentLikes(prev => {
+      const current = prev[commentId] || { likes: 0, dislikes: 0, isLiked: false, isDisliked: false };
+      const newState = {
+        ...current,
+        likes: current.isLiked ? current.likes - 1 : current.likes + 1,
+        dislikes: current.isDisliked ? current.dislikes - 1 : current.dislikes,
+        isLiked: !current.isLiked,
+        isDisliked: false
+      };
+      return { ...prev, [commentId]: newState };
+    });
+  };
+
+  const handleDislike = (commentId: string) => {
+    setCommentLikes(prev => {
+      const current = prev[commentId] || { likes: 0, dislikes: 0, isLiked: false, isDisliked: false };
+      const newState = {
+        ...current,
+        likes: current.isLiked ? current.likes - 1 : current.likes,
+        dislikes: current.isDisliked ? current.dislikes - 1 : current.dislikes + 1,
+        isLiked: false,
+        isDisliked: !current.isDisliked
+      };
+      return { ...prev, [commentId]: newState };
+    });
+  };
+
+  const handleEdit = (commentId: string) => {
+    console.log('Edit comment:', commentId);
+    // TODO: Implement edit functionality
+  };
+
+  const handleCopyLink = (commentId: string) => {
+    const comment = comments.find(c => c.id === commentId);
+    if (comment && comment.timestamp >= 0) {
+      const url = `${window.location.href}?t=${comment.timestamp}`;
+      navigator.clipboard.writeText(url);
+      console.log('Copied link for comment:', commentId);
+    }
   };
 
   const handleAddComment = () => {
@@ -154,150 +213,173 @@ export const CommentPanel = ({
     internal: comments.filter(c => c.isInternal).length,
   };
 
-  const CommentItem = ({ comment, isReply = false }: { comment: Comment; isReply?: boolean }) => (
-    <div className={`${isReply ? 'ml-6 border-l-2 border-gray-700 pl-3' : ''}`}>
-      <Card className="bg-gray-800 border-gray-700 mb-3">
-        <CardContent className="p-3">
-          <div className="flex items-start space-x-3">
-            <Avatar className="h-8 w-8 flex-shrink-0">
-              <AvatarFallback className="bg-gray-600 text-white text-sm">
-                {comment.author.split(' ').map(n => n[0]).join('')}
-              </AvatarFallback>
-            </Avatar>
-            
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-2 min-w-0 flex-1">
-                  <span className="font-medium text-white text-sm truncate">{comment.author}</span>
-                  {comment.isInternal && (
-                    <Badge variant="outline" className="border-gray-600 text-gray-300 text-xs flex-shrink-0">
-                      Internal
-                    </Badge>
-                  )}
-                  {comment.hasDrawing && (
-                    <Pin className="h-3 w-3 text-yellow-400 flex-shrink-0" />
-                  )}
+  const CommentItem = ({ comment, isReply = false }: { comment: Comment; isReply?: boolean }) => {
+    const likes = commentLikes[comment.id] || { likes: 0, dislikes: 0, isLiked: false, isDisliked: false };
+    
+    return (
+      <div className={`${isReply ? 'ml-6 border-l-2 border-gray-700 pl-3' : ''}`}>
+        <CommentContextMenu
+          onEdit={() => handleEdit(comment.id)}
+          onCopyLink={() => handleCopyLink(comment.id)}
+          onDelete={() => onDeleteComment(comment.id)}
+        >
+          <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 mb-3 hover:bg-gray-750 transition-colors">
+            <div className="flex items-start space-x-3">
+              <Avatar className="h-8 w-8 flex-shrink-0">
+                <AvatarFallback className="bg-gray-600 text-white text-sm">
+                  {comment.author.split(' ').map(n => n[0]).join('').toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2 min-w-0">
+                    <span className="font-medium text-white text-sm truncate">{comment.author}</span>
+                    {comment.isInternal && (
+                      <Badge variant="outline" className="border-orange-500 text-orange-400 text-xs flex-shrink-0">
+                        Internal
+                      </Badge>
+                    )}
+                    {comment.hasDrawing && (
+                      <Pin className="h-3 w-3 text-yellow-400 flex-shrink-0" />
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2 flex-shrink-0">
+                    <span className="text-xs text-gray-500">
+                      {formatRelativeTime(comment.createdAt)}
+                    </span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white h-6 w-6 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="bg-gray-800 border-gray-600 text-white" align="end">
+                        <DropdownMenuItem 
+                          onClick={() => handleEdit(comment.id)}
+                          className="hover:bg-gray-700 focus:bg-gray-700"
+                        >
+                          <Edit className="h-3 w-3 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleCopyLink(comment.id)}
+                          className="hover:bg-gray-700 focus:bg-gray-700"
+                        >
+                          <Pin className="h-3 w-3 mr-2" />
+                          Copy Link
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => onDeleteComment(comment.id)}
+                          className="hover:bg-gray-700 focus:bg-gray-700 text-red-400"
+                        >
+                          <Trash2 className="h-3 w-3 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
-                <div className="flex-shrink-0">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white h-6 w-6 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="bg-gray-800 border-gray-600 text-white" align="end">
-                      <DropdownMenuItem className="hover:bg-gray-700 focus:bg-gray-700">
-                        <Edit className="h-3 w-3 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => onDeleteComment(comment.id)}
-                        className="hover:bg-gray-700 focus:bg-gray-700 text-red-400"
+
+                {comment.timestamp >= 0 && (
+                  <div className="flex items-center space-x-1 text-xs text-gray-400 mb-2">
+                    <Clock className="h-3 w-3 flex-shrink-0" />
+                    <button 
+                      onClick={() => onCommentClick(comment.timestamp)}
+                      className="hover:text-blue-400 cursor-pointer"
+                    >
+                      @{formatTimestamp(comment.timestamp)}
+                    </button>
+                  </div>
+                )}
+
+                <div className="mb-3">
+                  <p className="text-gray-300 text-sm break-words whitespace-pre-wrap leading-relaxed">
+                    {comment.text}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleLike(comment.id)}
+                        className={`text-xs h-6 px-2 ${
+                          likes.isLiked ? 'text-blue-400 bg-blue-500/20' : 'text-gray-400 hover:text-blue-400'
+                        }`}
                       >
-                        <Trash2 className="h-3 w-3 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
+                        <ThumbsUp className="h-3 w-3 mr-1" />
+                        {likes.likes}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDislike(comment.id)}
+                        className={`text-xs h-6 px-2 ${
+                          likes.isDisliked ? 'text-red-400 bg-red-500/20' : 'text-gray-400 hover:text-red-400'
+                        }`}
+                      >
+                        <ThumbsDown className="h-3 w-3 mr-1" />
+                        {likes.dislikes}
+                      </Button>
+                    </div>
 
-              {comment.timestamp >= 0 && (
-                <div className="flex items-center space-x-1 text-xs text-gray-400 mb-2">
-                  <Clock className="h-3 w-3 flex-shrink-0" />
-                  <button 
-                    onClick={() => onCommentClick(comment.timestamp)}
-                    className="hover:text-blue-400 cursor-pointer"
-                  >
-                    @{formatTimestamp(comment.timestamp)}
-                  </button>
-                </div>
-              )}
-
-              <div className="mb-3">
-                <p className="text-gray-300 text-sm break-words whitespace-pre-wrap leading-relaxed">
-                  {comment.text}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="flex items-center space-x-1">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-xs h-6 px-2 text-gray-400 hover:text-blue-400"
+                      onClick={() => setReplyingTo(comment.id)}
+                      className="text-xs text-gray-400 hover:text-white h-6 px-2"
                     >
-                      <ThumbsUp className="h-3 w-3 mr-1" />
-                      0
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs h-6 px-2 text-gray-400 hover:text-red-400"
-                    >
-                      <ThumbsDown className="h-3 w-3 mr-1" />
-                      0
+                      <Reply className="h-3 w-3 mr-1" />
+                      Reply
                     </Button>
                   </div>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setReplyingTo(comment.id)}
-                    className="text-xs text-gray-400 hover:text-white h-6 px-2"
-                  >
-                    <Reply className="h-3 w-3 mr-1" />
-                    Reply
-                  </Button>
-                </div>
-
-                <div className="text-xs text-gray-500 flex-shrink-0">
-                  {comment.createdAt.toLocaleString()}
                 </div>
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </CommentContextMenu>
 
-      {/* Reply Input */}
-      {replyingTo === comment.id && (
-        <div className="ml-6 mb-3">
-          <div className="flex space-x-2">
-            <Textarea
-              placeholder="Write a reply..."
-              value={replyContent}
-              onChange={(e) => setReplyContent(e.target.value)}
-              className="bg-gray-700 border-gray-600 text-white text-sm min-h-[60px] flex-1"
-            />
-            <div className="flex flex-col space-y-1 flex-shrink-0">
-              <Button
-                size="sm"
-                onClick={() => handleReply(comment.id)}
-                className="bg-pink-600 hover:bg-pink-700"
-              >
-                Reply
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setReplyingTo(null)}
-                className="border-gray-600 text-gray-300"
-              >
-                Cancel
-              </Button>
+        {/* Reply Input */}
+        {replyingTo === comment.id && (
+          <div className="ml-6 mb-3">
+            <div className="flex space-x-2">
+              <Textarea
+                placeholder="Write a reply..."
+                value={replyContent}
+                onChange={(e) => setReplyContent(e.target.value)}
+                className="bg-gray-700 border-gray-600 text-white text-sm min-h-[60px] flex-1"
+              />
+              <div className="flex flex-col space-y-1 flex-shrink-0">
+                <Button
+                  size="sm"
+                  onClick={() => handleReply(comment.id)}
+                  className="bg-pink-600 hover:bg-pink-700"
+                >
+                  Reply
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setReplyingTo(null)}
+                  className="border-gray-600 text-gray-300"
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Replies */}
-      {filteredComments.filter(reply => reply.parentId === comment.id).map((reply) => (
-        <CommentItem key={reply.id} comment={reply} isReply />
-      ))}
-    </div>
-  );
+        {/* Replies */}
+        {filteredComments.filter(reply => reply.parentId === comment.id).map((reply) => (
+          <CommentItem key={reply.id} comment={reply} isReply />
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="w-80 bg-gray-900 border-l border-gray-800 h-full flex flex-col">
