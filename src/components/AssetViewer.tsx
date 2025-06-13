@@ -169,11 +169,18 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   };
 
   const handleSeekToComment = (timestamp: number) => {
-    setCurrentTime(timestamp);
+    if (videoPlayer.videoRef.current) {
+      videoPlayer.videoRef.current.currentTime = timestamp;
+      setCurrentTime(timestamp);
+    }
   };
 
   const handleStartDrawing = () => {
     setIsDrawingMode(true);
+    // Pause video when drawing starts
+    if (videoPlayer.videoRef.current && !videoPlayer.videoRef.current.paused) {
+      videoPlayer.videoRef.current.pause();
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -273,6 +280,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             className="w-full h-full object-contain"
             onClick={() => setShowCommentInput(true)}
             crossOrigin="anonymous"
+            controls={false}
           />
           
           {/* Drawing Canvas Overlay */}
@@ -323,19 +331,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             formatTime={formatTime}
           />
         </div>
-
-        {/* Comment Input - Shows at bottom when commenting */}
-        {showCommentInput && (
-          <div className="fixed bottom-0 left-0 right-0 z-50">
-            <CommentInput
-              currentTime={currentTime}
-              onAddComment={handleAddComment}
-              onCancel={() => setShowCommentInput(false)}
-              onStartDrawing={handleStartDrawing}
-              isDrawingMode={isDrawingMode}
-            />
-          </div>
-        )}
       </div>
 
       {/* Comments Panel */}
@@ -348,6 +343,19 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             onDeleteComment={handleDeleteComment}
             onReplyComment={handleReplyComment}
             onAddComment={handleAddComment}
+            onStartDrawing={handleStartDrawing}
+            isDrawingMode={isDrawingMode}
+          />
+        </div>
+      )}
+
+      {/* Comment Input - Shows at bottom when commenting */}
+      {showCommentInput && (
+        <div className="fixed bottom-0 left-0 right-0 z-50">
+          <CommentInput
+            currentTime={currentTime}
+            onAddComment={handleAddComment}
+            onCancel={() => setShowCommentInput(false)}
             onStartDrawing={handleStartDrawing}
             isDrawingMode={isDrawingMode}
           />
