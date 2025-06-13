@@ -22,6 +22,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+interface Asset {
+  id: string;
+  name: string;
+  type: 'video' | 'image' | 'audio' | 'document';
+  thumbnail: string;
+  duration?: string;
+  fileSize: string;
+  status: 'processing' | 'ready' | 'needs_review' | 'approved' | 'rejected';
+  uploadedBy: string;
+  uploadedAt: Date;
+  lastModified: Date;
+  comments: number;
+  views: number;
+  tags: string[];
+  resolution?: string;
+}
+
 interface ProjectAssetsViewProps {
   projectName: string;
   onBack: () => void;
@@ -46,8 +63,8 @@ export const ProjectAssetsView = ({
     sortOrder: 'desc' as 'asc' | 'desc'
   });
 
-  // Mock data - in real app this would come from API
-  const mockAssets = [
+  // Initial mock data
+  const [assets, setAssets] = useState<Asset[]>([
     {
       id: '1',
       name: 'Commercial_Final_V2.mp4',
@@ -80,7 +97,7 @@ export const ProjectAssetsView = ({
       tags: ['behind-scenes'],
       resolution: '1920x1080'
     }
-  ];
+  ]);
 
   const handleAssetSelect = (assetId: string) => {
     setSelectedAssets(prev => 
@@ -91,11 +108,30 @@ export const ProjectAssetsView = ({
   };
 
   const handleSelectAll = () => {
-    setSelectedAssets(mockAssets.map(asset => asset.id));
+    setSelectedAssets(filteredAssets.map(asset => asset.id));
   };
 
   const handleClearSelection = () => {
     setSelectedAssets([]);
+  };
+
+  const generateAssetId = () => {
+    return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getFileType = (file: File): 'video' | 'image' | 'audio' | 'document' => {
+    if (file.type.startsWith('video/')) return 'video';
+    if (file.type.startsWith('image/')) return 'image';
+    if (file.type.startsWith('audio/')) return 'audio';
+    return 'document';
   };
 
   const handleUpload = () => {
@@ -103,15 +139,55 @@ export const ProjectAssetsView = ({
     const input = document.createElement('input');
     input.type = 'file';
     input.multiple = true;
-    input.accept = 'video/*,image/*,audio/*';
+    input.accept = 'video/*,image/*,audio/*,application/*';
+    
     input.onchange = (e) => {
       const files = Array.from((e.target as HTMLInputElement).files || []);
       console.log('📁 Files selected for upload:', files);
+      
+      if (files.length === 0) return;
+
+      // Process each file and add to assets
       files.forEach(file => {
         console.log(`- ${file.name} (${file.size} bytes, ${file.type})`);
+        
+        const newAsset: Asset = {
+          id: generateAssetId(),
+          name: file.name,
+          type: getFileType(file),
+          thumbnail: '/placeholder.svg',
+          duration: file.type.startsWith('video/') ? '0:00' : undefined,
+          fileSize: formatFileSize(file.size),
+          status: 'processing',
+          uploadedBy: 'Current User',
+          uploadedAt: new Date(),
+          lastModified: new Date(),
+          comments: 0,
+          views: 0,
+          tags: [],
+          resolution: file.type.startsWith('video/') ? '1920x1080' : undefined
+        };
+
+        // Add the new asset to the list
+        setAssets(prev => [newAsset, ...prev]);
+
+        // Simulate processing completion after 2 seconds
+        setTimeout(() => {
+          setAssets(prev => prev.map(asset => 
+            asset.id === newAsset.id 
+              ? { ...asset, status: 'ready' as const }
+              : asset
+          ));
+        }, 2000);
+
+        // Open the asset in the viewer after a short delay
+        setTimeout(() => {
+          console.log('📹 Opening uploaded asset in viewer:', newAsset.id);
+          onAssetOpen(newAsset.id);
+        }, 500);
       });
-      // TODO: Implement actual upload logic here
     };
+    
     input.click();
   };
 
@@ -125,7 +201,7 @@ export const ProjectAssetsView = ({
     // TODO: Implement video recording
   };
 
-  const filteredAssets = mockAssets.filter(asset => {
+  const filteredAssets = assets.filter(asset => {
     // Apply search filter
     if (filters.search && !asset.name.toLowerCase().includes(filters.search.toLowerCase())) {
       return false;
@@ -161,7 +237,7 @@ export const ProjectAssetsView = ({
             <div>
               <h1 className="text-3xl font-bold text-white mb-2">{projectName}</h1>
               <div className="flex items-center space-x-4 text-sm text-gray-400">
-                <span>{mockAssets.length} assets</span>
+                <span>{assets.length} assets</span>
                 <span>•</span>
                 <span>Last updated 2 hours ago</span>
                 <span>•</span>
@@ -209,7 +285,7 @@ export const ProjectAssetsView = ({
                   Add Assets
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
+              <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 z-50">
                 <DropdownMenuItem 
                   onClick={handleUpload}
                   className="text-gray-300 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer"
@@ -240,9 +316,9 @@ export const ProjectAssetsView = ({
         <AssetFilters
           filters={filters}
           onFiltersChange={setFilters}
-          availableUsers={['John Doe', 'Jane Smith', 'Mike Johnson']}
+          availableUsers={['John Doe', 'Jane Smith', 'Mike Johnson', 'Current User']}
           availableTags={['commercial', 'final', 'behind-scenes']}
-          totalAssets={mockAssets.length}
+          totalAssets={assets.length}
           filteredAssets={filteredAssets.length}
         />
       </div>

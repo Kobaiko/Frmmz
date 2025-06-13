@@ -156,7 +156,7 @@ export const AssetGrid = ({
                     e.stopPropagation();
                     onAssetOpen(asset.id);
                   }}
-                  className="bg-pink-600 hover:bg-pink-700"
+                  className="bg-pink-600 hover:bg-pink-700 text-white"
                 >
                   <Play className="h-4 w-4 mr-2" />
                   Open
@@ -177,7 +177,7 @@ export const AssetGrid = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0 text-gray-400 hover:text-white flex-shrink-0"
+                className="h-6 w-6 p-0 text-gray-400 hover:text-white hover:bg-gray-700 flex-shrink-0"
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal className="h-4 w-4" />
@@ -212,7 +212,7 @@ export const AssetGrid = ({
                   <Badge
                     key={tag}
                     variant="outline"
-                    className="border-gray-600 text-gray-400 text-xs"
+                    className="border-gray-600 text-gray-400 text-xs bg-gray-800"
                   >
                     {tag}
                   </Badge>
@@ -220,7 +220,7 @@ export const AssetGrid = ({
                 {asset.tags.length > 2 && (
                   <Badge
                     variant="outline"
-                    className="border-gray-600 text-gray-400 text-xs"
+                    className="border-gray-600 text-gray-400 text-xs bg-gray-800"
                   >
                     +{asset.tags.length - 2}
                   </Badge>
@@ -234,7 +234,7 @@ export const AssetGrid = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 px-2 text-xs text-gray-400 hover:text-white"
+                  className="h-7 px-2 text-xs text-gray-400 hover:text-white hover:bg-gray-700"
                 >
                   <Download className="h-3 w-3 mr-1" />
                   Download
@@ -242,7 +242,7 @@ export const AssetGrid = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 px-2 text-xs text-gray-400 hover:text-white"
+                  className="h-7 px-2 text-xs text-gray-400 hover:text-white hover:bg-gray-700"
                 >
                   <Share2 className="h-3 w-3 mr-1" />
                   Share
@@ -316,14 +316,14 @@ export const AssetGrid = ({
                 onAssetOpen(asset.id);
               }}
               size="sm"
-              className="bg-pink-600 hover:bg-pink-700"
+              className="bg-pink-600 hover:bg-pink-700 text-white"
             >
               Open
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              className="text-gray-400 hover:text-white"
+              className="text-gray-400 hover:text-white hover:bg-gray-700"
               onClick={(e) => e.stopPropagation()}
             >
               <MoreHorizontal className="h-4 w-4" />
@@ -360,14 +360,14 @@ export const AssetGrid = ({
                 variant="ghost"
                 size="sm"
                 onClick={onClearSelection}
-                className="text-gray-400 hover:text-white"
+                className="text-gray-400 hover:text-white hover:bg-gray-700"
               >
                 Clear
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-gray-400 hover:text-white"
+                className="text-gray-400 hover:text-white hover:bg-gray-700"
               >
                 <Download className="h-4 w-4 mr-2" />
                 Download All
@@ -375,7 +375,7 @@ export const AssetGrid = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-gray-400 hover:text-white"
+                className="text-gray-400 hover:text-white hover:bg-gray-700"
               >
                 <Share2 className="h-4 w-4 mr-2" />
                 Share All
