@@ -2,10 +2,10 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { VideoControls } from "./VideoControls";
 import { DrawingCanvas } from "./DrawingCanvas";
-import { VideoReviewInterface } from "./VideoReviewInterface";
+import { CommentInput } from "./CommentInput";
+import { CommentPanel } from "./CommentPanel";
 import { useVideoPlayer } from "@/hooks/useVideoPlayer";
 import { useVideoKeyboardShortcuts } from "@/hooks/useVideoKeyboardShortcuts";
 import type { Comment } from "@/pages/Index";
@@ -42,18 +42,6 @@ interface AssetViewerProps {
   onBack: () => void;
 }
 
-// Helper function to convert Comment to VideoComment
-const convertToVideoComment = (comment: Comment) => ({
-  id: comment.id,
-  timestamp: comment.timestamp,
-  content: comment.text,
-  author: comment.author,
-  authorColor: '#FF0080',
-  createdAt: comment.createdAt,
-  resolved: false,
-  replies: []
-});
-
 export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [asset, setAsset] = useState<Asset | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -68,6 +56,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   });
   const [zoom, setZoom] = useState("Fit");
   const [encodeComments, setEncodeComments] = useState(false);
+  const [showCommentInput, setShowCommentInput] = useState(false);
 
   // Mock data - in real app this would come from API
   useEffect(() => {
@@ -149,20 +138,30 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     }
   };
 
-  const handleAddComment = (text: string, timestamp: number) => {
+  const handleAddComment = (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
     const newComment: Comment = {
       id: Math.random().toString(36).substr(2, 9),
-      timestamp,
+      timestamp: attachTime ? currentTime : -1,
       text,
       author: "Current User",
       createdAt: new Date(),
     };
     
     setComments([...comments, newComment]);
+    setShowCommentInput(false);
   };
 
-  const handleResolveComment = (commentId: string) => {
-    console.log('Resolving comment:', commentId);
+  const handleReplyComment = (parentId: string, text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
+    const newComment: Comment = {
+      id: Math.random().toString(36).substr(2, 9),
+      timestamp: attachTime ? currentTime : -1,
+      text,
+      author: "Current User",
+      createdAt: new Date(),
+      parentId
+    };
+    
+    setComments([...comments, newComment]);
   };
 
   const handleDeleteComment = (commentId: string) => {
@@ -173,12 +172,8 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     setCurrentTime(timestamp);
   };
 
-  // Convert Comment[] to VideoComment[] for VideoReviewInterface
-  const videoComments = comments.map(convertToVideoComment);
-
-  // Fix the onAddComment function signature for VideoReviewInterface
-  const handleVideoReviewAddComment = (timestamp: number, content: string) => {
-    handleAddComment(content, timestamp);
+  const handleStartDrawing = () => {
+    setIsDrawingMode(true);
   };
 
   const formatTime = (seconds: number) => {
@@ -276,14 +271,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             ref={videoPlayer.videoRef}
             src={asset.url}
             className="w-full h-full object-contain"
-            onClick={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              const clickX = e.clientX - rect.left;
-              const videoWidth = rect.width;
-              const clickTimePercentage = clickX / videoWidth;
-              const timestamp = clickTimePercentage * videoPlayer.duration;
-              handleSeekToComment(timestamp);
-            }}
+            onClick={() => setShowCommentInput(true)}
           />
           
           {/* Drawing Canvas Overlay */}
@@ -334,17 +322,33 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             formatTime={formatTime}
           />
         </div>
+
+        {/* Comment Input - Shows at bottom when commenting */}
+        {showCommentInput && (
+          <div className="fixed bottom-0 left-0 right-0 z-50">
+            <CommentInput
+              currentTime={currentTime}
+              onAddComment={handleAddComment}
+              onCancel={() => setShowCommentInput(false)}
+              onStartDrawing={handleStartDrawing}
+              isDrawingMode={isDrawingMode}
+            />
+          </div>
+        )}
       </div>
 
       {/* Comments Panel */}
-      {showComments && asset.type === 'video' && (
+      {showComments && (
         <div className="fixed right-0 top-0 bottom-0 w-80">
-          <VideoReviewInterface
-            comments={videoComments}
-            onAddComment={handleVideoReviewAddComment}
-            onResolveComment={handleResolveComment}
-            onDeleteComment={handleDeleteComment}
+          <CommentPanel
+            comments={comments}
             currentTime={currentTime}
+            onCommentClick={handleSeekToComment}
+            onDeleteComment={handleDeleteComment}
+            onReplyComment={handleReplyComment}
+            onAddComment={handleAddComment}
+            onStartDrawing={handleStartDrawing}
+            isDrawingMode={isDrawingMode}
           />
         </div>
       )}
