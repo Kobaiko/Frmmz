@@ -140,7 +140,7 @@ export const CommentPanel = ({
                 </div>
               )}
 
-              <p className="text-gray-300 text-sm">{comment.text}</p>
+              <p className="text-gray-300 text-sm break-words">{comment.text}</p>
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
@@ -249,8 +249,23 @@ export const CommentPanel = ({
         </h3>
       </div>
 
-      {/* New Comment Input */}
-      <div className="p-4 border-b border-gray-700 bg-gray-800/50">
+      {/* Comments List */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        {comments.filter(comment => !comment.parentId).map((comment) => (
+          <CommentItem key={comment.id} comment={comment} />
+        ))}
+        
+        {comments.length === 0 && (
+          <div className="text-center py-8">
+            <MessageSquare className="h-12 w-12 text-gray-500 mx-auto mb-3" />
+            <h4 className="text-gray-400 font-medium">No comments yet</h4>
+            <p className="text-gray-500 text-sm">Start the conversation by adding a comment</p>
+          </div>
+        )}
+      </div>
+
+      {/* New Comment Input - Moved to bottom */}
+      <div className="p-4 border-t border-gray-700 bg-gray-800/50">
         <div className="space-y-3">
           <div className="relative">
             {attachTime && (
@@ -380,21 +395,6 @@ export const CommentPanel = ({
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Comments List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        {comments.filter(comment => !comment.parentId).map((comment) => (
-          <CommentItem key={comment.id} comment={comment} />
-        ))}
-        
-        {comments.length === 0 && (
-          <div className="text-center py-8">
-            <MessageSquare className="h-12 w-12 text-gray-500 mx-auto mb-3" />
-            <h4 className="text-gray-400 font-medium">No comments yet</h4>
-            <p className="text-gray-500 text-sm">Start the conversation by adding a comment</p>
-          </div>
-        )}
       </div>
     </div>
   );
