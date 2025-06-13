@@ -1,10 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { VideoControls } from "./VideoControls";
 import { DrawingCanvas } from "./DrawingCanvas";
-import { CommentInput } from "./CommentInput";
 import { CommentPanel } from "./CommentPanel";
 import { useVideoPlayer } from "@/hooks/useVideoPlayer";
 import { useVideoKeyboardShortcuts } from "@/hooks/useVideoKeyboardShortcuts";
@@ -56,7 +54,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   });
   const [zoom, setZoom] = useState("Fit");
   const [encodeComments, setEncodeComments] = useState(false);
-  const [showCommentInput, setShowCommentInput] = useState(false);
 
   // Mock data - in real app this would come from API
   useEffect(() => {
@@ -148,7 +145,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     };
     
     setComments([...comments, newComment]);
-    setShowCommentInput(false);
   };
 
   const handleReplyComment = (parentId: string, text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
@@ -278,7 +274,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             ref={videoPlayer.videoRef}
             src={asset.url}
             className="w-full h-full object-contain"
-            onClick={() => setShowCommentInput(true)}
             crossOrigin="anonymous"
             controls={false}
           />
@@ -343,19 +338,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             onDeleteComment={handleDeleteComment}
             onReplyComment={handleReplyComment}
             onAddComment={handleAddComment}
-            onStartDrawing={handleStartDrawing}
-            isDrawingMode={isDrawingMode}
-          />
-        </div>
-      )}
-
-      {/* Comment Input - Shows at bottom when commenting */}
-      {showCommentInput && (
-        <div className="fixed bottom-0 left-0 right-0 z-50">
-          <CommentInput
-            currentTime={currentTime}
-            onAddComment={handleAddComment}
-            onCancel={() => setShowCommentInput(false)}
             onStartDrawing={handleStartDrawing}
             isDrawingMode={isDrawingMode}
           />

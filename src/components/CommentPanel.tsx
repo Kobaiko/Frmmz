@@ -16,8 +16,19 @@ import {
   X,
   Edit,
   Trash2,
-  Pin
+  Pin,
+  Paperclip,
+  Smile,
+  Send,
+  ChevronDown,
+  Globe
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Comment {
   id: string;
@@ -55,6 +66,8 @@ export const CommentPanel = ({
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
+  const [isInternal, setIsInternal] = useState(false);
+  const [attachTime, setAttachTime] = useState(true);
 
   const formatTimestamp = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -64,7 +77,7 @@ export const CommentPanel = ({
 
   const handleAddComment = () => {
     if (newComment.trim()) {
-      onAddComment(newComment);
+      onAddComment(newComment, [], isInternal, attachTime, false);
       setNewComment('');
     }
   };
@@ -75,6 +88,15 @@ export const CommentPanel = ({
       setReplyContent('');
       setReplyingTo(null);
     }
+  };
+
+  const handleDrawingClick = () => {
+    // Pause video when drawing starts
+    const video = document.querySelector('video') as HTMLVideoElement;
+    if (video && !video.paused) {
+      video.pause();
+    }
+    onStartDrawing();
   };
 
   const CommentItem = ({ comment, isReply = false }: { comment: Comment; isReply?: boolean }) => (
@@ -218,60 +240,161 @@ export const CommentPanel = ({
   );
 
   return (
-    <div className="w-80 bg-gray-900 border-l border-gray-800 p-4 h-full overflow-y-auto">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white flex items-center">
-            <MessageSquare className="h-5 w-5 mr-2" />
-            Comments ({comments.length})
-          </h3>
-        </div>
+    <div className="w-80 bg-gray-900 border-l border-gray-800 h-full flex flex-col">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-700">
+        <h3 className="text-lg font-semibold text-white flex items-center">
+          <MessageSquare className="h-5 w-5 mr-2" />
+          Comments ({comments.length})
+        </h3>
+      </div>
 
-        {/* New Comment */}
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              <Textarea
-                placeholder="Add a comment..."
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                className="bg-gray-700 border-gray-600 text-white min-h-[80px]"
-              />
-              <div className="flex justify-between">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onStartDrawing}
-                  className={`border-gray-600 text-gray-300 ${isDrawingMode ? 'bg-pink-600 text-white' : ''}`}
-                >
-                  Draw
-                </Button>
-                <Button
-                  onClick={handleAddComment}
-                  disabled={!newComment.trim()}
-                  className="bg-pink-600 hover:bg-pink-700"
-                >
-                  Comment
-                </Button>
+      {/* New Comment Input */}
+      <div className="p-4 border-b border-gray-700 bg-gray-800/50">
+        <div className="space-y-3">
+          <div className="relative">
+            {attachTime && (
+              <div className="absolute top-3 left-3 z-10 pointer-events-none">
+                <div className="flex items-center space-x-1 bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full text-sm font-medium">
+                  <Clock size={12} />
+                  <span>{formatTimestamp(currentTime)}</span>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Comments List */}
-        <div className="space-y-2">
-          {comments.filter(comment => !comment.parentId).map((comment) => (
-            <CommentItem key={comment.id} comment={comment} />
-          ))}
+            )}
+            <Textarea
+              placeholder={attachTime ? ` - Add a comment...` : "Add a comment..."}
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              onFocus={() => {
+                // Pause video when starting to type
+                const video = document.querySelector('video') as HTMLVideoElement;
+                if (video && !video.paused) {
+                  video.pause();
+                }
+              }}
+              className={`bg-gray-700 border-gray-600 text-white min-h-[80px] ${
+                attachTime ? 'pl-20' : ''
+              }`}
+            />
+          </div>
           
-          {comments.length === 0 && (
-            <div className="text-center py-8">
-              <MessageSquare className="h-12 w-12 text-gray-500 mx-auto mb-3" />
-              <h4 className="text-gray-400 font-medium">No comments yet</h4>
-              <p className="text-gray-500 text-sm">Start the conversation by adding a comment</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-1">
+              {/* Time attach button */}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setAttachTime(!attachTime)}
+                className={`p-2 rounded-lg ${
+                  attachTime 
+                    ? "text-blue-400 bg-blue-500/20" 
+                    : "text-gray-400 hover:text-white hover:bg-gray-600"
+                }`}
+                title={attachTime ? `Attach ${formatTimestamp(currentTime)}` : "Don't attach time"}
+              >
+                <Clock size={16} />
+              </Button>
+              
+              {/* Attachment button */}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-gray-400 hover:text-white hover:bg-gray-600 p-2 rounded-lg"
+                title="Attach files"
+              >
+                <Paperclip size={16} />
+              </Button>
+              
+              {/* Drawing tools button */}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleDrawingClick}
+                className={`p-2 rounded-lg ${
+                  isDrawingMode
+                    ? "text-blue-400 bg-blue-500/20" 
+                    : "text-gray-400 hover:text-white hover:bg-gray-600"
+                }`}
+                title="Drawing tools"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 19l7-7 3 3-7 7-3-3z"/>
+                  <path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+                  <path d="m2 2 7.586 7.586"/>
+                  <circle cx="11" cy="11" r="2"/>
+                </svg>
+              </Button>
+              
+              {/* Emoji button */}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-gray-400 hover:text-white hover:bg-gray-600 p-2 rounded-lg"
+                title="Add emoji"
+              >
+                <Smile size={16} />
+              </Button>
             </div>
-          )}
+            
+            <div className="flex items-center space-x-2">
+              {/* Public/Internal dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-300 hover:text-white hover:bg-gray-600 p-2 rounded-lg"
+                  >
+                    <Globe size={16} />
+                    <span className="ml-1 text-sm">{isInternal ? "Internal" : "Public"}</span>
+                    <ChevronDown size={12} className="ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-gray-800 border-gray-600 text-white">
+                  <DropdownMenuItem
+                    onClick={() => setIsInternal(false)}
+                    className="hover:bg-gray-700 focus:bg-gray-700"
+                  >
+                    <Globe size={14} className="mr-2" />
+                    Public
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setIsInternal(true)}
+                    className="hover:bg-gray-700 focus:bg-gray-700"
+                  >
+                    <div className="w-3 h-3 mr-2 rounded-full bg-orange-500"></div>
+                    Internal
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              {/* Send button */}
+              <Button
+                size="sm"
+                onClick={handleAddComment}
+                disabled={!newComment.trim()}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg disabled:opacity-50"
+              >
+                <Send size={14} />
+              </Button>
+            </div>
+          </div>
         </div>
+      </div>
+
+      {/* Comments List */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        {comments.filter(comment => !comment.parentId).map((comment) => (
+          <CommentItem key={comment.id} comment={comment} />
+        ))}
+        
+        {comments.length === 0 && (
+          <div className="text-center py-8">
+            <MessageSquare className="h-12 w-12 text-gray-500 mx-auto mb-3" />
+            <h4 className="text-gray-400 font-medium">No comments yet</h4>
+            <p className="text-gray-500 text-sm">Start the conversation by adding a comment</p>
+          </div>
+        )}
       </div>
     </div>
   );
