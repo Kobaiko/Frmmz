@@ -12,8 +12,15 @@ import {
   List, 
   Share2,
   Settings,
-  Users
+  Users,
+  FileVideo
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ProjectAssetsViewProps {
   projectName: string;
@@ -43,49 +50,35 @@ export const ProjectAssetsView = ({
   const mockAssets = [
     {
       id: '1',
-      name: 'hero_video_final_v3.mp4',
+      name: 'Commercial_Final_V2.mp4',
       type: 'video' as const,
       thumbnail: '/placeholder.svg',
       duration: '2:34',
-      fileSize: '524 MB',
-      status: 'approved' as const,
-      uploadedBy: 'Alex Chen',
+      fileSize: '245 MB',
+      status: 'ready' as const,
+      uploadedBy: 'John Doe',
       uploadedAt: new Date('2024-06-12'),
       lastModified: new Date('2024-06-12'),
-      comments: 8,
+      comments: 5,
       views: 23,
-      tags: ['hero', 'final', 'approved'],
-      resolution: '4K'
+      tags: ['commercial', 'final'],
+      resolution: '1920x1080'
     },
     {
       id: '2',
-      name: 'product_demo_rough_cut.mov',
+      name: 'Behind_Scenes.mp4',
       type: 'video' as const,
       thumbnail: '/placeholder.svg',
-      duration: '1:45',
-      fileSize: '156 MB',
+      duration: '5:12',
+      fileSize: '512 MB',
       status: 'needs_review' as const,
-      uploadedBy: 'Sarah Kim',
+      uploadedBy: 'Jane Smith',
       uploadedAt: new Date('2024-06-11'),
       lastModified: new Date('2024-06-11'),
-      comments: 3,
-      views: 12,
-      tags: ['demo', 'rough'],
-      resolution: '1080p'
-    },
-    {
-      id: '3',
-      name: 'background_music_v1.mp3',
-      type: 'audio' as const,
-      thumbnail: '/placeholder.svg',
-      fileSize: '12 MB',
-      status: 'ready' as const,
-      uploadedBy: 'Mike Johnson',
-      uploadedAt: new Date('2024-06-10'),
-      lastModified: new Date('2024-06-10'),
-      comments: 1,
+      comments: 2,
       views: 8,
-      tags: ['music', 'background']
+      tags: ['behind-scenes'],
+      resolution: '1920x1080'
     }
   ];
 
@@ -103,6 +96,20 @@ export const ProjectAssetsView = ({
 
   const handleClearSelection = () => {
     setSelectedAssets([]);
+  };
+
+  const handleUpload = () => {
+    // Trigger file upload dialog
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.accept = 'video/*,image/*,audio/*';
+    input.onchange = (e) => {
+      const files = Array.from((e.target as HTMLInputElement).files || []);
+      console.log('Files selected for upload:', files);
+      // TODO: Implement actual upload logic
+    };
+    input.click();
   };
 
   const filteredAssets = mockAssets.filter(asset => {
@@ -182,10 +189,31 @@ export const ProjectAssetsView = ({
               Share Project
             </Button>
             
-            <Button className="bg-pink-600 hover:bg-pink-700">
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Assets
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="bg-pink-600 hover:bg-pink-700">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Assets
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
+                <DropdownMenuItem 
+                  onClick={handleUpload}
+                  className="text-gray-300 hover:bg-gray-700 focus:bg-gray-700"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Files
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-gray-300 hover:bg-gray-700 focus:bg-gray-700">
+                  <FileVideo className="h-4 w-4 mr-2" />
+                  Record Video
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-gray-300 hover:bg-gray-700 focus:bg-gray-700">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Folder
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -193,8 +221,8 @@ export const ProjectAssetsView = ({
         <AssetFilters
           filters={filters}
           onFiltersChange={setFilters}
-          availableUsers={['Alex Chen', 'Sarah Kim', 'Mike Johnson']}
-          availableTags={['hero', 'final', 'approved', 'demo', 'rough', 'music', 'background']}
+          availableUsers={['John Doe', 'Jane Smith', 'Mike Johnson']}
+          availableTags={['commercial', 'final', 'behind-scenes']}
           totalAssets={mockAssets.length}
           filteredAssets={filteredAssets.length}
         />
