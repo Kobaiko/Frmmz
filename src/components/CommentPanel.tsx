@@ -74,6 +74,8 @@ export const CommentPanel = ({
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
+  const [editingComment, setEditingComment] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
   const [isInternal, setIsInternal] = useState(false);
   const [attachTime, setAttachTime] = useState(true);
   const [commentLikes, setCommentLikes] = useState<Record<string, { likes: number; dislikes: number; isLiked: boolean; isDisliked: boolean }>>({});
@@ -90,7 +92,7 @@ export const CommentPanel = ({
   const [commentType, setCommentType] = useState<CommentType>('all');
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>({
     search: '',
-    author: '',
+    author: 'all',
     status: 'all',
     dateRange: { from: null, to: null },
     tags: [],
@@ -142,9 +144,21 @@ export const CommentPanel = ({
     });
   };
 
-  const handleEdit = (commentId: string) => {
-    console.log('Edit comment:', commentId);
-    // TODO: Implement edit functionality
+  const handleStartEdit = (commentId: string, currentText: string) => {
+    setEditingComment(commentId);
+    setEditContent(currentText);
+  };
+
+  const handleSaveEdit = (commentId: string) => {
+    // In a real app, this would update the comment via API
+    console.log('Saving edit for comment:', commentId, 'with content:', editContent);
+    setEditingComment(null);
+    setEditContent('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingComment(null);
+    setEditContent('');
   };
 
   const handleCopyLink = (commentId: string) => {
@@ -165,7 +179,7 @@ export const CommentPanel = ({
 
   const handleReply = (commentId: string) => {
     if (replyContent.trim()) {
-      onReplyComment(commentId, replyContent);
+      onReplyComment(commentId, replyContent, [], isInternal, attachTime, false);
       setReplyContent('');
       setReplyingTo(null);
     }
@@ -202,7 +216,7 @@ export const CommentPanel = ({
     }
     
     // Filter by author
-    if (advancedFilters.author && comment.author !== advancedFilters.author) return false;
+    if (advancedFilters.author && advancedFilters.author !== 'all' && comment.author !== advancedFilters.author) return false;
     
     return true;
   });
@@ -215,11 +229,12 @@ export const CommentPanel = ({
 
   const CommentItem = ({ comment, isReply = false }: { comment: Comment; isReply?: boolean }) => {
     const likes = commentLikes[comment.id] || { likes: 0, dislikes: 0, isLiked: false, isDisliked: false };
+    const isEditing = editingComment === comment.id;
     
     return (
       <div className={`${isReply ? 'ml-6 border-l-2 border-gray-700 pl-3' : ''}`}>
         <CommentContextMenu
-          onEdit={() => handleEdit(comment.id)}
+          onEdit={() => handleStartEdit(comment.id, comment.text)}
           onCopyLink={() => handleCopyLink(comment.id)}
           onDelete={() => onDeleteComment(comment.id)}
         >
@@ -245,7 +260,7 @@ export const CommentPanel = ({
                     )}
                   </div>
                   <div className="flex items-center space-x-2 flex-shrink-0">
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-500 whitespace-nowrap">
                       {formatRelativeTime(comment.createdAt)}
                     </span>
                     <DropdownMenu>
@@ -256,7 +271,7 @@ export const CommentPanel = ({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent className="bg-gray-800 border-gray-600 text-white" align="end">
                         <DropdownMenuItem 
-                          onClick={() => handleEdit(comment.id)}
+                          onClick={() => handleStartEdit(comment.id, comment.text)}
                           className="hover:bg-gray-700 focus:bg-gray-700"
                         >
                           <Edit className="h-3 w-3 mr-2" />
@@ -294,49 +309,80 @@ export const CommentPanel = ({
                 )}
 
                 <div className="mb-3">
-                  <p className="text-gray-300 text-sm break-words whitespace-pre-wrap leading-relaxed">
-                    {comment.text}
-                  </p>
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        className="bg-gray-700 border-gray-600 text-white text-sm min-h-[60px]"
+                      />
+                      <div className="flex space-x-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleSaveEdit(comment.id)}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <Check className="h-3 w-3 mr-1" />
+                          Save
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleCancelEdit}
+                          className="border-gray-600 text-gray-300"
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-300 text-sm break-words whitespace-pre-wrap leading-relaxed">
+                      {comment.text}
+                    </p>
+                  )}
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex items-center space-x-1">
+                {!isEditing && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleLike(comment.id)}
+                          className={`text-xs h-6 px-2 ${
+                            likes.isLiked ? 'text-blue-400 bg-blue-500/20' : 'text-gray-400 hover:text-blue-400'
+                          }`}
+                        >
+                          <ThumbsUp className="h-3 w-3 mr-1" />
+                          {likes.likes}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDislike(comment.id)}
+                          className={`text-xs h-6 px-2 ${
+                            likes.isDisliked ? 'text-red-400 bg-red-500/20' : 'text-gray-400 hover:text-red-400'
+                          }`}
+                        >
+                          <ThumbsDown className="h-3 w-3 mr-1" />
+                          {likes.dislikes}
+                        </Button>
+                      </div>
+
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleLike(comment.id)}
-                        className={`text-xs h-6 px-2 ${
-                          likes.isLiked ? 'text-blue-400 bg-blue-500/20' : 'text-gray-400 hover:text-blue-400'
-                        }`}
+                        onClick={() => setReplyingTo(comment.id)}
+                        className="text-xs text-gray-400 hover:text-white h-6 px-2"
                       >
-                        <ThumbsUp className="h-3 w-3 mr-1" />
-                        {likes.likes}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDislike(comment.id)}
-                        className={`text-xs h-6 px-2 ${
-                          likes.isDisliked ? 'text-red-400 bg-red-500/20' : 'text-gray-400 hover:text-red-400'
-                        }`}
-                      >
-                        <ThumbsDown className="h-3 w-3 mr-1" />
-                        {likes.dislikes}
+                        <Reply className="h-3 w-3 mr-1" />
+                        Reply
                       </Button>
                     </div>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setReplyingTo(comment.id)}
-                      className="text-xs text-gray-400 hover:text-white h-6 px-2"
-                    >
-                      <Reply className="h-3 w-3 mr-1" />
-                      Reply
-                    </Button>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -356,6 +402,7 @@ export const CommentPanel = ({
                 <Button
                   size="sm"
                   onClick={() => handleReply(comment.id)}
+                  disabled={!replyContent.trim()}
                   className="bg-pink-600 hover:bg-pink-700"
                 >
                   Reply
