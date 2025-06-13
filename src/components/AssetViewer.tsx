@@ -19,13 +19,13 @@ import {
 interface Asset {
   id: string;
   name: string;
-  file_type: 'video' | 'image' | 'audio' | 'document';
+  file_type: string;
   file_url: string;
   thumbnail_url?: string;
   duration?: string;
   file_size: number;
   resolution?: string;
-  status: 'processing' | 'ready' | 'needs_review' | 'approved' | 'rejected';
+  status: string;
   created_at: string;
   updated_at: string;
 }
@@ -61,7 +61,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           .single();
 
         if (error) throw error;
-        setAsset(data);
+        setAsset(data as Asset);
         
         // Fetch comments for this asset
         const { data: commentsData, error: commentsError } = await supabase
@@ -106,13 +106,14 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     onZoomChange: setZoom
   });
 
-  const getStatusColor = (status: Asset['status']) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'processing': return 'bg-yellow-600';
       case 'ready': return 'bg-blue-600';
       case 'needs_review': return 'bg-orange-600';
       case 'approved': return 'bg-green-600';
       case 'rejected': return 'bg-red-600';
+      default: return 'bg-gray-600';
     }
   };
 

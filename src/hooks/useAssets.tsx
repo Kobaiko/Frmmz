@@ -6,16 +6,17 @@ import { useAuth } from "./useAuth";
 interface Asset {
   id: string;
   name: string;
-  file_type: 'video' | 'image' | 'audio' | 'document';
+  file_type: string;
   file_url: string;
   file_size: number;
   duration?: string;
   resolution?: string;
-  status: 'processing' | 'ready' | 'needs_review' | 'approved' | 'rejected';
+  status: string;
   thumbnail_url?: string;
   project_id: string;
   created_at: string;
   updated_at: string;
+  uploaded_by: string;
 }
 
 export const useAssets = (projectId?: string) => {
@@ -62,7 +63,7 @@ export const useAssets = (projectId?: string) => {
         .getPublicUrl(fileName);
 
       // Determine file type
-      const getFileType = (type: string): 'video' | 'image' | 'audio' | 'document' => {
+      const getFileType = (type: string): string => {
         if (type.startsWith('video/')) return 'video';
         if (type.startsWith('image/')) return 'image';
         if (type.startsWith('audio/')) return 'audio';
@@ -80,7 +81,7 @@ export const useAssets = (projectId?: string) => {
             file_size: file.size,
             project_id: projectId,
             uploaded_by: user.id,
-            status: 'ready' as const
+            status: 'ready'
           }
         ])
         .select()

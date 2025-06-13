@@ -7,12 +7,13 @@ interface Project {
   id: string;
   name: string;
   description?: string;
-  status: 'active' | 'completed' | 'archived';
-  priority: 'low' | 'medium' | 'high';
+  status: string;
+  priority: string;
   progress: number;
   due_date?: string;
   created_at: string;
   updated_at: string;
+  owner_id: string;
 }
 
 export const useProjects = () => {
