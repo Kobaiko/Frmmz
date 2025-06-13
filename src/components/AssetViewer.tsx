@@ -53,6 +53,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [loading, setLoading] = useState(true);
   const [isLooping, setIsLooping] = useState(false);
   const [timeFormat, setTimeFormat] = useState<'timecode' | 'frames' | 'standard'>('timecode');
+  const [userName, setUserName] = useState<string>('User');
 
   // Video player ref
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -94,7 +95,25 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
       }
     };
 
+    const fetchUserName = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          // Try to get user's name from metadata or email
+          const displayName = user.user_metadata?.full_name || 
+                             user.user_metadata?.name || 
+                             user.email?.split('@')[0] || 
+                             'Kivaiko';
+          setUserName(displayName);
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        setUserName('Kivaiko'); // Fallback to requested name
+      }
+    };
+
     fetchAsset();
+    fetchUserName();
   }, [assetId]);
 
   // Video event handlers
@@ -212,7 +231,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         id: data.id,
         timestamp: data.timestamp_seconds || -1,
         text: data.content,
-        author: "Current User",
+        author: userName, // Use actual user name
         createdAt: new Date(data.created_at),
       };
       
@@ -248,7 +267,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         id: data.id,
         timestamp: data.timestamp_seconds || -1,
         text: data.content,
-        author: "Current User",
+        author: userName, // Use actual user name
         createdAt: new Date(data.created_at),
         parentId
       };
@@ -379,7 +398,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
   return (
     <div className="min-h-screen bg-black text-white flex">
-      {/* Main Content Area */}
+      {/* Main Content Area - Fixed positioning */}
       <div className={`flex-1 flex flex-col ${showComments ? 'mr-80' : ''}`}>
         {/* Header */}
         <div className="border-b border-gray-800 px-6 py-4">
@@ -398,7 +417,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                   <FileVideo className="h-5 w-5" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-semibold text-white">{asset.name}</h1>
+                  <h1 className="text-lg font-medium text-white text-left">{asset.name}</h1>
                   <div className="flex items-center space-x-4 text-sm text-gray-400">
                     <span>{asset.file_type.toUpperCase()}</span>
                     <span>•</span>
@@ -445,18 +464,16 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           </div>
         </div>
 
-        {/* Media Player Container */}
-        <div className="flex-1 relative bg-black flex items-center justify-center min-h-[60vh]">
+        {/* Media Player Container - Fixed positioning */}
+        <div className="flex-1 relative bg-black">
           {asset.file_type === 'video' ? (
-            <div className="relative w-full h-full max-w-full max-h-full flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center">
               <video
                 ref={videoRef}
                 className="w-full h-full object-contain"
                 style={{ 
                   display: 'block', 
-                  backgroundColor: '#000',
-                  maxWidth: '100%',
-                  maxHeight: '100%'
+                  backgroundColor: '#000'
                 }}
                 playsInline
                 preload="metadata"
@@ -474,29 +491,33 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
               )}
             </div>
           ) : asset.file_type === 'image' ? (
-            <img
-              src={asset.file_url}
-              alt={asset.name}
-              className="max-w-full max-h-full object-contain"
-            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <img
+                src={asset.file_url}
+                alt={asset.name}
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
           ) : (
-            <div className="text-center">
-              <FileVideo className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-400 mb-4">Preview not available for this file type</p>
-              <Button
-                onClick={() => window.open(asset.file_url, '_blank')}
-                className="bg-pink-600 hover:bg-pink-700"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Download File
-              </Button>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <FileVideo className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-400 mb-4">Preview not available for this file type</p>
+                <Button
+                  onClick={() => window.open(asset.file_url, '_blank')}
+                  className="bg-pink-600 hover:bg-pink-700"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download File
+                </Button>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Video Controls (only for video files) */}
+        {/* Video Controls - Fixed at bottom */}
         {asset.file_type === 'video' && duration > 0 && (
-          <div className="bg-gray-900 border-t border-gray-700 p-4">
+          <div className="absolute bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 p-4 z-10" style={{ right: showComments ? '320px' : '0' }}>
             <VideoControls
               isPlaying={isPlaying}
               onTogglePlayPause={togglePlayPause}
@@ -537,9 +558,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         )}
       </div>
 
-      {/* Comments Panel */}
+      {/* Comments Panel - Fixed positioning */}
       {showComments && (
-        <div className="fixed right-0 top-0 bottom-0 w-80">
+        <div className="fixed right-0 top-0 bottom-0 w-80 z-20">
           <CommentPanel
             comments={comments}
             currentTime={currentTime}
