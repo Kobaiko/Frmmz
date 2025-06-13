@@ -111,7 +111,10 @@ export const AssetGrid = ({
       <CardContent className="p-4">
         <div className="space-y-3">
           {/* Thumbnail with overlay */}
-          <div className="relative aspect-video bg-gray-700 rounded-lg overflow-hidden">
+          <div 
+            className="relative aspect-video bg-gray-700 rounded-lg overflow-hidden cursor-pointer"
+            onClick={() => onAssetOpen(asset.id)}
+          >
             <img 
               src={asset.thumbnail} 
               alt={asset.name}
@@ -119,7 +122,10 @@ export const AssetGrid = ({
             />
             
             {/* Selection checkbox */}
-            <div className="absolute top-2 left-2">
+            <div 
+              className="absolute top-2 left-2 z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
               <Checkbox
                 checked={selectedAssets.includes(asset.id)}
                 onCheckedChange={() => onAssetSelect(asset.id)}
@@ -146,7 +152,10 @@ export const AssetGrid = ({
             {hoveredAsset === asset.id && (
               <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                 <Button
-                  onClick={() => onAssetOpen(asset.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAssetOpen(asset.id);
+                  }}
                   className="bg-pink-600 hover:bg-pink-700"
                 >
                   <Play className="h-4 w-4 mr-2" />
@@ -159,13 +168,17 @@ export const AssetGrid = ({
           {/* Asset info */}
           <div className="space-y-2">
             <div className="flex items-start justify-between">
-              <h3 className="text-white font-medium text-sm truncate flex-1 mr-2">
+              <h3 
+                className="text-white font-medium text-sm truncate flex-1 mr-2 cursor-pointer hover:text-pink-400"
+                onClick={() => onAssetOpen(asset.id)}
+              >
                 {asset.name}
               </h3>
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-6 w-6 p-0 text-gray-400 hover:text-white flex-shrink-0"
+                onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
@@ -252,15 +265,18 @@ export const AssetGrid = ({
       className={`bg-gray-800 border-gray-700 hover:border-pink-600 transition-all duration-200 cursor-pointer ${
         selectedAssets.includes(asset.id) ? 'ring-2 ring-pink-600 bg-pink-900/20' : ''
       }`}
+      onClick={() => onAssetOpen(asset.id)}
     >
       <CardContent className="p-4">
         <div className="flex items-center space-x-4">
           {/* Selection checkbox */}
-          <Checkbox
-            checked={selectedAssets.includes(asset.id)}
-            onCheckedChange={() => onAssetSelect(asset.id)}
-            className="flex-shrink-0"
-          />
+          <div onClick={(e) => e.stopPropagation()}>
+            <Checkbox
+              checked={selectedAssets.includes(asset.id)}
+              onCheckedChange={() => onAssetSelect(asset.id)}
+              className="flex-shrink-0"
+            />
+          </div>
 
           {/* Thumbnail */}
           <div className="w-16 h-12 bg-gray-700 rounded overflow-hidden flex-shrink-0 relative">
@@ -295,7 +311,10 @@ export const AssetGrid = ({
           {/* Actions */}
           <div className="flex items-center space-x-2 flex-shrink-0">
             <Button
-              onClick={() => onAssetOpen(asset.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAssetOpen(asset.id);
+              }}
               size="sm"
               className="bg-pink-600 hover:bg-pink-700"
             >
@@ -305,6 +324,7 @@ export const AssetGrid = ({
               variant="ghost"
               size="sm"
               className="text-gray-400 hover:text-white"
+              onClick={(e) => e.stopPropagation()}
             >
               <MoreHorizontal className="h-4 w-4" />
             </Button>

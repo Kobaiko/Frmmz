@@ -5,6 +5,7 @@ import { MediaUpload } from "@/components/MediaUpload";
 import { ProjectHeader } from "@/components/ProjectHeader";
 import { WorkspaceView } from "@/components/WorkspaceView";
 import { ProjectAssetsEnhanced } from "@/components/ProjectAssetsEnhanced";
+import { AssetViewer } from "@/components/AssetViewer";
 import { Sidebar } from "@/components/Sidebar";
 import { AdvancedVideoPlayer } from "@/components/AdvancedVideoPlayer";
 
@@ -26,13 +27,14 @@ export interface Comment {
   hasDrawing?: boolean;
 }
 
-type ViewMode = 'home' | 'project-assets' | 'feedback-session';
+type ViewMode = 'home' | 'project-assets' | 'feedback-session' | 'asset-viewer';
 
 const Index = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('home');
   const [activeNavItem, setActiveNavItem] = useState('home');
   const [currentProject, setCurrentProject] = useState<string>('');
   const [currentProjectId, setCurrentProjectId] = useState<string>('');
+  const [currentAssetId, setCurrentAssetId] = useState<string>('');
   const [videoUrl, setVideoUrl] = useState<string>("");
   const [comments, setComments] = useState<Comment[]>([]);
   const [currentTime, setCurrentTime] = useState<number>(0);
@@ -49,6 +51,7 @@ const Index = () => {
       setViewMode('home');
       setCurrentProject('');
       setCurrentProjectId('');
+      setCurrentAssetId('');
       setVideoUrl('');
     }
   };
@@ -64,12 +67,23 @@ const Index = () => {
     setViewMode('project-assets');
   };
 
+  const handleOpenAsset = (assetId: string) => {
+    setCurrentAssetId(assetId);
+    setViewMode('asset-viewer');
+  };
+
   const handleBackToHome = () => {
     setViewMode('home');
     setActiveNavItem('home');
     setCurrentProject('');
     setCurrentProjectId('');
+    setCurrentAssetId('');
     setVideoUrl('');
+  };
+
+  const handleBackToProject = () => {
+    setViewMode('project-assets');
+    setCurrentAssetId('');
   };
 
   const handleStartFeedback = () => {
@@ -160,9 +174,19 @@ const Index = () => {
             projectId={currentProjectId}
             onBack={handleBackToHome}
             onStartFeedback={handleStartFeedback}
+            onAssetOpen={handleOpenAsset}
           />
         </div>
       </div>
+    );
+  }
+
+  if (viewMode === 'asset-viewer') {
+    return (
+      <AssetViewer
+        assetId={currentAssetId}
+        onBack={handleBackToProject}
+      />
     );
   }
 
