@@ -116,7 +116,11 @@ export const CommentPanel = ({
     return date.toLocaleDateString();
   };
 
-  const handleLike = (commentId: string) => {
+  const handleLike = (commentId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Like clicked for comment:', commentId);
+    
     setCommentLikes(prev => {
       const current = prev[commentId] || { likes: 0, dislikes: 0, isLiked: false, isDisliked: false };
       const newState = {
@@ -130,7 +134,11 @@ export const CommentPanel = ({
     });
   };
 
-  const handleDislike = (commentId: string) => {
+  const handleDislike = (commentId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Dislike clicked for comment:', commentId);
+    
     setCommentLikes(prev => {
       const current = prev[commentId] || { likes: 0, dislikes: 0, isLiked: false, isDisliked: false };
       const newState = {
@@ -144,24 +152,52 @@ export const CommentPanel = ({
     });
   };
 
-  const handleStartEdit = (commentId: string, currentText: string) => {
+  const handleReplyClick = (commentId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Reply clicked for comment:', commentId);
+    setReplyingTo(commentId);
+  };
+
+  const handleStartEdit = (commentId: string, currentText: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    console.log('Edit clicked for comment:', commentId);
     setEditingComment(commentId);
     setEditContent(currentText);
   };
 
-  const handleSaveEdit = (commentId: string) => {
-    // In a real app, this would update the comment via API
+  const handleSaveEdit = (commentId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     console.log('Saving edit for comment:', commentId, 'with content:', editContent);
     setEditingComment(null);
     setEditContent('');
   };
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setEditingComment(null);
     setEditContent('');
   };
 
-  const handleCopyLink = (commentId: string) => {
+  const handleDeleteComment = (commentId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    console.log('Delete clicked for comment:', commentId);
+    onDeleteComment(commentId);
+  };
+
+  const handleCopyLink = (commentId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     const comment = comments.find(c => c.id === commentId);
     if (comment && comment.timestamp >= 0) {
       const url = `${window.location.href}?t=${comment.timestamp}`;
@@ -170,14 +206,20 @@ export const CommentPanel = ({
     }
   };
 
-  const handleAddComment = () => {
+  const handleAddComment = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Adding comment:', newComment);
     if (newComment.trim()) {
       onAddComment(newComment, [], isInternal, attachTime, false);
       setNewComment('');
     }
   };
 
-  const handleReply = (commentId: string) => {
+  const handleReply = (commentId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Replying to comment:', commentId, 'with content:', replyContent);
     if (replyContent.trim()) {
       onReplyComment(commentId, replyContent, [], isInternal, attachTime, false);
       setReplyContent('');
@@ -185,12 +227,31 @@ export const CommentPanel = ({
     }
   };
 
-  const handleDrawingClick = () => {
+  const handleDrawingClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Drawing mode toggled');
     const video = document.querySelector('video') as HTMLVideoElement;
     if (video && !video.paused) {
       video.pause();
     }
     onStartDrawing();
+  };
+
+  const handleAttachTimeToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Attach time toggled:', !attachTime);
+    setAttachTime(!attachTime);
+  };
+
+  const handleVisibilityChange = (isInternalValue: boolean, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    console.log('Visibility changed to:', isInternalValue ? 'Internal' : 'Public');
+    setIsInternal(isInternalValue);
   };
 
   const clearCommentFilters = () => {
@@ -236,7 +297,7 @@ export const CommentPanel = ({
         <CommentContextMenu
           onEdit={() => handleStartEdit(comment.id, comment.text)}
           onCopyLink={() => handleCopyLink(comment.id)}
-          onDelete={() => onDeleteComment(comment.id)}
+          onDelete={() => handleDeleteComment(comment.id)}
         >
           <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 mb-3 hover:bg-gray-750 transition-colors">
             <div className="flex items-start space-x-3">
@@ -248,7 +309,7 @@ export const CommentPanel = ({
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center space-x-2 min-w-0">
+                  <div className="flex items-center space-x-2 min-w-0 flex-1">
                     <span className="font-medium text-white text-sm truncate">{comment.author}</span>
                     {comment.isInternal && (
                       <Badge variant="outline" className="border-orange-500 text-orange-400 text-xs flex-shrink-0">
@@ -258,11 +319,11 @@ export const CommentPanel = ({
                     {comment.hasDrawing && (
                       <Pin className="h-3 w-3 text-yellow-400 flex-shrink-0" />
                     )}
-                  </div>
-                  <div className="flex items-center space-x-2 flex-shrink-0">
-                    <span className="text-xs text-gray-500 whitespace-nowrap">
+                    <span className="text-xs text-gray-500 whitespace-nowrap ml-auto">
                       {formatRelativeTime(comment.createdAt)}
                     </span>
+                  </div>
+                  <div className="flex items-center space-x-2 flex-shrink-0">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white h-6 w-6 p-0">
@@ -271,21 +332,21 @@ export const CommentPanel = ({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent className="bg-gray-800 border-gray-600 text-white" align="end">
                         <DropdownMenuItem 
-                          onClick={() => handleStartEdit(comment.id, comment.text)}
+                          onClick={(e) => handleStartEdit(comment.id, comment.text, e)}
                           className="hover:bg-gray-700 focus:bg-gray-700"
                         >
                           <Edit className="h-3 w-3 mr-2" />
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          onClick={() => handleCopyLink(comment.id)}
+                          onClick={(e) => handleCopyLink(comment.id, e)}
                           className="hover:bg-gray-700 focus:bg-gray-700"
                         >
                           <Pin className="h-3 w-3 mr-2" />
                           Copy Link
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          onClick={() => onDeleteComment(comment.id)}
+                          onClick={(e) => handleDeleteComment(comment.id, e)}
                           className="hover:bg-gray-700 focus:bg-gray-700 text-red-400"
                         >
                           <Trash2 className="h-3 w-3 mr-2" />
@@ -319,7 +380,7 @@ export const CommentPanel = ({
                       <div className="flex space-x-2">
                         <Button
                           size="sm"
-                          onClick={() => handleSaveEdit(comment.id)}
+                          onClick={(e) => handleSaveEdit(comment.id, e)}
                           className="bg-green-600 hover:bg-green-700"
                         >
                           <Check className="h-3 w-3 mr-1" />
@@ -350,7 +411,7 @@ export const CommentPanel = ({
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleLike(comment.id)}
+                          onClick={(e) => handleLike(comment.id, e)}
                           className={`text-xs h-6 px-2 ${
                             likes.isLiked ? 'text-blue-400 bg-blue-500/20' : 'text-gray-400 hover:text-blue-400'
                           }`}
@@ -361,7 +422,7 @@ export const CommentPanel = ({
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDislike(comment.id)}
+                          onClick={(e) => handleDislike(comment.id, e)}
                           className={`text-xs h-6 px-2 ${
                             likes.isDisliked ? 'text-red-400 bg-red-500/20' : 'text-gray-400 hover:text-red-400'
                           }`}
@@ -374,7 +435,7 @@ export const CommentPanel = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setReplyingTo(comment.id)}
+                        onClick={(e) => handleReplyClick(comment.id, e)}
                         className="text-xs text-gray-400 hover:text-white h-6 px-2"
                       >
                         <Reply className="h-3 w-3 mr-1" />
@@ -401,7 +462,7 @@ export const CommentPanel = ({
               <div className="flex flex-col space-y-1 flex-shrink-0">
                 <Button
                   size="sm"
-                  onClick={() => handleReply(comment.id)}
+                  onClick={(e) => handleReply(comment.id, e)}
                   disabled={!replyContent.trim()}
                   className="bg-pink-600 hover:bg-pink-700"
                 >
@@ -505,7 +566,7 @@ export const CommentPanel = ({
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => setAttachTime(!attachTime)}
+                onClick={handleAttachTimeToggle}
                 className={`p-2 rounded-lg flex-shrink-0 ${
                   attachTime 
                     ? "text-blue-400 bg-blue-500/20" 
@@ -569,14 +630,14 @@ export const CommentPanel = ({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="bg-gray-800 border-gray-600 text-white">
                   <DropdownMenuItem
-                    onClick={() => setIsInternal(false)}
+                    onClick={(e) => handleVisibilityChange(false, e)}
                     className="hover:bg-gray-700 focus:bg-gray-700"
                   >
                     <Globe size={14} className="mr-2" />
                     Public
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setIsInternal(true)}
+                    onClick={(e) => handleVisibilityChange(true, e)}
                     className="hover:bg-gray-700 focus:bg-gray-700"
                   >
                     <div className="w-3 h-3 mr-2 rounded-full bg-orange-500"></div>
