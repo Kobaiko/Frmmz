@@ -100,37 +100,37 @@ export const CommentPanel = ({
   };
 
   const CommentItem = ({ comment, isReply = false }: { comment: Comment; isReply?: boolean }) => (
-    <div className={`${isReply ? 'ml-8 border-l-2 border-gray-700 pl-4' : ''}`}>
+    <div className={`${isReply ? 'ml-6 border-l-2 border-gray-700 pl-3' : ''}`}>
       <Card className="bg-gray-800 border-gray-700 mb-3">
-        <CardContent className="p-4">
+        <CardContent className="p-3">
           <div className="flex items-start space-x-3">
-            <Avatar className="h-8 w-8">
+            <Avatar className="h-8 w-8 flex-shrink-0">
               <AvatarFallback className="bg-gray-600 text-white text-sm">
                 {comment.author.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
             
-            <div className="flex-1 space-y-2">
+            <div className="flex-1 min-w-0 space-y-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium text-white text-sm">{comment.author}</span>
+                <div className="flex items-center space-x-2 min-w-0">
+                  <span className="font-medium text-white text-sm truncate">{comment.author}</span>
                   {comment.isInternal && (
-                    <Badge variant="outline" className="border-gray-600 text-gray-300 text-xs">
+                    <Badge variant="outline" className="border-gray-600 text-gray-300 text-xs flex-shrink-0">
                       Internal
                     </Badge>
                   )}
                   {comment.hasDrawing && (
-                    <Pin className="h-3 w-3 text-yellow-400" />
+                    <Pin className="h-3 w-3 text-yellow-400 flex-shrink-0" />
                   )}
                 </div>
-                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white flex-shrink-0">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </div>
 
               {comment.timestamp >= 0 && (
                 <div className="flex items-center space-x-1 text-xs text-gray-400">
-                  <Clock className="h-3 w-3" />
+                  <Clock className="h-3 w-3 flex-shrink-0" />
                   <button 
                     onClick={() => onCommentClick(comment.timestamp)}
                     className="hover:text-blue-400 cursor-pointer"
@@ -140,11 +140,11 @@ export const CommentPanel = ({
                 </div>
               )}
 
-              <p className="text-gray-300 text-sm break-words">{comment.text}</p>
+              <p className="text-gray-300 text-sm break-words whitespace-pre-wrap overflow-wrap-anywhere">{comment.text}</p>
 
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-1">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -203,15 +203,15 @@ export const CommentPanel = ({
 
       {/* Reply Input */}
       {replyingTo === comment.id && (
-        <div className="ml-8 mb-3">
+        <div className="ml-6 mb-3">
           <div className="flex space-x-2">
             <Textarea
               placeholder="Write a reply..."
               value={replyContent}
               onChange={(e) => setReplyContent(e.target.value)}
-              className="bg-gray-700 border-gray-600 text-white text-sm min-h-[60px]"
+              className="bg-gray-700 border-gray-600 text-white text-sm min-h-[60px] flex-1"
             />
-            <div className="flex flex-col space-y-1">
+            <div className="flex flex-col space-y-1 flex-shrink-0">
               <Button
                 size="sm"
                 onClick={() => handleReply(comment.id)}
@@ -242,7 +242,7 @@ export const CommentPanel = ({
   return (
     <div className="w-80 bg-gray-900 border-l border-gray-800 h-full flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-gray-700">
+      <div className="p-4 border-b border-gray-700 flex-shrink-0">
         <h3 className="text-lg font-semibold text-white flex items-center">
           <MessageSquare className="h-5 w-5 mr-2" />
           Comments ({comments.length})
@@ -250,7 +250,7 @@ export const CommentPanel = ({
       </div>
 
       {/* Comments List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+      <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0">
         {comments.filter(comment => !comment.parentId).map((comment) => (
           <CommentItem key={comment.id} comment={comment} />
         ))}
@@ -264,8 +264,8 @@ export const CommentPanel = ({
         )}
       </div>
 
-      {/* New Comment Input - Moved to bottom */}
-      <div className="p-4 border-t border-gray-700 bg-gray-800/50">
+      {/* New Comment Input - Fixed at bottom */}
+      <div className="p-4 border-t border-gray-700 bg-gray-800/50 flex-shrink-0">
         <div className="space-y-3">
           <div className="relative">
             {attachTime && (
@@ -287,7 +287,7 @@ export const CommentPanel = ({
                   video.pause();
                 }
               }}
-              className={`bg-gray-700 border-gray-600 text-white min-h-[80px] ${
+              className={`bg-gray-700 border-gray-600 text-white min-h-[80px] resize-none ${
                 attachTime ? 'pl-20' : ''
               }`}
             />
