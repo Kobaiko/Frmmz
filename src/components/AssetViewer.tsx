@@ -3,23 +3,17 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { VideoPlayer } from "./VideoPlayer";
+import { VideoControls } from "./VideoControls";
+import { DrawingCanvas } from "./DrawingCanvas";
 import { VideoReviewInterface } from "./VideoReviewInterface";
+import { useVideoPlayer } from "@/hooks/useVideoPlayer";
+import { useVideoKeyboardShortcuts } from "@/hooks/useVideoKeyboardShortcuts";
 import type { Comment } from "@/pages/Index";
 import { 
   ArrowLeft, 
   Download, 
   Share2, 
-  MoreHorizontal, 
-  Eye,
-  Clock,
-  User,
-  Calendar,
-  FileVideo,
-  FileImage,
-  FileAudio,
-  FileText,
-  File
+  FileVideo
 } from "lucide-react";
 
 interface Asset {
@@ -64,8 +58,16 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [asset, setAsset] = useState<Asset | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
   const [showComments, setShowComments] = useState(true);
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
+  const [annotations, setAnnotations] = useState(true);
+  const [guides, setGuides] = useState({
+    enabled: false,
+    ratio: '16:9',
+    mask: false
+  });
+  const [zoom, setZoom] = useState("Fit");
+  const [encodeComments, setEncodeComments] = useState(false);
 
   // Mock data - in real app this would come from API
   useEffect(() => {
@@ -122,6 +124,21 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     }
   }, [assetId]);
 
+  const videoPlayer = useVideoPlayer({
+    src: asset?.url || '',
+    currentTime,
+    onTimeUpdate: setCurrentTime,
+    onDurationChange: () => {}
+  });
+
+  useVideoKeyboardShortcuts({
+    videoRef: videoPlayer.videoRef,
+    volume: videoPlayer.volume,
+    isPlaying: videoPlayer.isPlaying,
+    setVolume: (vol) => videoPlayer.handleVolumeChange([vol]),
+    onZoomChange: setZoom
+  });
+
   const getStatusColor = (status: Asset['status']) => {
     switch (status) {
       case 'processing': return 'bg-yellow-600';
@@ -162,6 +179,12 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   // Fix the onAddComment function signature for VideoReviewInterface
   const handleVideoReviewAddComment = (timestamp: number, content: string) => {
     handleAddComment(content, timestamp);
+  };
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (!asset) {
@@ -246,24 +269,74 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           </div>
         </div>
 
-        {/* Clean Video Player */}
-        <div className="flex-1">
-          <VideoPlayer
+        {/* Video Player Container */}
+        <div className="flex-1 relative bg-black">
+          {/* Video Element */}
+          <video
+            ref={videoPlayer.videoRef}
             src={asset.url}
-            comments={comments}
-            onTimeClick={handleSeekToComment}
+            className="w-full h-full object-contain"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const clickX = e.clientX - rect.left;
+              const videoWidth = rect.width;
+              const clickTimePercentage = clickX / videoWidth;
+              const timestamp = clickTimePercentage * videoPlayer.duration;
+              handleSeekToComment(timestamp);
+            }}
+          />
+          
+          {/* Drawing Canvas Overlay */}
+          <DrawingCanvas
             currentTime={currentTime}
-            onTimeUpdate={setCurrentTime}
-            onDurationChange={setDuration}
-            isDrawingMode={false}
-            onDrawingModeChange={() => {}}
-            annotations={true}
-            setAnnotations={() => {}}
+            videoRef={videoPlayer.videoRef}
+            isDrawingMode={isDrawingMode}
+            annotations={annotations}
+          />
+        </div>
+
+        {/* Video Controls */}
+        <div className="bg-gray-900 border-t border-gray-700">
+          <VideoControls
+            isPlaying={videoPlayer.isPlaying}
+            onTogglePlayPause={videoPlayer.togglePlayPause}
+            isLooping={videoPlayer.isLooping}
+            onToggleLoop={videoPlayer.toggleLoop}
+            playbackSpeed={videoPlayer.playbackSpeed}
+            onSpeedChange={videoPlayer.handleSpeedChange}
+            volume={videoPlayer.volume}
+            onVolumeToggle={videoPlayer.handleVolumeToggle}
+            onVolumeChange={videoPlayer.handleVolumeChange}
+            currentTime={currentTime}
+            duration={videoPlayer.duration}
+            timeFormat={videoPlayer.timeFormat}
+            onTimeFormatChange={videoPlayer.setTimeFormat}
+            quality={videoPlayer.quality}
+            availableQualities={videoPlayer.availableQualities}
+            onQualityChange={videoPlayer.handleQualityChange}
+            guides={guides}
+            onGuidesToggle={() => setGuides(prev => ({ ...prev, enabled: !prev.enabled }))}
+            onGuidesRatioChange={(ratio) => setGuides(prev => ({ ...prev, ratio }))}
+            onGuidesMaskToggle={() => setGuides(prev => ({ ...prev, mask: !prev.mask }))}
+            zoom={zoom}
+            onZoomChange={setZoom}
+            encodeComments={encodeComments}
+            setEncodeComments={setEncodeComments}
+            annotations={annotations}
+            setAnnotations={setAnnotations}
+            onSetFrameAsThumb={() => console.log('Set frame as thumbnail')}
+            onDownloadStill={() => console.log('Download still')}
+            onToggleFullscreen={() => {
+              if (videoPlayer.videoRef.current) {
+                videoPlayer.videoRef.current.requestFullscreen();
+              }
+            }}
+            formatTime={formatTime}
           />
         </div>
       </div>
 
-      {/* Clean Comments Panel */}
+      {/* Comments Panel */}
       {showComments && asset.type === 'video' && (
         <div className="fixed right-0 top-0 bottom-0 w-80">
           <VideoReviewInterface
