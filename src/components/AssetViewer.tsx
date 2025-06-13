@@ -5,8 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { VideoControls } from "./VideoControls";
 import { DrawingCanvas } from "./DrawingCanvas";
 import { CommentPanel } from "./CommentPanel";
-import { useVideoPlayer } from "@/hooks/useVideoPlayer";
-import { useVideoKeyboardShortcuts } from "@/hooks/useVideoKeyboardShortcuts";
 import { supabase } from "@/integrations/supabase/client";
 import type { Comment } from "@/pages/Index";
 import { 
@@ -39,6 +37,10 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [asset, setAsset] = useState<Asset | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showComments, setShowComments] = useState(true);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [annotations, setAnnotations] = useState(true);
@@ -50,6 +52,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [zoom, setZoom] = useState("Fit");
   const [encodeComments, setEncodeComments] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Video player ref
+  const videoRef = React.useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const fetchAsset = async () => {
@@ -91,20 +96,39 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     fetchAsset();
   }, [assetId]);
 
-  const videoPlayer = useVideoPlayer({
-    src: asset?.file_url || '',
-    currentTime,
-    onTimeUpdate: setCurrentTime,
-    onDurationChange: () => {}
-  });
+  // Video event handlers
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !asset?.file_url) return;
 
-  useVideoKeyboardShortcuts({
-    videoRef: videoPlayer.videoRef,
-    volume: videoPlayer.volume,
-    isPlaying: videoPlayer.isPlaying,
-    setVolume: (vol) => videoPlayer.handleVolumeChange([vol]),
-    onZoomChange: setZoom
-  });
+    const handleLoadedMetadata = () => {
+      setDuration(video.duration);
+      console.log('✅ Video loaded with duration:', video.duration);
+    };
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(video.currentTime);
+    };
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+
+    // Set video source
+    video.src = asset.file_url;
+    console.log('🎬 Setting video source:', asset.file_url);
+
+    return () => {
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+    };
+  }, [asset?.file_url]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -204,16 +228,16 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   };
 
   const handleSeekToComment = (timestamp: number) => {
-    if (videoPlayer.videoRef.current) {
-      videoPlayer.videoRef.current.currentTime = timestamp;
+    if (videoRef.current) {
+      videoRef.current.currentTime = timestamp;
       setCurrentTime(timestamp);
     }
   };
 
   const handleStartDrawing = () => {
     setIsDrawingMode(true);
-    if (videoPlayer.videoRef.current && !videoPlayer.videoRef.current.paused) {
-      videoPlayer.videoRef.current.pause();
+    if (videoRef.current && !videoRef.current.paused) {
+      videoRef.current.pause();
     }
   };
 
@@ -221,6 +245,49 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     const minutes = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const togglePlayPause = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (isPlaying) {
+      video.pause();
+    } else {
+      video.play();
+    }
+  };
+
+  const handleVolumeChange = (newVolume: number[]) => {
+    const volumeValue = newVolume[0];
+    setVolume(volumeValue);
+    if (videoRef.current) {
+      videoRef.current.volume = volumeValue;
+      videoRef.current.muted = volumeValue === 0;
+    }
+  };
+
+  const handleVolumeToggle = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    if (video.muted || volume === 0) {
+      video.muted = false;
+      const newVolume = volume === 0 ? 0.5 : volume;
+      video.volume = newVolume;
+      setVolume(newVolume);
+    } else {
+      video.muted = true;
+      setVolume(0);
+    }
+  };
+
+  const handleSpeedChange = (speeds: number[]) => {
+    const speed = speeds[0];
+    setPlaybackSpeed(speed);
+    if (videoRef.current) {
+      videoRef.current.playbackRate = speed;
+    }
   };
 
   if (loading) {
@@ -322,23 +389,23 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         {/* Media Player Container */}
         <div className="flex-1 relative bg-black flex items-center justify-center">
           {asset.file_type === 'video' ? (
-            <>
+            <div className="relative w-full h-full flex items-center justify-center">
               <video
-                ref={videoPlayer.videoRef}
-                src={asset.file_url}
+                ref={videoRef}
                 className="max-w-full max-h-full object-contain"
                 crossOrigin="anonymous"
                 preload="metadata"
+                controls={false}
                 style={{ display: 'block' }}
               />
               
               <DrawingCanvas
                 currentTime={currentTime}
-                videoRef={videoPlayer.videoRef}
+                videoRef={videoRef}
                 isDrawingMode={isDrawingMode}
                 annotations={annotations}
               />
-            </>
+            </div>
           ) : asset.file_type === 'image' ? (
             <img
               src={asset.file_url}
@@ -364,22 +431,22 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         {asset.file_type === 'video' && (
           <div className="bg-gray-900 border-t border-gray-700">
             <VideoControls
-              isPlaying={videoPlayer.isPlaying}
-              onTogglePlayPause={videoPlayer.togglePlayPause}
-              isLooping={videoPlayer.isLooping}
-              onToggleLoop={videoPlayer.toggleLoop}
-              playbackSpeed={videoPlayer.playbackSpeed}
-              onSpeedChange={videoPlayer.handleSpeedChange}
-              volume={videoPlayer.volume}
-              onVolumeToggle={videoPlayer.handleVolumeToggle}
-              onVolumeChange={videoPlayer.handleVolumeChange}
+              isPlaying={isPlaying}
+              onTogglePlayPause={togglePlayPause}
+              isLooping={false}
+              onToggleLoop={() => {}}
+              playbackSpeed={playbackSpeed}
+              onSpeedChange={handleSpeedChange}
+              volume={volume}
+              onVolumeToggle={handleVolumeToggle}
+              onVolumeChange={handleVolumeChange}
               currentTime={currentTime}
-              duration={videoPlayer.duration}
-              timeFormat={videoPlayer.timeFormat}
-              onTimeFormatChange={videoPlayer.setTimeFormat}
-              quality={videoPlayer.quality}
-              availableQualities={videoPlayer.availableQualities}
-              onQualityChange={videoPlayer.handleQualityChange}
+              duration={duration}
+              timeFormat="timecode"
+              onTimeFormatChange={() => {}}
+              quality="1080p"
+              availableQualities={['1080p', '720p', '480p']}
+              onQualityChange={() => {}}
               guides={guides}
               onGuidesToggle={() => setGuides(prev => ({ ...prev, enabled: !prev.enabled }))}
               onGuidesRatioChange={(ratio) => setGuides(prev => ({ ...prev, ratio }))}
@@ -393,8 +460,8 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
               onSetFrameAsThumb={() => console.log('Set frame as thumbnail')}
               onDownloadStill={() => console.log('Download still')}
               onToggleFullscreen={() => {
-                if (videoPlayer.videoRef.current) {
-                  videoPlayer.videoRef.current.requestFullscreen();
+                if (videoRef.current) {
+                  videoRef.current.requestFullscreen();
                 }
               }}
               formatTime={formatTime}
