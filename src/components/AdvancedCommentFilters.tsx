@@ -96,7 +96,7 @@ export const AdvancedCommentFilters = ({ onFilterChange }: AdvancedCommentFilter
                 <SelectValue placeholder="All authors" />
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-700">
-                <SelectItem value="">All authors</SelectItem>
+                <SelectItem value="all">All authors</SelectItem>
                 <SelectItem value="john-doe">John Doe</SelectItem>
                 <SelectItem value="jane-smith">Jane Smith</SelectItem>
                 <SelectItem value="mike-chen">Mike Chen</SelectItem>
