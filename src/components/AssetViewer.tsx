@@ -225,12 +225,10 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             <AdvancedVideoPlayer
               src={asset.url}
               comments={comments}
-              onAddComment={handleAddComment}
-              onSeekToComment={handleSeekToComment}
+              onTimeClick={handleSeekToComment}
               currentTime={currentTime}
               onTimeUpdate={setCurrentTime}
               onDurationChange={setDuration}
-              onTimeClick={handleSeekToComment}
               isDrawingMode={false}
               onDrawingModeChange={() => {}}
               annotations={true}
