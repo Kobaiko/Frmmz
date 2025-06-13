@@ -49,6 +49,18 @@ interface AssetViewerProps {
   onBack: () => void;
 }
 
+// Helper function to convert Comment to VideoComment
+const convertToVideoComment = (comment: Comment) => ({
+  id: comment.id,
+  timestamp: comment.timestamp,
+  content: comment.text,
+  author: comment.author,
+  authorColor: '#FF0080', // Default pink color for all users
+  createdAt: comment.createdAt,
+  resolved: false,
+  replies: []
+});
+
 export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [asset, setAsset] = useState<Asset | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -195,6 +207,14 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     setCurrentTime(timestamp);
   };
 
+  // Convert Comment[] to VideoComment[] for VideoReviewInterface
+  const videoComments = comments.map(convertToVideoComment);
+
+  // Fix the onAddComment function signature for VideoReviewInterface
+  const handleVideoReviewAddComment = (timestamp: number, content: string) => {
+    handleAddComment(content, timestamp);
+  };
+
   const renderMediaViewer = () => {
     if (!asset) return null;
 
@@ -204,7 +224,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           <div className="relative">
             <AdvancedVideoPlayer
               src={asset.url}
-              duration={duration}
               comments={comments}
               onAddComment={handleAddComment}
               onSeekToComment={handleSeekToComment}
@@ -433,8 +452,8 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
       {showComments && asset.type === 'video' && (
         <div className="fixed right-0 top-0 bottom-0 w-80">
           <VideoReviewInterface
-            comments={comments}
-            onAddComment={handleAddComment}
+            comments={videoComments}
+            onAddComment={handleVideoReviewAddComment}
             onResolveComment={handleResolveComment}
             onDeleteComment={handleDeleteComment}
             currentTime={currentTime}
