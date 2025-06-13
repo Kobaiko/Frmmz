@@ -116,15 +116,15 @@ export const ProjectAssetsView = ({
     return true;
   });
 
-  // Convert Supabase assets to AssetGrid format
+  // Convert Supabase assets to AssetGrid format with proper type casting
   const gridAssets = filteredAssets.map(asset => ({
     id: asset.id,
     name: asset.name,
-    type: asset.file_type,
+    type: asset.file_type as "video" | "image" | "audio" | "document",
     thumbnail: asset.thumbnail_url || '/placeholder.svg',
     duration: asset.duration,
     fileSize: `${Math.round(asset.file_size / 1024 / 1024)} MB`,
-    status: asset.status,
+    status: asset.status as "processing" | "ready" | "needs_review" | "approved" | "rejected",
     uploadedBy: 'User', // TODO: Get from user profile
     uploadedAt: new Date(asset.created_at),
     lastModified: new Date(asset.updated_at),
