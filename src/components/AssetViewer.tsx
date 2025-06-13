@@ -201,7 +201,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     <div className="min-h-screen bg-black text-white flex">
       {/* Main Content Area */}
       <div className={`flex-1 flex flex-col ${showComments ? 'mr-80' : ''}`}>
-        {/* Clean Header */}
+        {/* Header */}
         <div className="border-b border-gray-800 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -272,6 +272,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             src={asset.url}
             className="w-full h-full object-contain"
             onClick={() => setShowCommentInput(true)}
+            crossOrigin="anonymous"
           />
           
           {/* Drawing Canvas Overlay */}
