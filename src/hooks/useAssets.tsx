@@ -49,18 +49,32 @@ export const useAssets = (projectId?: string) => {
     if (!user) return null;
 
     try {
+      console.log('📁 Starting file upload to Supabase storage:', file.name);
+      
+      // Create a unique file name with timestamp
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      
       // Upload file to Supabase storage
-      const fileName = `${user.id}/${Date.now()}-${file.name}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('assets')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          upsert: false
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('❌ Storage upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('✅ File uploaded successfully:', uploadData.path);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('assets')
         .getPublicUrl(fileName);
+
+      console.log('🔗 Public URL generated:', publicUrl);
 
       // Determine file type
       const getFileType = (type: string): string => {
@@ -87,11 +101,16 @@ export const useAssets = (projectId?: string) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database insert error:', error);
+        throw error;
+      }
       
+      console.log('✅ Asset record created:', data);
       setAssets(prev => [data, ...prev]);
       return data;
     } catch (err) {
+      console.error('❌ Upload failed:', err);
       setError(err instanceof Error ? err.message : 'Failed to upload asset');
       return null;
     }
