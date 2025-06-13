@@ -57,6 +57,7 @@ interface Comment {
   parentId?: string;
   attachments?: Array<{ url: string; type: string; name: string }>;
   isInternal?: boolean;
+  hasDrawing?: boolean;
 }
 
 interface AssetViewerProps {
@@ -71,6 +72,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showComments, setShowComments] = useState(true);
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
 
   // Mock data - in real app this would come from API
   useEffect(() => {
@@ -186,16 +188,32 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     }
   };
 
-  const handleAddComment = (text: string, timestamp?: number, parentId?: string, attachments?: Array<{ url: string; type: string; name: string }>, isInternal?: boolean) => {
+  const handleAddComment = (text: string, attachments?: Array<{ url: string; type: string; name: string }>, isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
     const newComment: Comment = {
       id: Math.random().toString(36).substr(2, 9),
-      timestamp: timestamp ?? -1,
+      timestamp: attachTime ? currentTime : -1,
+      text,
+      author: "Current User",
+      createdAt: new Date(),
+      attachments,
+      isInternal: isInternal || false,
+      hasDrawing: hasDrawing || false,
+    };
+    
+    setComments([...comments, newComment]);
+  };
+
+  const handleReplyComment = (parentId: string, text: string, attachments?: Array<{ url: string; type: string; name: string }>, isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
+    const newComment: Comment = {
+      id: Math.random().toString(36).substr(2, 9),
+      timestamp: attachTime ? currentTime : -1,
       text,
       author: "Current User",
       createdAt: new Date(),
       parentId,
       attachments,
       isInternal: isInternal || false,
+      hasDrawing: hasDrawing || false,
     };
     
     setComments([...comments, newComment]);
@@ -213,6 +231,10 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         video.currentTime = timestamp;
       }
     }
+  };
+
+  const handleStartDrawing = () => {
+    setIsDrawingMode(true);
   };
 
   const renderMediaViewer = () => {
@@ -466,12 +488,10 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             currentTime={currentTime}
             onCommentClick={handleCommentClick}
             onDeleteComment={handleDeleteComment}
-            onReplyComment={(parentId, text, attachments, isInternal, attachTime) => 
-              handleAddComment(text, attachTime ? currentTime : undefined, parentId, attachments, isInternal)
-            }
-            onAddComment={(text, attachments, isInternal, attachTime) => 
-              handleAddComment(text, attachTime ? currentTime : undefined, undefined, attachments, isInternal)
-            }
+            onReplyComment={handleReplyComment}
+            onAddComment={handleAddComment}
+            onStartDrawing={handleStartDrawing}
+            isDrawingMode={isDrawingMode}
           />
         </div>
       )}
