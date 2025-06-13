@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +52,8 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [zoom, setZoom] = useState("Fit");
   const [encodeComments, setEncodeComments] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isLooping, setIsLooping] = useState(false);
+  const [timeFormat, setTimeFormat] = useState<'timecode' | 'frames' | 'standard'>('timecode');
 
   // Video player ref
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -112,13 +115,27 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
 
+    const handleCanPlay = () => {
+      console.log('✅ Video can play');
+    };
+
+    const handleLoadStart = () => {
+      console.log('🚀 Video load started');
+    };
+
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('loadstart', handleLoadStart);
 
-    // Set video source
+    // Set video properties
     video.src = asset.file_url;
+    video.volume = volume;
+    video.playbackRate = playbackSpeed;
+    video.loop = isLooping;
+    
     console.log('🎬 Setting video source:', asset.file_url);
 
     return () => {
@@ -126,8 +143,10 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('loadstart', handleLoadStart);
     };
-  }, [asset?.file_url]);
+  }, [asset?.file_url, volume, playbackSpeed, isLooping]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -257,6 +276,10 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     }
   };
 
+  const toggleLoop = () => {
+    setIsLooping(prev => !prev);
+  };
+
   const handleVolumeChange = (newVolume: number[]) => {
     const volumeValue = newVolume[0];
     setVolume(volumeValue);
@@ -286,6 +309,13 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     setPlaybackSpeed(speed);
     if (videoRef.current) {
       videoRef.current.playbackRate = speed;
+    }
+  };
+
+  const handleSeek = (time: number) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = time;
+      setCurrentTime(time);
     }
   };
 
@@ -395,7 +425,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                 crossOrigin="anonymous"
                 preload="metadata"
                 controls={false}
-                style={{ display: 'block' }}
+                style={{ display: 'block', background: '#000' }}
               />
               
               <DrawingCanvas
@@ -428,12 +458,12 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
         {/* Video Controls (only for video files) */}
         {asset.file_type === 'video' && (
-          <div className="bg-gray-900 border-t border-gray-700">
+          <div className="bg-gray-900 border-t border-gray-700 p-4">
             <VideoControls
               isPlaying={isPlaying}
               onTogglePlayPause={togglePlayPause}
-              isLooping={false}
-              onToggleLoop={() => {}}
+              isLooping={isLooping}
+              onToggleLoop={toggleLoop}
               playbackSpeed={playbackSpeed}
               onSpeedChange={handleSpeedChange}
               volume={volume}
@@ -441,8 +471,8 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
               onVolumeChange={handleVolumeChange}
               currentTime={currentTime}
               duration={duration}
-              timeFormat="timecode"
-              onTimeFormatChange={() => {}}
+              timeFormat={timeFormat}
+              onTimeFormatChange={setTimeFormat}
               quality="1080p"
               availableQualities={['1080p', '720p', '480p']}
               onQualityChange={() => {}}
