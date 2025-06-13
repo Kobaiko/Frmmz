@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -205,7 +204,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           <div className="relative">
             <AdvancedVideoPlayer
               src={asset.url}
-              title={asset.name}
               duration={duration}
               comments={comments}
               onAddComment={handleAddComment}
