@@ -367,7 +367,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           </div>
         </div>
 
-        {/* Video Container - FIXED: Force video visibility */}
+        {/* Video Container */}
         <div className="flex-1 bg-black flex items-center justify-center relative">
           {asset.file_type === 'video' ? (
             <div className="w-full h-full max-w-full max-h-full relative">
@@ -380,21 +380,23 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                 <div>Error: {videoError ? 'Yes' : 'No'}</div>
               </div>
 
-              {/* Main video element - FORCED VISIBILITY */}
+              {/* Main video element - FIXED: Proper CSS styling without !important */}
               <video
                 ref={videoRef}
                 src={asset.file_url}
                 className="block w-full h-full"
                 style={{ 
-                  display: 'block !important',
-                  visibility: 'visible !important',
+                  display: 'block',
+                  visibility: 'visible',
                   opacity: 1,
                   position: 'relative',
                   zIndex: 1,
                   objectFit: 'contain',
                   backgroundColor: '#000000',
-                  minWidth: '100px',
-                  minHeight: '100px'
+                  minWidth: '300px',
+                  minHeight: '200px',
+                  maxWidth: '100%',
+                  maxHeight: '100%'
                 }}
                 playsInline
                 preload="metadata"
