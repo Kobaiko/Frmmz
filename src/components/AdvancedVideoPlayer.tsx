@@ -142,8 +142,8 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
           </div>
         </div>
 
-        {/* Enhanced Timeline */}
-        <div className="p-4 bg-gray-900 border-t border-gray-700">
+        {/* Enhanced Timeline and Controls - Fixed at bottom */}
+        <div className="bg-gray-900 border-t border-gray-700 p-4 space-y-4 flex-shrink-0">
           <VideoTimeline
             currentTime={props.currentTime}
             duration={videoPlayer.duration}
@@ -153,38 +153,40 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
             timeFormat={videoPlayer.timeFormat}
             assetId={props.src}
           />
-          <VideoControls
-            isPlaying={videoPlayer.isPlaying}
-            onTogglePlayPause={videoPlayer.togglePlayPause}
-            isLooping={videoPlayer.isLooping}
-            onToggleLoop={videoPlayer.toggleLoop}
-            playbackSpeed={videoPlayer.playbackSpeed}
-            onSpeedChange={videoPlayer.handleSpeedChange}
-            volume={videoPlayer.volume}
-            onVolumeToggle={videoPlayer.handleVolumeToggle}
-            onVolumeChange={videoPlayer.handleVolumeChange}
-            currentTime={props.currentTime}
-            duration={videoPlayer.duration}
-            timeFormat={videoPlayer.timeFormat}
-            onTimeFormatChange={videoPlayer.setTimeFormat}
-            quality={videoPlayer.quality}
-            availableQualities={videoPlayer.availableQualities}
-            onQualityChange={videoPlayer.handleQualityChange}
-            guides={guides}
-            onGuidesToggle={() => setGuides(prev => ({ ...prev, enabled: !prev.enabled }))}
-            onGuidesRatioChange={(ratio) => setGuides(prev => ({ ...prev, ratio }))}
-            onGuidesMaskToggle={() => setGuides(prev => ({ ...prev, mask: !prev.mask }))}
-            zoom={zoom}
-            onZoomChange={handleZoomChange}
-            encodeComments={encodeComments}
-            setEncodeComments={setEncodeComments}
-            annotations={props.annotations}
-            setAnnotations={props.setAnnotations}
-            onSetFrameAsThumb={() => console.log('Set frame as thumbnail')}
-            onDownloadStill={() => console.log('Download still')}
-            onToggleFullscreen={handleToggleFullscreen}
-            formatTime={formatTime}
-          />
+          <div className="border-t border-gray-700 pt-4">
+            <VideoControls
+              isPlaying={videoPlayer.isPlaying}
+              onTogglePlayPause={videoPlayer.togglePlayPause}
+              isLooping={videoPlayer.isLooping}
+              onToggleLoop={videoPlayer.toggleLoop}
+              playbackSpeed={videoPlayer.playbackSpeed}
+              onSpeedChange={videoPlayer.handleSpeedChange}
+              volume={videoPlayer.volume}
+              onVolumeToggle={videoPlayer.handleVolumeToggle}
+              onVolumeChange={videoPlayer.handleVolumeChange}
+              currentTime={props.currentTime}
+              duration={videoPlayer.duration}
+              timeFormat={videoPlayer.timeFormat}
+              onTimeFormatChange={videoPlayer.setTimeFormat}
+              quality={videoPlayer.quality}
+              availableQualities={videoPlayer.availableQualities}
+              onQualityChange={videoPlayer.handleQualityChange}
+              guides={guides}
+              onGuidesToggle={() => setGuides(prev => ({ ...prev, enabled: !prev.enabled }))}
+              onGuidesRatioChange={(ratio) => setGuides(prev => ({ ...prev, ratio }))}
+              onGuidesMaskToggle={() => setGuides(prev => ({ ...prev, mask: !prev.mask }))}
+              zoom={zoom}
+              onZoomChange={handleZoomChange}
+              encodeComments={encodeComments}
+              setEncodeComments={setEncodeComments}
+              annotations={props.annotations}
+              setAnnotations={props.setAnnotations}
+              onSetFrameAsThumb={() => console.log('Set frame as thumbnail')}
+              onDownloadStill={() => console.log('Download still')}
+              onToggleFullscreen={handleToggleFullscreen}
+              formatTime={formatTime}
+            />
+          </div>
         </div>
       </div>
 
