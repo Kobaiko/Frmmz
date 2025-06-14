@@ -14,7 +14,8 @@ import {
   Share2, 
   FileVideo,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  ExternalLink
 } from "lucide-react";
 
 interface Asset {
@@ -48,6 +49,8 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [videoError, setVideoError] = useState<string | null>(null);
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoDebugInfo, setVideoDebugInfo] = useState<any>({});
+  const [loadingAttempts, setLoadingAttempts] = useState(0);
+  const [corsError, setCorsError] = useState(false);
   const [guides, setGuides] = useState({
     enabled: false,
     ratio: '16:9',
@@ -93,6 +96,10 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           .single();
 
         if (error) throw error;
+        
+        console.log('✅ Asset fetched successfully:', data);
+        console.log('🔗 Video URL:', data.file_url);
+        
         setAsset(data as Asset);
         
         // Fetch comments for this asset
@@ -114,7 +121,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           setComments(formattedComments);
         }
       } catch (error) {
-        console.error('Error fetching asset:', error);
+        console.error('❌ Error fetching asset:', error);
       } finally {
         setLoading(false);
       }
@@ -123,12 +130,22 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     fetchAsset();
   }, [assetId]);
 
-  // Enhanced video monitoring with detailed debugging
+  // Enhanced video monitoring with timeout and CORS detection
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !asset?.file_url) return;
 
-    console.log('🎬 Setting up video monitoring for:', asset.file_url);
+    console.log('🎬 Setting up enhanced video monitoring for:', asset.file_url);
+    setLoadingAttempts(prev => prev + 1);
+    setCorsError(false);
+
+    // Set timeout for loading
+    const loadingTimeout = setTimeout(() => {
+      if (!videoLoaded) {
+        console.error('⏰ Video loading timeout after 10 seconds');
+        setVideoError('Video loading timeout - the file may be corrupted or too large');
+      }
+    }, 10000);
 
     const updateDebugInfo = () => {
       const debugInfo = {
@@ -144,19 +161,32 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         error: video.error ? {
           code: video.error.code,
           message: video.error.message
-        } : null
+        } : null,
+        crossOrigin: video.crossOrigin,
+        loadingAttempts
       };
       
-      console.log('📊 Video Debug Info:', debugInfo);
+      console.log('📊 Enhanced Video Debug Info:', debugInfo);
       setVideoDebugInfo(debugInfo);
       
-      // Video is ready when it has metadata and dimensions
-      const isReady = video.readyState >= 1 && video.videoWidth > 0 && video.videoHeight > 0;
+      // Enhanced video ready detection
+      const hasMetadata = video.readyState >= 1;
+      const hasDimensions = video.videoWidth > 0 && video.videoHeight > 0;
+      const isReady = hasMetadata && hasDimensions && !video.error;
+      
+      console.log('🔍 Video readiness check:', {
+        hasMetadata,
+        hasDimensions,
+        hasError: !!video.error,
+        readyState: video.readyState,
+        isReady
+      });
       
       if (isReady && !videoLoaded) {
-        console.log('✅ Video is now ready!');
+        console.log('✅ Video is now ready for playback!');
         setVideoLoaded(true);
         setVideoError(null);
+        clearTimeout(loadingTimeout);
       }
     };
 
@@ -168,7 +198,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     };
 
     const handleLoadedMetadata = () => {
-      console.log('📊 Video metadata loaded');
+      console.log('📊 Video metadata loaded successfully');
       updateDebugInfo();
     };
 
@@ -183,29 +213,84 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     };
 
     const handleCanPlayThrough = () => {
-      console.log('🎯 Video can play through');
+      console.log('🎯 Video can play through - setting as loaded');
       updateDebugInfo();
+      if (!videoLoaded) {
+        setVideoLoaded(true);
+        setVideoError(null);
+        clearTimeout(loadingTimeout);
+      }
     };
 
     const handleError = (e: Event) => {
       console.error('❌ Video error event:', e);
-      const errorMsg = video.error ? 
-        `Error ${video.error.code}: ${video.error.message}` : 
-        'Unknown video error';
-      console.error('❌ Video error details:', errorMsg);
+      const target = e.target as HTMLVideoElement;
+      
+      let errorMsg = 'Unknown video error';
+      let isCorsError = false;
+      
+      if (target && target.error) {
+        const errorCode = target.error.code;
+        const errorMessage = target.error.message;
+        
+        console.error('❌ Video error details:', {
+          code: errorCode,
+          message: errorMessage,
+          networkState: target.networkState,
+          readyState: target.readyState,
+          src: target.src
+        });
+        
+        switch (errorCode) {
+          case 1: // MEDIA_ERR_ABORTED
+            errorMsg = 'Video loading was aborted';
+            break;
+          case 2: // MEDIA_ERR_NETWORK
+            errorMsg = 'Network error while loading video';
+            isCorsError = true;
+            break;
+          case 3: // MEDIA_ERR_DECODE
+            errorMsg = 'Video format not supported or corrupted';
+            break;
+          case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+            errorMsg = 'Video format not supported by browser';
+            break;
+          default:
+            errorMsg = `Video error ${errorCode}: ${errorMessage}`;
+        }
+        
+        if (errorMessage.toLowerCase().includes('cors') || 
+            errorMessage.toLowerCase().includes('cross-origin') ||
+            isCorsError) {
+          setCorsError(true);
+        }
+      }
+      
       setVideoError(errorMsg);
       setVideoLoaded(false);
+      clearTimeout(loadingTimeout);
       updateDebugInfo();
     };
 
     const handleStalled = () => {
-      console.warn('⏸️ Video stalled');
+      console.warn('⏸️ Video stalled - network issue?');
       updateDebugInfo();
     };
 
     const handleWaiting = () => {
-      console.warn('⏳ Video waiting');
+      console.warn('⏳ Video waiting for data');
       updateDebugInfo();
+    };
+
+    const handleProgress = () => {
+      if (video.buffered.length > 0) {
+        const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+        const duration = video.duration;
+        if (duration > 0) {
+          const bufferedPercent = (bufferedEnd / duration) * 100;
+          console.log(`📊 Video buffered: ${bufferedPercent.toFixed(1)}%`);
+        }
+      }
     };
 
     // Add all event listeners
@@ -217,11 +302,24 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     video.addEventListener('error', handleError);
     video.addEventListener('stalled', handleStalled);
     video.addEventListener('waiting', handleWaiting);
+    video.addEventListener('progress', handleProgress);
+
+    // Enhanced CORS setup
+    try {
+      video.crossOrigin = 'anonymous';
+      video.preload = 'metadata';
+      video.src = asset.file_url;
+      console.log('🔗 Video source set with enhanced CORS configuration');
+    } catch (err) {
+      console.error('❌ Error setting video source:', err);
+      setVideoError('Failed to set video source');
+    }
 
     // Initial debug info
     updateDebugInfo();
 
     return () => {
+      clearTimeout(loadingTimeout);
       video.removeEventListener('loadstart', handleLoadStart);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('loadeddata', handleLoadedData);
@@ -230,8 +328,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
       video.removeEventListener('error', handleError);
       video.removeEventListener('stalled', handleStalled);
       video.removeEventListener('waiting', handleWaiting);
+      video.removeEventListener('progress', handleProgress);
     };
-  }, [asset?.file_url, videoRef.current]);
+  }, [asset?.file_url, loadingAttempts]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -389,8 +488,16 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     console.log('🔄 Retrying video load...');
     setVideoError(null);
     setVideoLoaded(false);
+    setLoadingAttempts(0);
+    setCorsError(false);
     if (videoRef.current) {
       videoRef.current.load();
+    }
+  };
+
+  const handleDirectDownload = () => {
+    if (asset?.file_url) {
+      window.open(asset.file_url, '_blank');
     }
   };
 
@@ -481,7 +588,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                 variant="outline"
                 size="sm"
                 className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                onClick={() => window.open(asset.file_url, '_blank')}
+                onClick={handleDirectDownload}
               >
                 <Download className="h-4 w-4 mr-2" />
                 Download
@@ -532,41 +639,75 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                 </div>
               )}
 
-              {/* Loading overlay */}
+              {/* Enhanced Loading overlay with detailed debugging */}
               {!videoLoaded && !videoError && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black z-30">
-                  <div className="text-center max-w-md">
+                  <div className="text-center max-w-lg">
                     <div className="w-12 h-12 border-4 border-pink-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                     <p className="text-white mb-2">Loading video...</p>
-                    <p className="text-gray-400 text-sm mb-4">{asset.name}</p>
+                    <p className="text-gray-400 text-sm mb-6">{asset.name}</p>
                     
-                    {/* Debug information */}
-                    <div className="bg-gray-800 rounded p-3 text-xs text-left">
-                      <p className="text-green-400 mb-1">✅ Video URL: {asset.file_url.split('/').pop()}</p>
-                      <p className="text-blue-400 mb-1">📊 Ready State: {videoDebugInfo.readyState || 0}/4</p>
-                      <p className="text-purple-400 mb-1">📐 Dimensions: {videoDebugInfo.videoWidth || 0}x{videoDebugInfo.videoHeight || 0}</p>
+                    {/* Enhanced debug information */}
+                    <div className="bg-gray-800 rounded p-4 text-xs text-left space-y-2">
+                      <p className="text-green-400">✅ Video URL: {asset.file_url.split('/').pop()}</p>
+                      <p className="text-blue-400">📊 Ready State: {videoDebugInfo.readyState || 0}/4</p>
+                      <p className="text-purple-400">📐 Dimensions: {videoDebugInfo.videoWidth || 0}x{videoDebugInfo.videoHeight || 0}</p>
                       <p className="text-yellow-400">⏱️ Duration: {videoDebugInfo.duration || 'Unknown'}</p>
+                      <p className="text-cyan-400">🌐 Network State: {videoDebugInfo.networkState || 0}</p>
+                      <p className="text-pink-400">🔄 Attempts: {loadingAttempts}</p>
+                      <p className="text-orange-400">🔒 CORS: {videoDebugInfo.crossOrigin || 'anonymous'}</p>
                     </div>
+                    
+                    {loadingAttempts > 2 && (
+                      <div className="mt-4">
+                        <Button 
+                          onClick={handleRetryVideo}
+                          variant="outline"
+                          className="border-gray-600 text-gray-300 mr-2"
+                        >
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Retry Loading
+                        </Button>
+                        <Button 
+                          onClick={handleDirectDownload}
+                          className="bg-pink-600 hover:bg-pink-700"
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Open Directly
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Error overlay */}
+              {/* Enhanced Error overlay */}
               {videoError && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black z-30">
-                  <div className="text-center max-w-md">
+                  <div className="text-center max-w-lg">
                     <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
                       <AlertCircle className="h-6 w-6 text-white" />
                     </div>
                     <p className="text-white mb-2">Video failed to load</p>
                     <p className="text-gray-400 text-sm mb-4">{videoError}</p>
                     
-                    {/* Debug information */}
-                    <div className="bg-gray-800 rounded p-3 text-xs text-left mb-4">
-                      <p className="text-red-400 mb-1">❌ Error: {videoError}</p>
-                      <p className="text-gray-400 mb-1">📁 File: {asset.name}</p>
-                      <p className="text-gray-400 mb-1">🔗 URL: {asset.file_url}</p>
+                    {corsError && (
+                      <div className="bg-yellow-900 border border-yellow-600 rounded p-3 mb-4 text-yellow-200">
+                        <p className="text-sm">
+                          <strong>CORS Error Detected:</strong> The video server may not allow cross-origin requests. 
+                          Try opening the video directly or contact your administrator.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Enhanced debug information */}
+                    <div className="bg-gray-800 rounded p-4 text-xs text-left mb-4 space-y-1">
+                      <p className="text-red-400">❌ Error: {videoError}</p>
+                      <p className="text-gray-400">📁 File: {asset.name}</p>
+                      <p className="text-gray-400">🔗 URL: {asset.file_url}</p>
                       <p className="text-gray-400">📏 Size: {Math.round(asset.file_size / 1024 / 1024)} MB</p>
+                      <p className="text-gray-400">🔄 Attempts: {loadingAttempts}</p>
+                      <p className="text-gray-400">🌐 CORS: {corsError ? 'Blocked' : 'Allowed'}</p>
                     </div>
                     
                     <div className="flex space-x-2 justify-center">
@@ -576,6 +717,14 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                       >
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Retry
+                      </Button>
+                      <Button 
+                        onClick={handleDirectDownload}
+                        variant="outline"
+                        className="border-gray-600 text-gray-300"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Open Directly
                       </Button>
                       <Button 
                         onClick={() => window.open(asset.file_url, '_blank')}
@@ -604,7 +753,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                 <FileVideo className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-400 mb-4">Preview not available for this file type</p>
                 <Button
-                  onClick={() => window.open(asset.file_url, '_blank')}
+                  onClick={handleDirectDownload}
                   className="bg-pink-600 hover:bg-pink-700"
                 >
                   <Download className="h-4 w-4 mr-2" />
