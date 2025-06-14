@@ -1,105 +1,88 @@
 
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 
 interface VideoPreviewProps {
   assetId: string;
   previewVideoRef: React.RefObject<HTMLVideoElement>;
   isHovering: boolean;
   hoverTime: number;
-  timeFormat: 'timecode' | 'frames' | 'standard';
+  timeFormat: 'timecode' | 'frames' | 'seconds';
   duration: number;
 }
 
 export const VideoPreview = ({ 
-  assetId,
+  assetId, 
   previewVideoRef, 
   isHovering, 
   hoverTime, 
   timeFormat, 
   duration 
 }: VideoPreviewProps) => {
-  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
-  const [previewFrame, setPreviewFrame] = useState<string>('');
+  const [previewImageUrl, setPreviewImageUrl] = useState<string>('');
 
-  const formatTimeByFormat = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    const frames = Math.floor((seconds % 1) * 30); // Assuming 30fps
     
     switch (timeFormat) {
       case 'timecode':
-        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}:${frames.toString().padStart(2, '0')}`;
-      case 'frames':
-        const totalFrames = Math.floor(seconds * 30); // Assuming 30fps
-        return `${totalFrames}`;
-      case 'standard':
-        if (hours > 0) {
-          return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        }
         return `${mins}:${secs.toString().padStart(2, '0')}`;
+      case 'frames':
+        // Assuming 30fps for frame calculation
+        const totalFrames = Math.floor(seconds * 30);
+        return `${totalFrames}f`;
+      case 'seconds':
+        return `${seconds.toFixed(1)}s`;
       default:
-        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}:${frames.toString().padStart(2, '0')}`;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
   };
 
   useEffect(() => {
-    if (!isHovering) {
-      setPreviewFrame('');
-      return;
-    }
-
-    const video = previewVideoRef.current;
-    const canvas = previewCanvasRef.current;
-    if (!video || !canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const onSeeked = () => {
-      try {
+    if (isHovering && previewVideoRef.current && hoverTime >= 0 && hoverTime <= duration) {
+      // Generate preview thumbnail at hover time
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const video = previewVideoRef.current;
+      
+      if (ctx && video.videoWidth && video.videoHeight) {
         canvas.width = 160;
         canvas.height = 90;
-        ctx.drawImage(video, 0, 0, 160, 90);
-        setPreviewFrame(canvas.toDataURL());
-      } catch (err) {
-        console.error("Failed to generate video preview frame:", err);
-        setPreviewFrame('');
+        
+        try {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          setPreviewImageUrl(canvas.toDataURL());
+        } catch (error) {
+          console.warn('Could not generate preview thumbnail:', error);
+        }
       }
-    };
-
-    video.addEventListener('seeked', onSeeked, { once: true });
-    
-    const seekTime = Math.max(0, Math.min(hoverTime, video.duration || duration));
-    if (isFinite(seekTime) && video.currentTime !== seekTime) {
-      video.currentTime = seekTime;
     }
+  }, [isHovering, hoverTime, duration, previewVideoRef]);
 
-    return () => {
-      video.removeEventListener('seeked', onSeeked);
-    };
-  }, [isHovering, hoverTime, previewVideoRef, assetId, duration]);
+  if (!isHovering || hoverTime < 0) {
+    return null;
+  }
 
   return (
-    <>
-      <canvas ref={previewCanvasRef} className="hidden" />
-      {isHovering && previewFrame && (
-        <div
-          className="absolute -top-32 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded-lg shadow-xl border border-gray-700 z-20 pointer-events-none"
-          style={{ left: `${duration > 0 ? (hoverTime / duration) * 100 : 0}%` }}
-        >
-          <img 
-            src={previewFrame} 
-            alt="Frame preview"
-            className="rounded-t-lg w-40 h-auto border-b border-gray-700"
-            crossOrigin="anonymous"
-          />
-          <div className="px-3 py-2 text-center font-mono">
-            {formatTimeByFormat(hoverTime)}
-          </div>
+    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-50">
+      <div className="bg-gray-900 border border-gray-600 rounded-lg p-2 shadow-xl">
+        <div className="w-40 h-24 bg-gray-800 rounded mb-2 overflow-hidden">
+          {previewImageUrl ? (
+            <img 
+              src={previewImageUrl} 
+              alt="Video preview" 
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
+              Preview
+            </div>
+          )}
         </div>
-      )}
-    </>
+        <div className="text-center text-xs text-white">
+          {formatTime(hoverTime)}
+        </div>
+      </div>
+    </div>
   );
 };
-
