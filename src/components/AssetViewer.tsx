@@ -4,20 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DrawingCanvas } from "./DrawingCanvas";
 import { CommentPanel } from "./CommentPanel";
+import { EnhancedVideoTimeline } from "./EnhancedVideoTimeline";
+import { VideoControls } from "./VideoControls";
+import { useVideoPlayer } from "@/hooks/useVideoPlayer";
 import { supabase } from "@/integrations/supabase/client";
 import type { Comment } from "@/pages/Index";
-import { VideoTimeline } from "./VideoTimeline";
 import { 
   ArrowLeft, 
   Download, 
   Share2, 
-  FileVideo,
-  Play,
-  Pause,
-  Volume2,
-  VolumeX
+  FileVideo
 } from "lucide-react";
-import { Slider } from "@/components/ui/slider";
 
 interface Asset {
   id: string;
@@ -42,21 +39,45 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [asset, setAsset] = useState<Asset | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(1);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showComments, setShowComments] = useState(true);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [annotations, setAnnotations] = useState(true);
-  const [isLooping, setIsLooping] = useState(false);
-  const [timeFormat, setTimeFormat] = useState<'timecode' | 'frames' | 'standard'>('timecode');
   const [userName, setUserName] = useState<string>('Kivaiko');
   const [loading, setLoading] = useState(true);
+  const [guides, setGuides] = useState({
+    enabled: false,
+    ratio: '16:9',
+    mask: false
+  });
+  const [zoom, setZoom] = useState('fit');
+  const [encodeComments, setEncodeComments] = useState(false);
 
-  // Video player ref
-  const videoRef = React.useRef<HTMLVideoElement>(null);
-  const previewVideoRef = React.useRef<HTMLVideoElement>(null);
+  // Use the comprehensive video player hook
+  const {
+    videoRef,
+    previewVideoRef,
+    duration,
+    isPlaying,
+    volume,
+    playbackSpeed,
+    quality,
+    availableQualities,
+    maxQuality,
+    isLooping,
+    timeFormat,
+    setTimeFormat,
+    togglePlayPause,
+    toggleLoop,
+    handleSpeedChange,
+    handleVolumeToggle,
+    handleVolumeChange,
+    handleQualityChange
+  } = useVideoPlayer({
+    src: asset?.file_url || '',
+    currentTime,
+    onTimeUpdate: setCurrentTime,
+    onDurationChange: (dur) => console.log('Duration:', dur)
+  });
 
   useEffect(() => {
     const fetchAsset = async () => {
@@ -97,42 +118,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
     fetchAsset();
   }, [assetId]);
-
-  // Video event handlers
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const handleLoadedMetadata = () => {
-      setDuration(video.duration);
-      console.log('Video metadata loaded, duration:', video.duration);
-    };
-
-    const handleTimeUpdate = () => {
-      setCurrentTime(video.currentTime);
-    };
-
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    video.addEventListener('timeupdate', handleTimeUpdate);
-    video.addEventListener('play', handlePlay);
-    video.addEventListener('pause', handlePause);
-
-    // Set video properties
-    video.volume = volume;
-    video.playbackRate = playbackSpeed;
-    video.loop = isLooping;
-    video.muted = false;
-
-    return () => {
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('play', handlePlay);
-      video.removeEventListener('pause', handlePause);
-    };
-  }, [asset?.id, volume, playbackSpeed, isLooping]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -245,49 +230,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const togglePlayPause = () => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (isPlaying) {
-      video.pause();
-    } else {
-      video.play().catch(error => {
-        console.error('❌ Play failed:', error);
-      });
-    }
-  };
-
-  const handleVolumeChange = (newVolume: number[]) => {
-    const volumeValue = newVolume[0];
-    setVolume(volumeValue);
-    if (videoRef.current) {
-      videoRef.current.volume = volumeValue;
-      videoRef.current.muted = volumeValue === 0;
-    }
-  };
-
-  const handleVolumeToggle = () => {
-    const video = videoRef.current;
-    if (!video) return;
-    
-    if (video.muted || volume === 0) {
-      video.muted = false;
-      const newVolume = volume === 0 ? 0.5 : volume;
-      video.volume = newVolume;
-      setVolume(newVolume);
-    } else {
-      video.muted = true;
-      setVolume(0);
-    }
-  };
-
   const handleSeek = (time: number) => {
     if (videoRef.current) {
       videoRef.current.currentTime = time;
@@ -295,9 +237,38 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     }
   };
 
-  const handleTimelineSeek = (value: number[]) => {
-    const time = (value[0] / 100) * duration;
-    handleSeek(time);
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleGuidesToggle = () => {
+    setGuides(prev => ({ ...prev, enabled: !prev.enabled }));
+  };
+
+  const handleGuidesRatioChange = (ratio: string) => {
+    setGuides(prev => ({ ...prev, ratio }));
+  };
+
+  const handleGuidesMaskToggle = () => {
+    setGuides(prev => ({ ...prev, mask: !prev.mask }));
+  };
+
+  const handleSetFrameAsThumb = () => {
+    console.log('Set frame as thumbnail at:', currentTime);
+  };
+
+  const handleDownloadStill = () => {
+    console.log('Download still frame at:', currentTime);
+  };
+
+  const handleToggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
   };
 
   if (loading) {
@@ -459,76 +430,60 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           )}
         </div>
 
-        {/* Video Controls - Fixed at bottom */}
+        {/* Enhanced Video Controls - Fixed at bottom */}
         {asset.file_type === 'video' && (
           <div className="bg-gray-900 border-t border-gray-700 p-4 flex-shrink-0">
-            {/* Timeline */}
+            {/* Enhanced Timeline */}
             <div className="mb-4">
-              <VideoTimeline
+              <EnhancedVideoTimeline
                 currentTime={currentTime}
                 duration={duration}
                 comments={comments}
                 onTimeClick={handleSeek}
                 previewVideoRef={previewVideoRef}
                 timeFormat={timeFormat}
-                assetId={asset.id}
+                frameRate={30}
+                onHover={(time) => {
+                  if (time !== null && previewVideoRef.current) {
+                    previewVideoRef.current.currentTime = time;
+                  }
+                }}
               />
             </div>
             
-            {/* Video Controls */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                {/* Play/Pause Button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={togglePlayPause}
-                  className="text-white hover:bg-gray-700"
-                >
-                  {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-                </Button>
-                
-                {/* Volume Control */}
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleVolumeToggle}
-                    className="text-white hover:bg-gray-700"
-                  >
-                    {volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                  </Button>
-                  <Slider
-                    value={[volume * 100]}
-                    onValueChange={(value) => handleVolumeChange([value[0] / 100])}
-                    className="w-20"
-                    max={100}
-                    step={1}
-                  />
-                </div>
-                
-                {/* Time Display */}
-                <div className="text-white text-sm font-mono">
-                  {formatTime(currentTime)} / {formatTime(duration)}
-                </div>
-              </div>
-              
-              {/* Timeline Scrubber */}
-              <div className="flex-1 mx-6">
-                <Slider
-                  value={[duration > 0 ? (currentTime / duration) * 100 : 0]}
-                  onValueChange={handleTimelineSeek}
-                  className="w-full"
-                  max={100}
-                  step={0.1}
-                />
-              </div>
-              
-              {/* Speed Control */}
-              <div className="text-white text-sm">
-                {playbackSpeed}x
-              </div>
-            </div>
+            {/* Comprehensive Video Controls */}
+            <VideoControls
+              isPlaying={isPlaying}
+              onTogglePlayPause={togglePlayPause}
+              isLooping={isLooping}
+              onToggleLoop={toggleLoop}
+              playbackSpeed={playbackSpeed}
+              onSpeedChange={handleSpeedChange}
+              volume={volume}
+              onVolumeToggle={handleVolumeToggle}
+              onVolumeChange={handleVolumeChange}
+              currentTime={currentTime}
+              duration={duration}
+              timeFormat={timeFormat}
+              onTimeFormatChange={setTimeFormat}
+              quality={quality}
+              availableQualities={availableQualities}
+              onQualityChange={handleQualityChange}
+              guides={guides}
+              onGuidesToggle={handleGuidesToggle}
+              onGuidesRatioChange={handleGuidesRatioChange}
+              onGuidesMaskToggle={handleGuidesMaskToggle}
+              zoom={zoom}
+              onZoomChange={setZoom}
+              encodeComments={encodeComments}
+              setEncodeComments={setEncodeComments}
+              annotations={annotations}
+              setAnnotations={setAnnotations}
+              onSetFrameAsThumb={handleSetFrameAsThumb}
+              onDownloadStill={handleDownloadStill}
+              onToggleFullscreen={handleToggleFullscreen}
+              formatTime={formatTime}
+            />
           </div>
         )}
       </div>
