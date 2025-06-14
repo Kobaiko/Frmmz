@@ -467,6 +467,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                 preload="metadata"
                 controls={false}
                 autoPlay={false}
+                crossOrigin="anonymous"
               />
 
               <video
@@ -476,6 +477,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                 playsInline
                 preload="metadata"
                 className="hidden"
+                crossOrigin="anonymous"
               />
               
               {/* Drawing canvas overlay */}
