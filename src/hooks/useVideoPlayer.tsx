@@ -24,7 +24,7 @@ export const useVideoPlayer = ({
   const [availableQualities, setAvailableQualities] = useState<string[]>(['1080p', '720p', '540p', '360p']);
   const [maxQuality, setMaxQuality] = useState('1080p');
   const [isLooping, setIsLooping] = useState(false);
-  const [timeFormat, setTimeFormat] = useState<'timecode' | 'frames' | 'standard'>('timecode');
+  const [timeFormat, setTimeFormat] = useState<'timecode' | 'frames' | 'seconds'>('timecode');
 
   // High-frequency time update for frame-accurate display
   const updateTime = () => {

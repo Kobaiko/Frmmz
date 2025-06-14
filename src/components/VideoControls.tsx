@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -43,8 +42,8 @@ interface VideoControlsProps {
   onVolumeChange: (volume: number[]) => void;
   currentTime: number;
   duration: number;
-  timeFormat: 'timecode' | 'frames' | 'standard';
-  onTimeFormatChange: (format: 'timecode' | 'frames' | 'standard') => void;
+  timeFormat: 'timecode' | 'frames' | 'seconds';
+  onTimeFormatChange: (format: 'timecode' | 'frames' | 'seconds') => void;
   quality: string;
   availableQualities: string[];
   onQualityChange: (quality: string) => void;
@@ -115,7 +114,7 @@ export const VideoControls = ({
       case 'frames':
         const totalFrames = Math.floor(seconds * 30); // Assuming 30fps
         return `${totalFrames}`;
-      case 'standard':
+      case 'seconds':
         if (hours > 0) {
           return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
@@ -301,10 +300,10 @@ export const VideoControls = ({
             </DropdownMenuItem>
             <DropdownMenuItem
               className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 data-[highlighted]:bg-gray-700 px-3 py-2 cursor-pointer text-white"
-              onClick={() => onTimeFormatChange('standard')}
+              onClick={() => onTimeFormatChange('seconds')}
             >
-              <span className="text-white">Standard</span>
-              {timeFormat === 'standard' && <Check size={16} className="text-white" />}
+              <span className="text-white">Seconds</span>
+              {timeFormat === 'seconds' && <Check size={16} className="text-white" />}
             </DropdownMenuItem>
             <DropdownMenuItem
               className="flex items-center justify-between hover:bg-gray-700 focus:bg-gray-700 data-[highlighted]:bg-gray-700 px-3 py-2 cursor-pointer text-white"
