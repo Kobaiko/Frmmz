@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -141,7 +142,7 @@ export const VideoControls = ({
   };
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between relative">
       <div className="flex items-center space-x-3">
         {/* Play/Pause with tooltip */}
         <Tooltip>
