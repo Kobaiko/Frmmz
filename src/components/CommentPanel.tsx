@@ -20,7 +20,7 @@ import {
   Heart,
   MoreVertical,
   Pencil,
-  Drawing,
+  Pen,
   X
 } from "lucide-react";
 
@@ -50,6 +50,14 @@ export const CommentPanel = ({
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'timestamp'>('newest');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [filters, setFilters] = useState({
+    annotations: false,
+    attachments: false,
+    completed: false,
+    incomplete: false,
+    unread: false,
+    mentionsAndReactions: false,
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Sort and filter comments
@@ -61,7 +69,7 @@ export const CommentPanel = ({
       if (filterType === 'all') return matchesSearch;
       if (filterType === 'general') return matchesSearch && !comment.isInternal;
       if (filterType === 'internal') return matchesSearch && comment.isInternal;
-      if (filterType === 'resolved') return matchesSearch && comment.isResolved;
+      if (filterType === 'resolved') return matchesSearch && false; // No resolved property in Comment type
       
       return matchesSearch;
     });
@@ -140,6 +148,34 @@ export const CommentPanel = ({
     return colors[index];
   };
 
+  const handleSortChange = (sort: 'timecode' | 'oldest' | 'newest' | 'commenter' | 'completed') => {
+    // Map the sort options to our internal state
+    switch (sort) {
+      case 'timecode':
+        setSortBy('timestamp');
+        break;
+      case 'oldest':
+        setSortBy('oldest');
+        break;
+      case 'newest':
+        setSortBy('newest');
+        break;
+      default:
+        setSortBy('newest');
+    }
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      annotations: false,
+      attachments: false,
+      completed: false,
+      incomplete: false,
+      unread: false,
+      mentionsAndReactions: false,
+    });
+  };
+
   const renderComment = (comment: Comment, isReply = false) => {
     const isExpanded = expandedComments.has(comment.id);
     const replies = comments.filter(c => c.parentId === comment.id);
@@ -184,12 +220,10 @@ export const CommentPanel = ({
                   <Reply className="h-3 w-3" />
                 </Button>
                 <CommentActionsMenu
-                  onEdit={() => {}}
-                  onDelete={() => onDeleteComment(comment.id)}
-                  onResolve={() => {}}
-                  onPin={() => {}}
-                  isResolved={comment.isResolved}
-                  isPinned={false}
+                  onCopyComments={() => {}}
+                  onPasteComments={() => {}}
+                  onPrintComments={() => {}}
+                  onExportComments={() => {}}
                 />
               </div>
             </div>
@@ -233,7 +267,7 @@ export const CommentPanel = ({
         {replyingTo === comment.id && (
           <div className="ml-11 mt-3">
             <CommentInput
-              onSubmit={handleSubmitReply}
+              onAddComment={handleSubmitReply}
               onCancel={() => setReplyingTo(null)}
               placeholder={`Reply to ${comment.author}...`}
               currentTime={currentTime}
@@ -275,12 +309,13 @@ export const CommentPanel = ({
         {/* Filters and Sort */}
         <div className="flex items-center space-x-2">
           <CommentFilterMenu 
-            currentFilter={filterType}
-            onFilterChange={setFilterType}
+            filters={filters}
+            onFiltersChange={setFilters}
+            onClearFilters={clearFilters}
           />
           <CommentSortMenu 
-            currentSort={sortBy}
-            onSortChange={setSortBy}
+            sortBy="timecode"
+            onSortChange={handleSortChange}
           />
         </div>
       </div>
@@ -303,7 +338,7 @@ export const CommentPanel = ({
       {/* Add Comment */}
       <div className="p-4 border-t border-gray-700">
         <CommentInput
-          onSubmit={onAddComment}
+          onAddComment={onAddComment}
           placeholder="Add a comment..."
           currentTime={currentTime}
           onStartDrawing={onStartDrawing}
