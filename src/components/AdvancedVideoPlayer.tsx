@@ -4,6 +4,7 @@ import { VideoPlayer } from "./VideoPlayer";
 import { PresenceSystem } from "./PresenceSystem";
 import { MediaProcessingStatus } from "./MediaProcessingStatus";
 import { VideoTimeline } from "./VideoTimeline";
+import { VideoControls } from "./VideoControls";
 import { useVideoPlayer } from "@/hooks/useVideoPlayer";
 import { useVideoKeyboardShortcuts } from "@/hooks/useVideoKeyboardShortcuts";
 import { Card, CardContent } from "@/components/ui/card";
@@ -61,6 +62,12 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
       startTime: new Date(Date.now() - 600000)
     }
   ]);
+  const [guides, setGuides] = useState({
+    enabled: false,
+    ratio: '16:9',
+    mask: false
+  });
+  const [encodeComments, setEncodeComments] = useState(false);
 
   const videoPlayer = useVideoPlayer({
     src: props.src,
@@ -80,6 +87,27 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
   const handleZoomChange = (newZoom: string) => {
     setZoom(newZoom);
     console.log(`Zoom changed to: ${newZoom}`);
+  };
+
+  const handleToggleFullscreen = () => {
+    if (videoPlayer.videoRef.current) {
+      if (!document.fullscreenElement) {
+        videoPlayer.videoRef.current.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    if (hours > 0) {
+      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -124,6 +152,38 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
             previewVideoRef={videoPlayer.previewVideoRef}
             timeFormat={videoPlayer.timeFormat}
             assetId={props.src}
+          />
+          <VideoControls
+            isPlaying={videoPlayer.isPlaying}
+            onTogglePlayPause={videoPlayer.togglePlayPause}
+            isLooping={videoPlayer.isLooping}
+            onToggleLoop={videoPlayer.toggleLoop}
+            playbackSpeed={videoPlayer.playbackSpeed}
+            onSpeedChange={videoPlayer.handleSpeedChange}
+            volume={videoPlayer.volume}
+            onVolumeToggle={videoPlayer.handleVolumeToggle}
+            onVolumeChange={videoPlayer.handleVolumeChange}
+            currentTime={props.currentTime}
+            duration={videoPlayer.duration}
+            timeFormat={videoPlayer.timeFormat}
+            onTimeFormatChange={videoPlayer.setTimeFormat}
+            quality={videoPlayer.quality}
+            availableQualities={videoPlayer.availableQualities}
+            onQualityChange={videoPlayer.handleQualityChange}
+            guides={guides}
+            onGuidesToggle={() => setGuides(prev => ({ ...prev, enabled: !prev.enabled }))}
+            onGuidesRatioChange={(ratio) => setGuides(prev => ({ ...prev, ratio }))}
+            onGuidesMaskToggle={() => setGuides(prev => ({ ...prev, mask: !prev.mask }))}
+            zoom={zoom}
+            onZoomChange={handleZoomChange}
+            encodeComments={encodeComments}
+            setEncodeComments={setEncodeComments}
+            annotations={props.annotations}
+            setAnnotations={props.setAnnotations}
+            onSetFrameAsThumb={() => console.log('Set frame as thumbnail')}
+            onDownloadStill={() => console.log('Download still')}
+            onToggleFullscreen={handleToggleFullscreen}
+            formatTime={formatTime}
           />
         </div>
       </div>
