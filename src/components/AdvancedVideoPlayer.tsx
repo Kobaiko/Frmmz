@@ -240,7 +240,7 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
                         size="sm"
                         variant="outline"
                         onClick={() => {
-                          const formats = ['timecode', 'frames', 'standard'] as const;
+                          const formats = ['timecode', 'frames', 'seconds'] as const;
                           const currentIndex = formats.indexOf(videoPlayer.timeFormat);
                           const nextFormat = formats[(currentIndex + 1) % formats.length];
                           videoPlayer.setTimeFormat(nextFormat);
