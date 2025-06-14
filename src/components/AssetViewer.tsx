@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { SimpleVideoControls } from "./SimpleVideoControls";
 import { DrawingCanvas } from "./DrawingCanvas";
 import { CommentPanel } from "./CommentPanel";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,8 +11,13 @@ import {
   ArrowLeft, 
   Download, 
   Share2, 
-  FileVideo
+  FileVideo,
+  Play,
+  Pause,
+  Volume2,
+  VolumeX
 } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 
 interface Asset {
   id: string;
@@ -45,17 +49,10 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [showComments, setShowComments] = useState(true);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [annotations, setAnnotations] = useState(true);
-  const [guides, setGuides] = useState({
-    enabled: false,
-    ratio: '16:9',
-    mask: false
-  });
-  const [zoom, setZoom] = useState("Fit");
-  const [encodeComments, setEncodeComments] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [isLooping, setIsLooping] = useState(false);
   const [timeFormat, setTimeFormat] = useState<'timecode' | 'frames' | 'standard'>('timecode');
   const [userName, setUserName] = useState<string>('Kivaiko');
+  const [loading, setLoading] = useState(true);
 
   // Video player ref
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -85,7 +82,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             id: comment.id,
             timestamp: comment.timestamp_seconds || -1,
             text: comment.content,
-            author: 'Kivaiko', // Default to Kivaiko as requested
+            author: 'Kivaiko',
             createdAt: new Date(comment.created_at),
             parentId: comment.parent_id || undefined
           }));
@@ -98,24 +95,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
       }
     };
 
-    const fetchUserName = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          // Try to get user's name from metadata or email, but default to Kivaiko
-          const displayName = user.user_metadata?.full_name || 
-                             user.user_metadata?.name || 
-                             'Kivaiko';
-          setUserName(displayName);
-        }
-      } catch (error) {
-        console.error('Error fetching user:', error);
-        setUserName('Kivaiko'); // Fallback to requested name
-      }
-    };
-
     fetchAsset();
-    fetchUserName();
   }, [assetId]);
 
   // Video event handlers
@@ -125,8 +105,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
     const handleLoadedMetadata = () => {
       setDuration(video.duration);
-      console.log('✅ Video loaded with duration:', video.duration);
-      console.log('📺 Video dimensions:', video.videoWidth, 'x', video.videoHeight);
     };
 
     const handleTimeUpdate = () => {
@@ -136,32 +114,10 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
 
-    const handleCanPlay = () => {
-      console.log('✅ Video can play - ready state:', video.readyState);
-    };
-
-    const handleLoadStart = () => {
-      console.log('🚀 Video load started');
-    };
-
-    const handleError = (e: Event) => {
-      console.error('❌ Video error:', e);
-      const target = e.target as HTMLVideoElement;
-      if (target && target.error) {
-        console.error('Video error details:', {
-          code: target.error.code,
-          message: target.error.message
-        });
-      }
-    };
-
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
-    video.addEventListener('canplay', handleCanPlay);
-    video.addEventListener('loadstart', handleLoadStart);
-    video.addEventListener('error', handleError);
 
     // Set video properties
     video.volume = volume;
@@ -174,9 +130,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
-      video.removeEventListener('canplay', handleCanPlay);
-      video.removeEventListener('loadstart', handleLoadStart);
-      video.removeEventListener('error', handleError);
     };
   }, [asset?.id, volume, playbackSpeed, isLooping]);
 
@@ -310,10 +263,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     }
   };
 
-  const toggleLoop = () => {
-    setIsLooping(prev => !prev);
-  };
-
   const handleVolumeChange = (newVolume: number[]) => {
     const volumeValue = newVolume[0];
     setVolume(volumeValue);
@@ -338,19 +287,16 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     }
   };
 
-  const handleSpeedChange = (speeds: number[]) => {
-    const speed = speeds[0];
-    setPlaybackSpeed(speed);
-    if (videoRef.current) {
-      videoRef.current.playbackRate = speed;
-    }
-  };
-
   const handleSeek = (time: number) => {
     if (videoRef.current) {
       videoRef.current.currentTime = time;
       setCurrentTime(time);
     }
+  };
+
+  const handleTimelineSeek = (value: number[]) => {
+    const time = (value[0] / 100) * duration;
+    handleSeek(time);
   };
 
   if (loading) {
@@ -384,10 +330,10 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   return (
     <div className="h-screen bg-black text-white flex overflow-hidden">
       {/* Main Content Area */}
-      <div className="flex flex-col flex-1 min-w-0 h-full">
-        {/* Header - Fixed height */}
-        <div className="border-b border-gray-800 px-6 py-4 flex-shrink-0 h-20">
-          <div className="flex items-center justify-between h-full">
+      <div className="flex flex-col flex-1 min-w-0">
+        {/* Header */}
+        <div className="border-b border-gray-800 px-6 py-4 flex-shrink-0">
+          <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
@@ -449,8 +395,8 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           </div>
         </div>
 
-        {/* Video Container - Takes remaining space minus controls */}
-        <div className="flex-1 relative bg-black min-h-0">
+        {/* Video Container */}
+        <div className="flex-1 relative bg-black">
           {asset.file_type === 'video' ? (
             <>
               <video
@@ -514,22 +460,11 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           )}
         </div>
 
-        {/* VIDEO CONTROLS - ALWAYS VISIBLE AT BOTTOM - Fixed height */}
+        {/* Video Controls - Only show for video files */}
         {asset.file_type === 'video' && duration > 0 && (
-          <div className="bg-red-900 border-t-4 border-yellow-400 p-4 flex-shrink-0 h-60 overflow-y-auto">
-            <div className="text-yellow-400 text-xl font-bold mb-4">🎮 VIDEO CONTROLS SECTION 🎮</div>
-            
-            {/* Debug Info */}
-            <div className="bg-blue-900 p-2 rounded text-white mb-4">
-              <div className="text-sm">Debug Info:</div>
-              <div className="text-xs">isPlaying: {String(isPlaying)}</div>
-              <div className="text-xs">duration: {duration}</div>
-              <div className="text-xs">currentTime: {currentTime}</div>
-            </div>
-            
+          <div className="bg-gray-900 border-t border-gray-700 p-4 flex-shrink-0">
             {/* Timeline */}
             <div className="mb-4">
-              <div className="text-white text-sm mb-2">Timeline Component:</div>
               <VideoTimeline
                 currentTime={currentTime}
                 duration={duration}
@@ -541,23 +476,65 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
               />
             </div>
             
-            {/* Simple Video Controls */}
-            <div className="bg-purple-900 p-4 rounded">
-              <div className="text-white text-sm mb-2">CONTROLS:</div>
-              <SimpleVideoControls
-                isPlaying={isPlaying}
-                onTogglePlayPause={togglePlayPause}
-                volume={volume}
-                onVolumeToggle={handleVolumeToggle}
-                currentTime={currentTime}
-                duration={duration}
-              />
+            {/* Video Controls */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                {/* Play/Pause Button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={togglePlayPause}
+                  className="text-white hover:bg-gray-700"
+                >
+                  {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                </Button>
+                
+                {/* Volume Control */}
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleVolumeToggle}
+                    className="text-white hover:bg-gray-700"
+                  >
+                    {volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                  </Button>
+                  <Slider
+                    value={[volume * 100]}
+                    onValueChange={(value) => handleVolumeChange([value[0] / 100])}
+                    className="w-20"
+                    max={100}
+                    step={1}
+                  />
+                </div>
+                
+                {/* Time Display */}
+                <div className="text-white text-sm font-mono">
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </div>
+              </div>
+              
+              {/* Timeline Scrubber */}
+              <div className="flex-1 mx-6">
+                <Slider
+                  value={[duration > 0 ? (currentTime / duration) * 100 : 0]}
+                  onValueChange={handleTimelineSeek}
+                  className="w-full"
+                  max={100}
+                  step={0.1}
+                />
+              </div>
+              
+              {/* Speed Control */}
+              <div className="text-white text-sm">
+                {playbackSpeed}x
+              </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Comments Panel - Fixed width sidebar */}
+      {/* Comments Panel */}
       {showComments && (
         <div className="w-80 flex-shrink-0 border-l border-gray-700">
           <CommentPanel
