@@ -105,6 +105,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
     const handleLoadedMetadata = () => {
       setDuration(video.duration);
+      console.log('Video metadata loaded, duration:', video.duration);
     };
 
     const handleTimeUpdate = () => {
@@ -330,9 +331,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   return (
     <div className="h-screen bg-black text-white flex overflow-hidden">
       {/* Main Content Area */}
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className="flex flex-col flex-1">
         {/* Header */}
-        <div className="border-b border-gray-800 px-6 py-4 flex-shrink-0">
+        <div className="border-b border-gray-800 px-6 py-4 bg-black">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Button
@@ -395,15 +396,15 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           </div>
         </div>
 
-        {/* Video Container */}
-        <div className="flex-1 relative bg-black">
+        {/* Video Container - Full height minus header and controls */}
+        <div className="flex-1 relative bg-black overflow-hidden">
           {asset.file_type === 'video' ? (
             <>
               <video
                 ref={videoRef}
                 key={asset.id}
                 src={asset.file_url}
-                className="absolute inset-0 w-full h-full object-contain"
+                className="w-full h-full object-contain"
                 style={{ backgroundColor: '#000000' }}
                 playsInline
                 preload="metadata"
@@ -424,19 +425,17 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
               />
               
               {/* Drawing canvas overlay */}
-              {duration > 0 && (
-                <div className="absolute inset-0 pointer-events-none">
-                  <DrawingCanvas
-                    currentTime={currentTime}
-                    videoRef={videoRef}
-                    isDrawingMode={isDrawingMode}
-                    annotations={annotations}
-                  />
-                </div>
-              )}
+              <div className="absolute inset-0 pointer-events-none">
+                <DrawingCanvas
+                  currentTime={currentTime}
+                  videoRef={videoRef}
+                  isDrawingMode={isDrawingMode}
+                  annotations={annotations}
+                />
+              </div>
             </>
           ) : asset.file_type === 'image' ? (
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-full h-full flex items-center justify-center">
               <img
                 src={asset.file_url}
                 alt={asset.name}
@@ -444,7 +443,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
               />
             </div>
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-full h-full flex items-center justify-center">
               <div className="text-center">
                 <FileVideo className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-400 mb-4">Preview not available for this file type</p>
@@ -460,9 +459,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           )}
         </div>
 
-        {/* Video Controls - Only show for video files */}
-        {asset.file_type === 'video' && duration > 0 && (
-          <div className="bg-gray-900 border-t border-gray-700 p-4 flex-shrink-0">
+        {/* Video Controls - ALWAYS SHOW for video files */}
+        {asset.file_type === 'video' && (
+          <div className="bg-gray-900 border-t border-gray-700 p-4">
             {/* Timeline */}
             <div className="mb-4">
               <VideoTimeline
@@ -536,7 +535,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
       {/* Comments Panel */}
       {showComments && (
-        <div className="w-80 flex-shrink-0 border-l border-gray-700">
+        <div className="w-80 border-l border-gray-700 bg-gray-900">
           <CommentPanel
             comments={comments}
             currentTime={currentTime}
