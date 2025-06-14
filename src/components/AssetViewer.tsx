@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +7,7 @@ import { DrawingCanvas } from "./DrawingCanvas";
 import { CommentPanel } from "./CommentPanel";
 import { supabase } from "@/integrations/supabase/client";
 import type { Comment } from "@/pages/Index";
+import { VideoTimeline } from "./VideoTimeline";
 import { 
   ArrowLeft, 
   Download, 
@@ -57,6 +59,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
   // Video player ref
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const previewVideoRef = React.useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const fetchAsset = async () => {
@@ -465,6 +468,15 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                 controls={false}
                 autoPlay={false}
               />
+
+              <video
+                ref={previewVideoRef}
+                src={asset.file_url}
+                muted
+                playsInline
+                preload="metadata"
+                className="hidden"
+              />
               
               {/* Drawing canvas overlay */}
               {duration > 0 && (
@@ -506,6 +518,14 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         {/* Video Controls - Fixed at bottom */}
         {asset.file_type === 'video' && duration > 0 && (
           <div className="bg-gray-900 border-t border-gray-700 p-4 flex-shrink-0">
+            <VideoTimeline
+              currentTime={currentTime}
+              duration={duration}
+              comments={comments}
+              onTimeClick={handleSeek}
+              previewVideoRef={previewVideoRef}
+              timeFormat={timeFormat}
+            />
             <VideoControls
               isPlaying={isPlaying}
               onTogglePlayPause={togglePlayPause}

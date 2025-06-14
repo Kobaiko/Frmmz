@@ -59,6 +59,7 @@ export const CommentPanel = ({
     mentionsAndReactions: false,
   });
   const scrollRef = useRef<HTMLDivElement>(null);
+  const commentItemRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   // Sort and filter comments
   const processedComments = React.useMemo(() => {
@@ -116,6 +117,12 @@ export const CommentPanel = ({
 
   const handleReply = (commentId: string) => {
     setReplyingTo(commentId);
+    setTimeout(() => {
+      commentItemRefs.current[commentId]?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }, 100);
   };
 
   const handleSubmitReply = (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
@@ -182,7 +189,11 @@ export const CommentPanel = ({
     const hasReplies = replies.length > 0;
 
     return (
-      <div key={comment.id} className={`${isReply ? 'ml-8 border-l-2 border-gray-700 pl-4' : ''}`}>
+      <div 
+        key={comment.id}
+        ref={(el) => (commentItemRefs.current[comment.id] = el)}
+        className={`${isReply ? 'ml-8 border-l-2 border-gray-700 pl-4' : ''}`}
+      >
         <div className="flex space-x-3 p-3 hover:bg-gray-800/50 rounded-lg transition-colors group">
           <Avatar className={`w-8 h-8 ${getAvatarColor(comment.author)} flex-shrink-0`}>
             <AvatarFallback className="text-white text-xs font-medium">
