@@ -381,9 +381,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black text-white flex overflow-hidden">
+    <div className="h-screen bg-black text-white flex overflow-hidden">
       {/* Main Content Area */}
-      <div className="flex flex-col flex-1 min-w-0 h-full">
+      <div className="flex flex-col flex-1 min-w-0">
         {/* Header */}
         <div className="border-b border-gray-800 px-6 py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -448,8 +448,8 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           </div>
         </div>
 
-        {/* Media Player Container - Full viewport minus header and controls */}
-        <div className="flex-1 relative bg-black overflow-hidden">
+        {/* Video Container - Calculate height to leave room for controls */}
+        <div className="flex-1 relative bg-black" style={{ height: 'calc(100vh - 320px)' }}>
           {asset.file_type === 'video' ? (
             <>
               <video
@@ -513,13 +513,14 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           )}
         </div>
 
-        {/* SIMPLIFIED Video Controls - Fixed at bottom */}
+        {/* VIDEO CONTROLS - ALWAYS VISIBLE AT BOTTOM */}
         {asset.file_type === 'video' && duration > 0 && (
-          <div className="bg-red-900 border-t-4 border-yellow-400 p-6 flex-shrink-0 min-h-[200px]">
-            <div className="text-yellow-400 text-lg font-bold mb-4">🎮 VIDEO CONTROLS SECTION 🎮</div>
+          <div className="bg-red-900 border-t-4 border-yellow-400 p-6 flex-shrink-0 h-[240px] overflow-y-auto">
+            <div className="text-yellow-400 text-xl font-bold mb-4">🎮 VIDEO CONTROLS SECTION 🎮</div>
             
             {/* Timeline */}
             <div className="mb-4">
+              <div className="text-white text-sm mb-2">Timeline Component:</div>
               <VideoTimeline
                 currentTime={currentTime}
                 duration={duration}
@@ -532,14 +533,17 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             </div>
             
             {/* Simple Video Controls */}
-            <SimpleVideoControls
-              isPlaying={isPlaying}
-              onTogglePlayPause={togglePlayPause}
-              volume={volume}
-              onVolumeToggle={handleVolumeToggle}
-              currentTime={currentTime}
-              duration={duration}
-            />
+            <div className="bg-blue-900 p-4 rounded">
+              <div className="text-white text-sm mb-2">CONTROLS:</div>
+              <SimpleVideoControls
+                isPlaying={isPlaying}
+                onTogglePlayPause={togglePlayPause}
+                volume={volume}
+                onVolumeToggle={handleVolumeToggle}
+                currentTime={currentTime}
+                duration={duration}
+              />
+            </div>
           </div>
         )}
       </div>
