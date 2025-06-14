@@ -385,9 +385,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   }
 
   return (
-    <div className="h-screen bg-black text-white flex overflow-hidden">
+    <div className="fixed inset-0 bg-black text-white flex overflow-hidden">
       {/* Main Content Area */}
-      <div className="flex flex-col flex-1">
+      <div className="flex flex-col flex-1 min-w-0">
         {/* Header */}
         <div className="border-b border-gray-800 px-6 py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -455,13 +455,15 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         {/* Media Player Container - Full viewport minus header and controls */}
         <div className="flex-1 relative bg-black overflow-hidden">
           {asset.file_type === 'video' ? (
-            <div className="absolute inset-0">
+            <>
               <video
                 ref={videoRef}
-                className="absolute inset-0 w-full h-full object-contain bg-black"
+                className="absolute inset-0 w-full h-full object-contain"
+                style={{ backgroundColor: '#000000' }}
                 playsInline
                 preload="metadata"
                 controls={false}
+                autoPlay={false}
               />
               
               {/* Drawing canvas overlay */}
@@ -475,7 +477,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                   />
                 </div>
               )}
-            </div>
+            </>
           ) : asset.file_type === 'image' ? (
             <div className="absolute inset-0 flex items-center justify-center">
               <img
