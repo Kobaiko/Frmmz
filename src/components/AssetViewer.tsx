@@ -383,7 +383,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   return (
     <div className="fixed inset-0 bg-black text-white flex overflow-hidden">
       {/* Main Content Area */}
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className="flex flex-col flex-1 min-w-0 h-full">
         {/* Header */}
         <div className="border-b border-gray-800 px-6 py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -515,7 +515,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
         {/* Video Controls - Fixed at bottom */}
         {asset.file_type === 'video' && duration > 0 && (
-          <div className="bg-gray-900 border-t border-gray-700 p-4 flex-shrink-0">
+          <div className="bg-gray-900 border-t-2 border-yellow-400 p-4 flex-shrink-0">
             <VideoTimeline
               currentTime={currentTime}
               duration={duration}
