@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -281,7 +282,7 @@ export const CommentInput = ({
   };
 
   return (
-    <div className="p-4 bg-gray-800/90 backdrop-blur-sm">
+    <div className="bg-gray-800/90 backdrop-blur-sm">
       <div className="max-w-4xl mx-auto">
         {/* Attachments display */}
         {attachments.length > 0 && (
@@ -430,10 +431,14 @@ export const CommentInput = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-gray-300 hover:text-white hover:bg-gray-600 p-2 rounded-lg"
+                    className="text-gray-300 hover:text-white hover:bg-gray-600 p-2 rounded-lg flex items-center"
+                    title={isInternal ? "Internal comment" : "Public comment"}
                   >
-                    <Globe size={18} />
-                    <span className="ml-1 text-sm">{isInternal ? "Internal" : "Public"}</span>
+                    {isInternal ? (
+                      <div className="w-4 h-4 rounded-full bg-orange-500"></div>
+                    ) : (
+                      <Globe size={18} />
+                    )}
                     <ChevronDown size={14} className="ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
