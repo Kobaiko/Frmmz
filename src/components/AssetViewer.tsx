@@ -385,9 +385,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   }
 
   return (
-    <div className="h-screen bg-black text-white flex">
-      {/* Main Content Area - Properly sized to avoid comment panel overlap */}
-      <div className={`flex flex-col ${showComments ? 'w-[calc(100%-320px)]' : 'w-full'}`}>
+    <div className="h-screen bg-black text-white flex overflow-hidden">
+      {/* Main Content Area */}
+      <div className="flex flex-col flex-1">
         {/* Header */}
         <div className="border-b border-gray-800 px-6 py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -405,8 +405,8 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                   <FileVideo className="h-5 w-5" />
                 </div>
                 <div>
-                  <h1 className="text-base font-medium text-white text-left">{asset.name}</h1>
-                  <div className="flex items-center space-x-4 text-sm text-gray-400">
+                  <h1 className="text-sm font-medium text-white text-left">{asset.name}</h1>
+                  <div className="flex items-center space-x-4 text-xs text-gray-400">
                     <span>{asset.file_type.toUpperCase()}</span>
                     <span>•</span>
                     <span>{Math.round(asset.file_size / 1024 / 1024)} MB</span>
@@ -452,34 +452,32 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           </div>
         </div>
 
-        {/* Media Player Container - Full area minus header and controls */}
-        <div className="flex-1 relative bg-black min-h-0">
+        {/* Media Player Container - Full viewport minus header and controls */}
+        <div className="flex-1 relative bg-black overflow-hidden">
           {asset.file_type === 'video' ? (
-            <>
+            <div className="absolute inset-0">
               <video
                 ref={videoRef}
-                className="w-full h-full object-contain"
-                style={{ 
-                  display: 'block', 
-                  backgroundColor: '#000'
-                }}
+                className="absolute inset-0 w-full h-full object-contain bg-black"
                 playsInline
                 preload="metadata"
                 controls={false}
               />
               
-              {/* Only show drawing canvas when video is loaded */}
+              {/* Drawing canvas overlay */}
               {duration > 0 && (
-                <DrawingCanvas
-                  currentTime={currentTime}
-                  videoRef={videoRef}
-                  isDrawingMode={isDrawingMode}
-                  annotations={annotations}
-                />
+                <div className="absolute inset-0 pointer-events-none">
+                  <DrawingCanvas
+                    currentTime={currentTime}
+                    videoRef={videoRef}
+                    isDrawingMode={isDrawingMode}
+                    annotations={annotations}
+                  />
+                </div>
               )}
-            </>
+            </div>
           ) : asset.file_type === 'image' ? (
-            <div className="w-full h-full flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center">
               <img
                 src={asset.file_url}
                 alt={asset.name}
@@ -487,7 +485,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
               />
             </div>
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center">
                 <FileVideo className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-400 mb-4">Preview not available for this file type</p>
@@ -546,9 +544,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         )}
       </div>
 
-      {/* Comments Panel - Fixed positioning on the right */}
+      {/* Comments Panel - Fixed width sidebar */}
       {showComments && (
-        <div className="w-80 flex-shrink-0">
+        <div className="w-80 flex-shrink-0 border-l border-gray-700">
           <CommentPanel
             comments={comments}
             currentTime={currentTime}
