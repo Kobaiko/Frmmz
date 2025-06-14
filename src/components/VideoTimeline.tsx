@@ -11,7 +11,7 @@ interface VideoTimelineProps {
   comments: Comment[];
   onTimeClick: (time: number) => void;
   previewVideoRef: React.RefObject<HTMLVideoElement>;
-  timeFormat: 'timecode' | 'frames' | 'standard';
+  timeFormat: 'timecode' | 'frames' | 'seconds';
   assetId: string;
 }
 
@@ -187,4 +187,3 @@ export const VideoTimeline = ({
     </div>
   );
 };
-
