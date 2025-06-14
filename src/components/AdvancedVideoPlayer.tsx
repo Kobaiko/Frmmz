@@ -4,7 +4,7 @@ import { VideoPlayer } from "./VideoPlayer";
 import { PresenceSystem } from "./PresenceSystem";
 import { MediaProcessingStatus } from "./MediaProcessingStatus";
 import { VideoTimeline } from "./VideoTimeline";
-import { VideoControls } from "./VideoControls";
+import { SimpleVideoControls } from "./SimpleVideoControls";
 import { useVideoPlayer } from "@/hooks/useVideoPlayer";
 import { useVideoKeyboardShortcuts } from "@/hooks/useVideoKeyboardShortcuts";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,7 +35,6 @@ interface AdvancedVideoPlayerProps {
 }
 
 export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
-  const [zoom, setZoom] = useState("Fit");
   const [rightPanelTab, setRightPanelTab] = useState("presence");
   const [processingJobs] = useState([
     {
@@ -62,12 +61,6 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
       startTime: new Date(Date.now() - 600000)
     }
   ]);
-  const [guides, setGuides] = useState({
-    enabled: false,
-    ratio: '16:9',
-    mask: false
-  });
-  const [encodeComments, setEncodeComments] = useState(false);
 
   const videoPlayer = useVideoPlayer({
     src: props.src,
@@ -81,34 +74,8 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
     volume: videoPlayer.volume,
     isPlaying: videoPlayer.isPlaying,
     setVolume: (vol) => videoPlayer.handleVolumeChange([vol]),
-    onZoomChange: setZoom
+    onZoomChange: () => {}
   });
-
-  const handleZoomChange = (newZoom: string) => {
-    setZoom(newZoom);
-    console.log(`Zoom changed to: ${newZoom}`);
-  };
-
-  const handleToggleFullscreen = () => {
-    if (videoPlayer.videoRef.current) {
-      if (!document.fullscreenElement) {
-        videoPlayer.videoRef.current.requestFullscreen();
-      } else {
-        document.exitFullscreen();
-      }
-    }
-  };
-
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    
-    if (hours > 0) {
-      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   // Debug logging
   useEffect(() => {
@@ -116,7 +83,8 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
     console.log('🎯 Video player state:', {
       isPlaying: videoPlayer.isPlaying,
       duration: videoPlayer.duration,
-      currentTime: props.currentTime
+      currentTime: props.currentTime,
+      videoRef: videoPlayer.videoRef?.current ? 'exists' : 'null'
     });
   }, [videoPlayer.isPlaying, videoPlayer.duration, props.currentTime]);
 
@@ -131,7 +99,7 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
           {/* Video Overlay Info */}
           <div className="absolute top-4 left-4 flex items-center space-x-2">
             <Badge className="bg-black/60 text-white border-gray-600">
-              {zoom}
+              Fit
             </Badge>
             {props.annotations && (
               <Badge className="bg-green-600 text-white">
@@ -152,13 +120,21 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
           </div>
         </div>
 
-        {/* Controls Section - ALWAYS VISIBLE */}
-        <div className="bg-gray-900 border-t border-gray-700 p-4 space-y-4 flex-shrink-0 min-h-[200px]">
-          <div className="text-white text-sm mb-2">DEBUG: Controls Section Rendered</div>
+        {/* FIXED Controls Section - ALWAYS VISIBLE with bright background */}
+        <div className="bg-red-900 border-t-4 border-yellow-500 p-6 space-y-6 flex-shrink-0 min-h-[250px]">
+          <div className="text-yellow-400 text-lg font-bold mb-4">🚨 CONTROLS SECTION - THIS SHOULD BE VISIBLE 🚨</div>
+          
+          {/* Debug Info */}
+          <div className="bg-blue-900 p-4 rounded text-white">
+            <div className="text-sm">Debug Info:</div>
+            <div className="text-xs">isPlaying: {String(videoPlayer.isPlaying)}</div>
+            <div className="text-xs">duration: {videoPlayer.duration}</div>
+            <div className="text-xs">currentTime: {props.currentTime}</div>
+          </div>
           
           {/* Timeline */}
-          <div className="bg-gray-800 p-2 rounded">
-            <div className="text-white text-xs mb-2">Timeline Component:</div>
+          <div className="bg-green-900 p-4 rounded">
+            <div className="text-white text-sm mb-2">Timeline Component:</div>
             <VideoTimeline
               currentTime={props.currentTime}
               duration={videoPlayer.duration}
@@ -170,40 +146,16 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
             />
           </div>
           
-          {/* Video Controls */}
-          <div className="bg-gray-800 p-2 rounded">
-            <div className="text-white text-xs mb-2">Video Controls Component:</div>
-            <VideoControls
+          {/* Simple Video Controls */}
+          <div className="bg-purple-900 p-4 rounded">
+            <div className="text-white text-sm mb-2">Simple Video Controls:</div>
+            <SimpleVideoControls
               isPlaying={videoPlayer.isPlaying}
               onTogglePlayPause={videoPlayer.togglePlayPause}
-              isLooping={videoPlayer.isLooping}
-              onToggleLoop={videoPlayer.toggleLoop}
-              playbackSpeed={videoPlayer.playbackSpeed}
-              onSpeedChange={videoPlayer.handleSpeedChange}
               volume={videoPlayer.volume}
               onVolumeToggle={videoPlayer.handleVolumeToggle}
-              onVolumeChange={videoPlayer.handleVolumeChange}
               currentTime={props.currentTime}
               duration={videoPlayer.duration}
-              timeFormat={videoPlayer.timeFormat}
-              onTimeFormatChange={videoPlayer.setTimeFormat}
-              quality={videoPlayer.quality}
-              availableQualities={videoPlayer.availableQualities}
-              onQualityChange={videoPlayer.handleQualityChange}
-              guides={guides}
-              onGuidesToggle={() => setGuides(prev => ({ ...prev, enabled: !prev.enabled }))}
-              onGuidesRatioChange={(ratio) => setGuides(prev => ({ ...prev, ratio }))}
-              onGuidesMaskToggle={() => setGuides(prev => ({ ...prev, mask: !prev.mask }))}
-              zoom={zoom}
-              onZoomChange={handleZoomChange}
-              encodeComments={encodeComments}
-              setEncodeComments={setEncodeComments}
-              annotations={props.annotations}
-              setAnnotations={props.setAnnotations}
-              onSetFrameAsThumb={() => console.log('Set frame as thumbnail')}
-              onDownloadStill={() => console.log('Download still')}
-              onToggleFullscreen={handleToggleFullscreen}
-              formatTime={formatTime}
             />
           </div>
         </div>
