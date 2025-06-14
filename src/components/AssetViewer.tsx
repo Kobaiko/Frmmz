@@ -53,7 +53,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [loading, setLoading] = useState(true);
   const [isLooping, setIsLooping] = useState(false);
   const [timeFormat, setTimeFormat] = useState<'timecode' | 'frames' | 'standard'>('timecode');
-  const [userName, setUserName] = useState<string>('User');
+  const [userName, setUserName] = useState<string>('Kivaiko');
 
   // Video player ref
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -82,7 +82,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             id: comment.id,
             timestamp: comment.timestamp_seconds || -1,
             text: comment.content,
-            author: 'User', // TODO: Get from user profile
+            author: 'Kivaiko', // Default to Kivaiko as requested
             createdAt: new Date(comment.created_at),
             parentId: comment.parent_id || undefined
           }));
@@ -99,10 +99,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          // Try to get user's name from metadata or email
+          // Try to get user's name from metadata or email, but default to Kivaiko
           const displayName = user.user_metadata?.full_name || 
                              user.user_metadata?.name || 
-                             user.email?.split('@')[0] || 
                              'Kivaiko';
           setUserName(displayName);
         }
@@ -161,28 +160,17 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     video.addEventListener('loadstart', handleLoadStart);
     video.addEventListener('error', handleError);
 
-    // Clear any existing source first
-    video.src = '';
-    
     // Set video properties and source
     video.volume = volume;
     video.playbackRate = playbackSpeed;
     video.loop = isLooping;
-    video.muted = false; // Ensure not muted by default
+    video.muted = false;
     
-    // Remove crossOrigin to avoid CORS issues
-    video.removeAttribute('crossorigin');
-    
-    // Set the source
+    // Set the source and force load
     video.src = asset.file_url;
-    video.load(); // Force reload
+    video.load();
     
     console.log('🎬 Setting video source:', asset.file_url);
-    console.log('🎬 Video element properties:', {
-      src: video.src,
-      readyState: video.readyState,
-      networkState: video.networkState
-    });
 
     return () => {
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
@@ -231,7 +219,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         id: data.id,
         timestamp: data.timestamp_seconds || -1,
         text: data.content,
-        author: userName, // Use actual user name
+        author: userName,
         createdAt: new Date(data.created_at),
       };
       
@@ -267,7 +255,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         id: data.id,
         timestamp: data.timestamp_seconds || -1,
         text: data.content,
-        author: userName, // Use actual user name
+        author: userName,
         createdAt: new Date(data.created_at),
         parentId
       };
@@ -397,11 +385,11 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex">
-      {/* Main Content Area - Fixed positioning */}
-      <div className={`flex-1 flex flex-col ${showComments ? 'mr-80' : ''}`}>
+    <div className="h-screen bg-black text-white flex">
+      {/* Main Content Area - Properly sized to avoid comment panel overlap */}
+      <div className={`flex flex-col ${showComments ? 'w-[calc(100%-320px)]' : 'w-full'}`}>
         {/* Header */}
-        <div className="border-b border-gray-800 px-6 py-4">
+        <div className="border-b border-gray-800 px-6 py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Button
@@ -417,7 +405,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                   <FileVideo className="h-5 w-5" />
                 </div>
                 <div>
-                  <h1 className="text-lg font-medium text-white text-left">{asset.name}</h1>
+                  <h1 className="text-base font-medium text-white text-left">{asset.name}</h1>
                   <div className="flex items-center space-x-4 text-sm text-gray-400">
                     <span>{asset.file_type.toUpperCase()}</span>
                     <span>•</span>
@@ -464,10 +452,10 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           </div>
         </div>
 
-        {/* Media Player Container - Fixed positioning */}
-        <div className="flex-1 relative bg-black">
+        {/* Media Player Container - Full area minus header and controls */}
+        <div className="flex-1 relative bg-black min-h-0">
           {asset.file_type === 'video' ? (
-            <div className="absolute inset-0 flex items-center justify-center">
+            <>
               <video
                 ref={videoRef}
                 className="w-full h-full object-contain"
@@ -489,9 +477,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                   annotations={annotations}
                 />
               )}
-            </div>
+            </>
           ) : asset.file_type === 'image' ? (
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-full h-full flex items-center justify-center">
               <img
                 src={asset.file_url}
                 alt={asset.name}
@@ -499,7 +487,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
               />
             </div>
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-full h-full flex items-center justify-center">
               <div className="text-center">
                 <FileVideo className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-400 mb-4">Preview not available for this file type</p>
@@ -517,7 +505,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
         {/* Video Controls - Fixed at bottom */}
         {asset.file_type === 'video' && duration > 0 && (
-          <div className="absolute bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 p-4 z-10" style={{ right: showComments ? '320px' : '0' }}>
+          <div className="bg-gray-900 border-t border-gray-700 p-4 flex-shrink-0">
             <VideoControls
               isPlaying={isPlaying}
               onTogglePlayPause={togglePlayPause}
@@ -558,9 +546,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         )}
       </div>
 
-      {/* Comments Panel - Fixed positioning */}
+      {/* Comments Panel - Fixed positioning on the right */}
       {showComments && (
-        <div className="fixed right-0 top-0 bottom-0 w-80 z-20">
+        <div className="w-80 flex-shrink-0">
           <CommentPanel
             comments={comments}
             currentTime={currentTime}
