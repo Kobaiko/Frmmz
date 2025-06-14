@@ -43,6 +43,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [annotations, setAnnotations] = useState(true);
   const [userName, setUserName] = useState<string>('Kivaiko');
   const [loading, setLoading] = useState(true);
+  const [videoError, setVideoError] = useState(false);
   const [guides, setGuides] = useState({
     enabled: false,
     ratio: '16:9',
@@ -366,35 +367,66 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           </div>
         </div>
 
-        {/* Video Container - FIXED: Proper video display */}
-        <div className="flex-1 relative bg-black overflow-hidden min-h-0">
+        {/* Video Container - FIXED: Force video visibility */}
+        <div className="flex-1 bg-black flex items-center justify-center relative">
           {asset.file_type === 'video' ? (
-            <div className="w-full h-full flex items-center justify-center relative">
-              {/* Main video element - FIXED: Direct video display */}
+            <div className="w-full h-full max-w-full max-h-full relative">
+              {/* Debug info overlay */}
+              <div className="absolute top-4 left-4 z-20 bg-black/80 text-white p-2 rounded text-xs">
+                <div>Video URL: {asset.file_url ? 'Valid' : 'Missing'}</div>
+                <div>Ready State: {videoRef.current?.readyState || 0}/4</div>
+                <div>Video Size: {videoRef.current?.videoWidth || 0}x{videoRef.current?.videoHeight || 0}</div>
+                <div>Element Size: {videoRef.current?.clientWidth || 0}x{videoRef.current?.clientHeight || 0}</div>
+                <div>Error: {videoError ? 'Yes' : 'No'}</div>
+              </div>
+
+              {/* Main video element - FORCED VISIBILITY */}
               <video
                 ref={videoRef}
                 src={asset.file_url}
-                className="w-full h-full object-contain"
+                className="block w-full h-full"
                 style={{ 
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  backgroundColor: '#000000'
+                  display: 'block !important',
+                  visibility: 'visible !important',
+                  opacity: 1,
+                  position: 'relative',
+                  zIndex: 1,
+                  objectFit: 'contain',
+                  backgroundColor: '#000000',
+                  minWidth: '100px',
+                  minHeight: '100px'
                 }}
                 playsInline
                 preload="metadata"
                 controls={false}
                 autoPlay={false}
+                muted={false}
                 crossOrigin="anonymous"
-                onLoadStart={() => console.log('🚀 Video load started')}
-                onLoadedMetadata={() => console.log('✅ Video metadata loaded')}
-                onCanPlay={() => console.log('▶️ Video can play')}
+                onLoadStart={() => {
+                  console.log('🚀 Video load started');
+                  setVideoError(false);
+                }}
+                onLoadedMetadata={() => {
+                  console.log('✅ Video metadata loaded');
+                  console.log('Video dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
+                }}
+                onCanPlay={() => {
+                  console.log('▶️ Video can play');
+                  setVideoError(false);
+                }}
+                onLoadedData={() => {
+                  console.log('📊 Video data loaded');
+                }}
                 onError={(e) => {
                   console.error('❌ Video error:', e);
+                  setVideoError(true);
                   const target = e.target as HTMLVideoElement;
                   if (target?.error) {
                     console.error('Video error details:', {
                       code: target.error.code,
-                      message: target.error.message
+                      message: target.error.message,
+                      src: target.src,
+                      currentSrc: target.currentSrc
                     });
                   }
                 }}
@@ -412,7 +444,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
               />
               
               {/* Drawing canvas overlay */}
-              <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute inset-0 pointer-events-none z-10">
                 <DrawingCanvas
                   currentTime={currentTime}
                   videoRef={videoRef}
@@ -421,13 +453,39 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                 />
               </div>
 
-              {/* Loading indicator */}
-              {(!videoRef.current?.videoWidth || videoRef.current?.readyState < 2) && (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
+              {/* Loading/Error indicator */}
+              {(videoError || !videoRef.current?.videoWidth || videoRef.current?.readyState < 2) && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 z-30">
                   <div className="text-center">
-                    <div className="w-12 h-12 border-4 border-pink-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-white">Loading video...</p>
-                    <p className="text-gray-400 text-sm mt-2">Source: {asset.file_url.split('/').pop()}</p>
+                    {videoError ? (
+                      <>
+                        <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <FileVideo className="h-6 w-6 text-white" />
+                        </div>
+                        <p className="text-white mb-2">Video failed to load</p>
+                        <p className="text-gray-400 text-sm">Check the video file and try again</p>
+                        <Button 
+                          onClick={() => {
+                            setVideoError(false);
+                            if (videoRef.current) {
+                              videoRef.current.load();
+                            }
+                          }}
+                          className="mt-4 bg-pink-600 hover:bg-pink-700"
+                        >
+                          Retry
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-12 h-12 border-4 border-pink-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                        <p className="text-white">Loading video...</p>
+                        <p className="text-gray-400 text-sm mt-2">Source: {asset.file_url.split('/').pop()}</p>
+                        <p className="text-gray-300 text-xs mt-1">
+                          Ready State: {videoRef.current?.readyState || 0}/4
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
