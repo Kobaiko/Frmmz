@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -367,26 +366,43 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           </div>
         </div>
 
-        {/* Video Container - Takes remaining space */}
-        <div className="flex-1 relative bg-black overflow-hidden">
+        {/* Video Container - FIXED: Proper video display */}
+        <div className="flex-1 relative bg-black overflow-hidden min-h-0">
           {asset.file_type === 'video' ? (
-            <>
+            <div className="w-full h-full flex items-center justify-center relative">
+              {/* Main video element - FIXED: Direct video display */}
               <video
                 ref={videoRef}
-                key={asset.id}
                 src={asset.file_url}
                 className="w-full h-full object-contain"
-                style={{ backgroundColor: '#000000' }}
+                style={{ 
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  backgroundColor: '#000000'
+                }}
                 playsInline
                 preload="metadata"
                 controls={false}
                 autoPlay={false}
                 crossOrigin="anonymous"
+                onLoadStart={() => console.log('🚀 Video load started')}
+                onLoadedMetadata={() => console.log('✅ Video metadata loaded')}
+                onCanPlay={() => console.log('▶️ Video can play')}
+                onError={(e) => {
+                  console.error('❌ Video error:', e);
+                  const target = e.target as HTMLVideoElement;
+                  if (target?.error) {
+                    console.error('Video error details:', {
+                      code: target.error.code,
+                      message: target.error.message
+                    });
+                  }
+                }}
               />
 
+              {/* Hidden preview video for timeline */}
               <video
                 ref={previewVideoRef}
-                key={`${asset.id}-preview`}
                 src={asset.file_url}
                 muted
                 playsInline
@@ -404,7 +420,18 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                   annotations={annotations}
                 />
               </div>
-            </>
+
+              {/* Loading indicator */}
+              {(!videoRef.current?.videoWidth || videoRef.current?.readyState < 2) && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
+                  <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-pink-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-white">Loading video...</p>
+                    <p className="text-gray-400 text-sm mt-2">Source: {asset.file_url.split('/').pop()}</p>
+                  </div>
+                </div>
+              )}
+            </div>
           ) : asset.file_type === 'image' ? (
             <div className="w-full h-full flex items-center justify-center">
               <img
