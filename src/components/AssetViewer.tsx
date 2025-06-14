@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -121,7 +120,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   // Video event handlers
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !asset?.file_url) return;
+    if (!video) return;
 
     const handleLoadedMetadata = () => {
       setDuration(video.duration);
@@ -163,17 +162,11 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     video.addEventListener('loadstart', handleLoadStart);
     video.addEventListener('error', handleError);
 
-    // Set video properties and source
+    // Set video properties
     video.volume = volume;
     video.playbackRate = playbackSpeed;
     video.loop = isLooping;
     video.muted = false;
-    
-    // Set the source and force load
-    video.src = asset.file_url;
-    video.load();
-    
-    console.log('🎬 Setting video source:', asset.file_url);
 
     return () => {
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
@@ -184,7 +177,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
       video.removeEventListener('loadstart', handleLoadStart);
       video.removeEventListener('error', handleError);
     };
-  }, [asset?.file_url, volume, playbackSpeed, isLooping]);
+  }, [asset?.id, volume, playbackSpeed, isLooping]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -461,6 +454,8 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             <>
               <video
                 ref={videoRef}
+                key={asset.id}
+                src={asset.file_url}
                 className="absolute inset-0 w-full h-full object-contain"
                 style={{ backgroundColor: '#000000' }}
                 playsInline
@@ -472,6 +467,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
               <video
                 ref={previewVideoRef}
+                key={`${asset.id}-preview`}
                 src={asset.file_url}
                 muted
                 playsInline
@@ -527,6 +523,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
               onTimeClick={handleSeek}
               previewVideoRef={previewVideoRef}
               timeFormat={timeFormat}
+              assetId={asset.id}
             />
             <VideoControls
               isPlaying={isPlaying}

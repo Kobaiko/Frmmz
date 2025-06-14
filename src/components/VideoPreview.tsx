@@ -2,6 +2,7 @@
 import { useRef, useState, useEffect } from "react";
 
 interface VideoPreviewProps {
+  assetId: string;
   previewVideoRef: React.RefObject<HTMLVideoElement>;
   isHovering: boolean;
   hoverTime: number;
@@ -10,6 +11,7 @@ interface VideoPreviewProps {
 }
 
 export const VideoPreview = ({ 
+  assetId,
   previewVideoRef, 
   isHovering, 
   hoverTime, 
@@ -55,19 +57,28 @@ export const VideoPreview = ({
     if (!ctx) return;
 
     const onSeeked = () => {
-      canvas.width = 160;
-      canvas.height = 90;
-      ctx.drawImage(video, 0, 0, 160, 90);
-      setPreviewFrame(canvas.toDataURL());
+      try {
+        canvas.width = 160;
+        canvas.height = 90;
+        ctx.drawImage(video, 0, 0, 160, 90);
+        setPreviewFrame(canvas.toDataURL());
+      } catch (err) {
+        console.error("Failed to generate video preview frame:", err);
+        setPreviewFrame('');
+      }
     };
 
     video.addEventListener('seeked', onSeeked, { once: true });
-    video.currentTime = hoverTime;
+    
+    const seekTime = Math.max(0, Math.min(hoverTime, video.duration || duration));
+    if (isFinite(seekTime) && video.currentTime !== seekTime) {
+      video.currentTime = seekTime;
+    }
 
     return () => {
       video.removeEventListener('seeked', onSeeked);
     };
-  }, [isHovering, hoverTime, previewVideoRef]);
+  }, [isHovering, hoverTime, previewVideoRef, assetId, duration]);
 
   return (
     <>
@@ -81,6 +92,7 @@ export const VideoPreview = ({
             src={previewFrame} 
             alt="Frame preview"
             className="rounded-t-lg w-40 h-auto border-b border-gray-700"
+            crossOrigin="anonymous"
           />
           <div className="px-3 py-2 text-center font-mono">
             {formatTimeByFormat(hoverTime)}
@@ -90,3 +102,4 @@ export const VideoPreview = ({
     </>
   );
 };
+

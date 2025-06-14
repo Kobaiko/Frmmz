@@ -12,6 +12,7 @@ interface VideoTimelineProps {
   onTimeClick: (time: number) => void;
   previewVideoRef: React.RefObject<HTMLVideoElement>;
   timeFormat: 'timecode' | 'frames' | 'standard';
+  assetId: string;
 }
 
 export const VideoTimeline = ({ 
@@ -20,7 +21,8 @@ export const VideoTimeline = ({
   comments, 
   onTimeClick, 
   previewVideoRef, 
-  timeFormat 
+  timeFormat,
+  assetId
 }: VideoTimelineProps) => {
   const [isHovering, setIsHovering] = useState(false);
   const [hoverTime, setHoverTime] = useState(0);
@@ -72,6 +74,7 @@ export const VideoTimeline = ({
   return (
     <div className="mb-4 relative">
       <VideoPreview
+        assetId={assetId}
         previewVideoRef={previewVideoRef}
         isHovering={isHovering}
         hoverTime={hoverTime}
@@ -184,3 +187,4 @@ export const VideoTimeline = ({
     </div>
   );
 };
+
