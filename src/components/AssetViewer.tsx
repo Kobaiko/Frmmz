@@ -129,25 +129,44 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     }
   }, [asset?.file_url]);
 
-  // Monitor video loading state - FIXED: Simplified and more reliable
+  // Monitor video loading state - FIXED: Simplified detection
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !asset?.file_url) return;
 
+    const checkVideoReady = () => {
+      const isReady = video.readyState >= 3 && video.videoWidth > 0 && video.videoHeight > 0;
+      console.log('🎯 Video ready check:', {
+        readyState: video.readyState,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        isReady
+      });
+      
+      if (isReady) {
+        console.log('✅ Video is ready - setting videoLoaded to true');
+        setVideoLoaded(true);
+        setVideoError(false);
+      }
+    };
+
     const handleLoadedData = () => {
-      console.log('✅ Video data loaded - setting videoLoaded to true');
-      setVideoLoaded(true);
-      setVideoError(false);
+      console.log('✅ Video loadeddata event');
+      checkVideoReady();
     };
 
     const handleCanPlay = () => {
-      console.log('▶️ Video can play - setting videoLoaded to true');
-      setVideoLoaded(true);
-      setVideoError(false);
+      console.log('▶️ Video canplay event');
+      checkVideoReady();
+    };
+
+    const handleLoadedMetadata = () => {
+      console.log('📊 Video loadedmetadata event');
+      checkVideoReady();
     };
 
     const handleError = (e: Event) => {
-      console.error('❌ Video error - setting videoError to true');
+      console.error('❌ Video error:', e);
       setVideoError(true);
       setVideoLoaded(false);
     };
@@ -155,18 +174,16 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     // Add event listeners
     video.addEventListener('loadeddata', handleLoadedData);
     video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('error', handleError);
 
     // Check current state immediately
-    if (video.readyState >= 2) { // HAVE_CURRENT_DATA or higher
-      console.log('🎯 Video already loaded on mount - setting videoLoaded to true');
-      setVideoLoaded(true);
-      setVideoError(false);
-    }
+    checkVideoReady();
 
     return () => {
       video.removeEventListener('loadeddata', handleLoadedData);
       video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('error', handleError);
     };
   }, [asset?.file_url, videoRef.current]);
@@ -423,27 +440,19 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         <div className="flex-1 bg-black flex items-center justify-center relative overflow-hidden">
           {asset.file_type === 'video' ? (
             <div className="w-full h-full flex items-center justify-center relative">
-              {/* Video element - FIXED: Always visible, no conditional rendering */}
+              {/* Video element - Always rendered, visibility controlled by overlay */}
               <video
                 ref={videoRef}
                 src={asset.file_url}
-                className="max-w-full max-h-full object-contain"
+                className="w-full h-full object-contain"
                 playsInline
                 preload="metadata"
                 controls={false}
                 crossOrigin="anonymous"
-                onLoadStart={() => {
-                  console.log('🚀 Video load started');
-                }}
-                onLoadedMetadata={() => {
-                  console.log('✅ Video metadata loaded');
-                }}
-                onCanPlay={() => {
-                  console.log('▶️ Video can play');
-                }}
-                onError={(e) => {
-                  console.error('❌ Video error:', e);
-                }}
+                onLoadStart={() => console.log('🚀 Video load started')}
+                onLoadedMetadata={() => console.log('✅ Video metadata loaded')}
+                onCanPlay={() => console.log('▶️ Video can play')}
+                onError={(e) => console.error('❌ Video error:', e)}
               />
 
               {/* Hidden preview video for timeline */}
@@ -467,7 +476,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                 />
               </div>
 
-              {/* FIXED: Proper loading/error overlay logic */}
+              {/* FIXED: Only show loading when video is NOT loaded and there's NO error */}
               {!videoLoaded && !videoError && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-30">
                   <div className="text-center">
@@ -479,6 +488,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                     </p>
                     <p className="text-gray-300 text-xs">
                       Video Loaded: {videoLoaded ? 'Yes' : 'No'}
+                    </p>
+                    <p className="text-gray-300 text-xs">
+                      Video Size: {videoRef.current?.videoWidth || 0}x{videoRef.current?.videoHeight || 0}
                     </p>
                   </div>
                 </div>
@@ -509,7 +521,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                 </div>
               )}
 
-              {/* Success indicator - only shows when loaded */}
+              {/* Success indicator - only shows when loaded and no error */}
               {videoLoaded && !videoError && (
                 <div className="absolute top-4 left-4 z-20 bg-green-600/80 text-white p-2 rounded text-xs">
                   ✅ Video Ready: {videoRef.current?.videoWidth || 0}x{videoRef.current?.videoHeight || 0}
