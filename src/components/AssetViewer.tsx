@@ -329,11 +329,11 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   }
 
   return (
-    <div className="h-screen bg-black text-white flex overflow-hidden">
+    <div className="fixed inset-0 bg-black text-white flex overflow-hidden">
       {/* Main Content Area */}
       <div className="flex flex-col flex-1">
         {/* Header */}
-        <div className="border-b border-gray-800 px-6 py-4 bg-black">
+        <div className="border-b border-gray-800 px-6 py-4 bg-black flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Button
@@ -396,7 +396,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           </div>
         </div>
 
-        {/* Video Container - Full height minus header and controls */}
+        {/* Video Container - Takes remaining space */}
         <div className="flex-1 relative bg-black overflow-hidden">
           {asset.file_type === 'video' ? (
             <>
@@ -459,9 +459,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           )}
         </div>
 
-        {/* Video Controls - ALWAYS SHOW for video files */}
+        {/* Video Controls - Fixed at bottom */}
         {asset.file_type === 'video' && (
-          <div className="bg-gray-900 border-t border-gray-700 p-4">
+          <div className="bg-gray-900 border-t border-gray-700 p-4 flex-shrink-0">
             {/* Timeline */}
             <div className="mb-4">
               <VideoTimeline
@@ -535,7 +535,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
       {/* Comments Panel */}
       {showComments && (
-        <div className="w-80 border-l border-gray-700 bg-gray-900">
+        <div className="w-80 border-l border-gray-700 bg-gray-900 flex-shrink-0">
           <CommentPanel
             comments={comments}
             currentTime={currentTime}
