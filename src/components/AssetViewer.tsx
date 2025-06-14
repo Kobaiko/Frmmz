@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { VideoControls } from "./VideoControls";
+import { SimpleVideoControls } from "./SimpleVideoControls";
 import { DrawingCanvas } from "./DrawingCanvas";
 import { CommentPanel } from "./CommentPanel";
 import { supabase } from "@/integrations/supabase/client";
@@ -513,53 +513,32 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           )}
         </div>
 
-        {/* Video Controls - Fixed at bottom */}
+        {/* SIMPLIFIED Video Controls - Fixed at bottom */}
         {asset.file_type === 'video' && duration > 0 && (
-          <div className="bg-gray-900 border-t-2 border-yellow-400 p-4 flex-shrink-0">
-            <VideoTimeline
-              currentTime={currentTime}
-              duration={duration}
-              comments={comments}
-              onTimeClick={handleSeek}
-              previewVideoRef={previewVideoRef}
-              timeFormat={timeFormat}
-              assetId={asset.id}
-            />
-            <VideoControls
+          <div className="bg-red-900 border-t-4 border-yellow-400 p-6 flex-shrink-0 min-h-[200px]">
+            <div className="text-yellow-400 text-lg font-bold mb-4">🎮 VIDEO CONTROLS SECTION 🎮</div>
+            
+            {/* Timeline */}
+            <div className="mb-4">
+              <VideoTimeline
+                currentTime={currentTime}
+                duration={duration}
+                comments={comments}
+                onTimeClick={handleSeek}
+                previewVideoRef={previewVideoRef}
+                timeFormat={timeFormat}
+                assetId={asset.id}
+              />
+            </div>
+            
+            {/* Simple Video Controls */}
+            <SimpleVideoControls
               isPlaying={isPlaying}
               onTogglePlayPause={togglePlayPause}
-              isLooping={isLooping}
-              onToggleLoop={toggleLoop}
-              playbackSpeed={playbackSpeed}
-              onSpeedChange={handleSpeedChange}
               volume={volume}
               onVolumeToggle={handleVolumeToggle}
-              onVolumeChange={handleVolumeChange}
               currentTime={currentTime}
               duration={duration}
-              timeFormat={timeFormat}
-              onTimeFormatChange={setTimeFormat}
-              quality="1080p"
-              availableQualities={['1080p', '720p', '480p']}
-              onQualityChange={() => {}}
-              guides={guides}
-              onGuidesToggle={() => setGuides(prev => ({ ...prev, enabled: !prev.enabled }))}
-              onGuidesRatioChange={(ratio) => setGuides(prev => ({ ...prev, ratio }))}
-              onGuidesMaskToggle={() => setGuides(prev => ({ ...prev, mask: !prev.mask }))}
-              zoom={zoom}
-              onZoomChange={setZoom}
-              encodeComments={encodeComments}
-              setEncodeComments={setEncodeComments}
-              annotations={annotations}
-              setAnnotations={setAnnotations}
-              onSetFrameAsThumb={() => console.log('Set frame as thumbnail')}
-              onDownloadStill={() => console.log('Download still')}
-              onToggleFullscreen={() => {
-                if (videoRef.current) {
-                  videoRef.current.requestFullscreen();
-                }
-              }}
-              formatTime={formatTime}
             />
           </div>
         )}
