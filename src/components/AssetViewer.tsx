@@ -12,7 +12,9 @@ import {
   ArrowLeft, 
   Download, 
   Share2, 
-  FileVideo
+  FileVideo,
+  AlertCircle,
+  RefreshCw
 } from "lucide-react";
 
 interface Asset {
@@ -43,8 +45,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [annotations, setAnnotations] = useState(true);
   const [userName, setUserName] = useState<string>('Kivaiko');
   const [loading, setLoading] = useState(true);
-  const [videoError, setVideoError] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoDebugInfo, setVideoDebugInfo] = useState<any>({});
   const [guides, setGuides] = useState({
     enabled: false,
     ratio: '16:9',
@@ -120,71 +123,113 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     fetchAsset();
   }, [assetId]);
 
-  // Reset video state when asset changes
-  useEffect(() => {
-    if (asset?.file_url) {
-      console.log('🔄 Asset changed, resetting video state');
-      setVideoLoaded(false);
-      setVideoError(false);
-    }
-  }, [asset?.file_url]);
-
-  // Monitor video loading state - FIXED: Simplified detection
+  // Enhanced video monitoring with detailed debugging
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !asset?.file_url) return;
 
-    const checkVideoReady = () => {
-      const isReady = video.readyState >= 3 && video.videoWidth > 0 && video.videoHeight > 0;
-      console.log('🎯 Video ready check:', {
+    console.log('🎬 Setting up video monitoring for:', asset.file_url);
+
+    const updateDebugInfo = () => {
+      const debugInfo = {
+        src: video.src,
         readyState: video.readyState,
         videoWidth: video.videoWidth,
         videoHeight: video.videoHeight,
-        isReady
-      });
+        duration: video.duration,
+        currentTime: video.currentTime,
+        paused: video.paused,
+        ended: video.ended,
+        networkState: video.networkState,
+        error: video.error ? {
+          code: video.error.code,
+          message: video.error.message
+        } : null
+      };
       
-      if (isReady) {
-        console.log('✅ Video is ready - setting videoLoaded to true');
+      console.log('📊 Video Debug Info:', debugInfo);
+      setVideoDebugInfo(debugInfo);
+      
+      // Video is ready when it has metadata and dimensions
+      const isReady = video.readyState >= 1 && video.videoWidth > 0 && video.videoHeight > 0;
+      
+      if (isReady && !videoLoaded) {
+        console.log('✅ Video is now ready!');
         setVideoLoaded(true);
-        setVideoError(false);
+        setVideoError(null);
       }
     };
 
-    const handleLoadedData = () => {
-      console.log('✅ Video loadeddata event');
-      checkVideoReady();
-    };
-
-    const handleCanPlay = () => {
-      console.log('▶️ Video canplay event');
-      checkVideoReady();
+    const handleLoadStart = () => {
+      console.log('🚀 Video load started');
+      setVideoLoaded(false);
+      setVideoError(null);
+      updateDebugInfo();
     };
 
     const handleLoadedMetadata = () => {
-      console.log('📊 Video loadedmetadata event');
-      checkVideoReady();
+      console.log('📊 Video metadata loaded');
+      updateDebugInfo();
+    };
+
+    const handleLoadedData = () => {
+      console.log('📦 Video data loaded');
+      updateDebugInfo();
+    };
+
+    const handleCanPlay = () => {
+      console.log('▶️ Video can play');
+      updateDebugInfo();
+    };
+
+    const handleCanPlayThrough = () => {
+      console.log('🎯 Video can play through');
+      updateDebugInfo();
     };
 
     const handleError = (e: Event) => {
-      console.error('❌ Video error:', e);
-      setVideoError(true);
+      console.error('❌ Video error event:', e);
+      const errorMsg = video.error ? 
+        `Error ${video.error.code}: ${video.error.message}` : 
+        'Unknown video error';
+      console.error('❌ Video error details:', errorMsg);
+      setVideoError(errorMsg);
       setVideoLoaded(false);
+      updateDebugInfo();
     };
 
-    // Add event listeners
+    const handleStalled = () => {
+      console.warn('⏸️ Video stalled');
+      updateDebugInfo();
+    };
+
+    const handleWaiting = () => {
+      console.warn('⏳ Video waiting');
+      updateDebugInfo();
+    };
+
+    // Add all event listeners
+    video.addEventListener('loadstart', handleLoadStart);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('loadeddata', handleLoadedData);
     video.addEventListener('canplay', handleCanPlay);
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('canplaythrough', handleCanPlayThrough);
     video.addEventListener('error', handleError);
+    video.addEventListener('stalled', handleStalled);
+    video.addEventListener('waiting', handleWaiting);
 
-    // Check current state immediately
-    checkVideoReady();
+    // Initial debug info
+    updateDebugInfo();
 
     return () => {
+      video.removeEventListener('loadstart', handleLoadStart);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('loadeddata', handleLoadedData);
       video.removeEventListener('canplay', handleCanPlay);
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('canplaythrough', handleCanPlayThrough);
       video.removeEventListener('error', handleError);
+      video.removeEventListener('stalled', handleStalled);
+      video.removeEventListener('waiting', handleWaiting);
     };
   }, [asset?.file_url, videoRef.current]);
 
@@ -340,6 +385,15 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     }
   };
 
+  const handleRetryVideo = () => {
+    console.log('🔄 Retrying video load...');
+    setVideoError(null);
+    setVideoLoaded(false);
+    if (videoRef.current) {
+      videoRef.current.load();
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -440,19 +494,19 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         <div className="flex-1 bg-black flex items-center justify-center relative overflow-hidden">
           {asset.file_type === 'video' ? (
             <div className="w-full h-full flex items-center justify-center relative">
-              {/* Video element - Always rendered, visibility controlled by overlay */}
+              {/* Video element */}
               <video
                 ref={videoRef}
                 src={asset.file_url}
-                className="w-full h-full object-contain"
+                className="max-w-full max-h-full object-contain"
                 playsInline
                 preload="metadata"
                 controls={false}
                 crossOrigin="anonymous"
-                onLoadStart={() => console.log('🚀 Video load started')}
-                onLoadedMetadata={() => console.log('✅ Video metadata loaded')}
-                onCanPlay={() => console.log('▶️ Video can play')}
-                onError={(e) => console.error('❌ Video error:', e)}
+                style={{ 
+                  display: videoLoaded ? 'block' : 'none',
+                  backgroundColor: 'transparent'
+                }}
               />
 
               {/* Hidden preview video for timeline */}
@@ -467,64 +521,72 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
               />
               
               {/* Drawing canvas overlay */}
-              <div className="absolute inset-0 pointer-events-none z-10">
-                <DrawingCanvas
-                  currentTime={currentTime}
-                  videoRef={videoRef}
-                  isDrawingMode={isDrawingMode}
-                  annotations={annotations}
-                />
-              </div>
+              {videoLoaded && (
+                <div className="absolute inset-0 pointer-events-none z-10">
+                  <DrawingCanvas
+                    currentTime={currentTime}
+                    videoRef={videoRef}
+                    isDrawingMode={isDrawingMode}
+                    annotations={annotations}
+                  />
+                </div>
+              )}
 
-              {/* FIXED: Only show loading when video is NOT loaded and there's NO error */}
+              {/* Loading overlay */}
               {!videoLoaded && !videoError && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-30">
-                  <div className="text-center">
+                <div className="absolute inset-0 flex items-center justify-center bg-black z-30">
+                  <div className="text-center max-w-md">
                     <div className="w-12 h-12 border-4 border-pink-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-white">Loading video...</p>
-                    <p className="text-gray-400 text-sm mt-2">Source: {asset.file_url.split('/').pop()}</p>
-                    <p className="text-gray-300 text-xs mt-1">
-                      Ready State: {videoRef.current?.readyState || 0}/4
-                    </p>
-                    <p className="text-gray-300 text-xs">
-                      Video Loaded: {videoLoaded ? 'Yes' : 'No'}
-                    </p>
-                    <p className="text-gray-300 text-xs">
-                      Video Size: {videoRef.current?.videoWidth || 0}x{videoRef.current?.videoHeight || 0}
-                    </p>
+                    <p className="text-white mb-2">Loading video...</p>
+                    <p className="text-gray-400 text-sm mb-4">{asset.name}</p>
+                    
+                    {/* Debug information */}
+                    <div className="bg-gray-800 rounded p-3 text-xs text-left">
+                      <p className="text-green-400 mb-1">✅ Video URL: {asset.file_url.split('/').pop()}</p>
+                      <p className="text-blue-400 mb-1">📊 Ready State: {videoDebugInfo.readyState || 0}/4</p>
+                      <p className="text-purple-400 mb-1">📐 Dimensions: {videoDebugInfo.videoWidth || 0}x{videoDebugInfo.videoHeight || 0}</p>
+                      <p className="text-yellow-400">⏱️ Duration: {videoDebugInfo.duration || 'Unknown'}</p>
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* Error overlay */}
               {videoError && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-30">
-                  <div className="text-center">
+                <div className="absolute inset-0 flex items-center justify-center bg-black z-30">
+                  <div className="text-center max-w-md">
                     <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <FileVideo className="h-6 w-6 text-white" />
+                      <AlertCircle className="h-6 w-6 text-white" />
                     </div>
                     <p className="text-white mb-2">Video failed to load</p>
-                    <p className="text-gray-400 text-sm">Check the video file and try again</p>
-                    <Button 
-                      onClick={() => {
-                        setVideoError(false);
-                        setVideoLoaded(false);
-                        if (videoRef.current) {
-                          videoRef.current.load();
-                        }
-                      }}
-                      className="mt-4 bg-pink-600 hover:bg-pink-700"
-                    >
-                      Retry
-                    </Button>
+                    <p className="text-gray-400 text-sm mb-4">{videoError}</p>
+                    
+                    {/* Debug information */}
+                    <div className="bg-gray-800 rounded p-3 text-xs text-left mb-4">
+                      <p className="text-red-400 mb-1">❌ Error: {videoError}</p>
+                      <p className="text-gray-400 mb-1">📁 File: {asset.name}</p>
+                      <p className="text-gray-400 mb-1">🔗 URL: {asset.file_url}</p>
+                      <p className="text-gray-400">📏 Size: {Math.round(asset.file_size / 1024 / 1024)} MB</p>
+                    </div>
+                    
+                    <div className="flex space-x-2 justify-center">
+                      <Button 
+                        onClick={handleRetryVideo}
+                        className="bg-pink-600 hover:bg-pink-700"
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Retry
+                      </Button>
+                      <Button 
+                        onClick={() => window.open(asset.file_url, '_blank')}
+                        variant="outline"
+                        className="border-gray-600 text-gray-300"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )}
-
-              {/* Success indicator - only shows when loaded and no error */}
-              {videoLoaded && !videoError && (
-                <div className="absolute top-4 left-4 z-20 bg-green-600/80 text-white p-2 rounded text-xs">
-                  ✅ Video Ready: {videoRef.current?.videoWidth || 0}x{videoRef.current?.videoHeight || 0}
                 </div>
               )}
             </div>
@@ -554,7 +616,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         </div>
 
         {/* Enhanced Video Controls - Fixed at bottom */}
-        {asset.file_type === 'video' && (
+        {asset.file_type === 'video' && videoLoaded && (
           <div className="bg-gray-900 border-t border-gray-700 p-4 flex-shrink-0">
             {/* Enhanced Timeline */}
             <div className="mb-4">
