@@ -84,20 +84,68 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
       isPlaying: videoPlayer.isPlaying,
       duration: videoPlayer.duration,
       currentTime: props.currentTime,
-      videoRef: videoPlayer.videoRef?.current ? 'exists' : 'null'
+      videoRef: videoPlayer.videoRef?.current ? 'exists' : 'null',
+      videoSrc: props.src
     });
-  }, [videoPlayer.isPlaying, videoPlayer.duration, props.currentTime]);
+    
+    // Check if video element exists and log its properties
+    if (videoPlayer.videoRef?.current) {
+      const video = videoPlayer.videoRef.current;
+      console.log('📺 Video element properties:', {
+        src: video.src,
+        readyState: video.readyState,
+        networkState: video.networkState,
+        error: video.error,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight
+      });
+    }
+  }, [videoPlayer.isPlaying, videoPlayer.duration, props.currentTime, props.src]);
 
   return (
     <div className="flex h-screen bg-black">
       {/* Main Video Area */}
       <div className="flex-1 flex flex-col">
-        {/* Video Player Container */}
-        <div className="flex-1 relative bg-gray-900">
-          <VideoPlayer {...props} />
+        {/* Video Player Container - FIXED: Better video display */}
+        <div className="flex-1 flex items-center justify-center bg-black relative">
+          {/* Main video element with proper styling */}
+          <video
+            ref={videoPlayer.videoRef}
+            className="max-w-full max-h-full w-auto h-auto"
+            style={{ 
+              display: 'block',
+              backgroundColor: '#000000',
+              objectFit: 'contain'
+            }}
+            controls={false}
+            playsInline
+            crossOrigin="anonymous"
+            onLoadStart={() => console.log('🚀 Video load started')}
+            onLoadedMetadata={() => console.log('✅ Video metadata loaded')}
+            onCanPlay={() => console.log('▶️ Video can play')}
+            onError={(e) => {
+              console.error('❌ Video error:', e);
+              const target = e.target as HTMLVideoElement;
+              if (target?.error) {
+                console.error('Video error details:', {
+                  code: target.error.code,
+                  message: target.error.message
+                });
+              }
+            }}
+          />
+          
+          {/* Hidden preview video for thumbnails */}
+          <video
+            ref={videoPlayer.previewVideoRef}
+            className="hidden"
+            muted
+            playsInline
+            crossOrigin="anonymous"
+          />
           
           {/* Video Overlay Info */}
-          <div className="absolute top-4 left-4 flex items-center space-x-2">
+          <div className="absolute top-4 left-4 flex items-center space-x-2 z-10">
             <Badge className="bg-black/60 text-white border-gray-600">
               Fit
             </Badge>
@@ -109,7 +157,7 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
           </div>
 
           {/* Real-time Indicators */}
-          <div className="absolute top-4 right-4 flex items-center space-x-2">
+          <div className="absolute top-4 right-4 flex items-center space-x-2 z-10">
             <div className="bg-black/60 text-white px-2 py-1 rounded flex items-center space-x-1">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
               <span className="text-xs">Live</span>
@@ -118,46 +166,51 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
               3 viewers
             </Badge>
           </div>
+
+          {/* Loading indicator if video is not ready */}
+          {!videoPlayer.videoRef?.current?.videoWidth && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+              <div className="text-center">
+                <div className="w-12 h-12 border-4 border-pink-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-white">Loading video...</p>
+                <p className="text-gray-400 text-sm">{props.src}</p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* FIXED Controls Section - ALWAYS VISIBLE with bright background */}
-        <div className="bg-red-900 border-t-4 border-yellow-500 p-6 space-y-6 flex-shrink-0 min-h-[250px]">
-          <div className="text-yellow-400 text-lg font-bold mb-4">🚨 CONTROLS SECTION - THIS SHOULD BE VISIBLE 🚨</div>
-          
+        {/* Controls Section - Always visible */}
+        <div className="bg-gray-900 border-t border-gray-700 p-4 space-y-4 flex-shrink-0">
           {/* Debug Info */}
-          <div className="bg-blue-900 p-4 rounded text-white">
-            <div className="text-sm">Debug Info:</div>
-            <div className="text-xs">isPlaying: {String(videoPlayer.isPlaying)}</div>
-            <div className="text-xs">duration: {videoPlayer.duration}</div>
-            <div className="text-xs">currentTime: {props.currentTime}</div>
+          <div className="bg-gray-800 p-3 rounded text-white text-sm">
+            <div className="grid grid-cols-4 gap-4">
+              <div>Playing: {String(videoPlayer.isPlaying)}</div>
+              <div>Duration: {videoPlayer.duration.toFixed(1)}s</div>
+              <div>Current: {props.currentTime.toFixed(1)}s</div>
+              <div>Source: {props.src ? 'Set' : 'Missing'}</div>
+            </div>
           </div>
           
           {/* Timeline */}
-          <div className="bg-green-900 p-4 rounded">
-            <div className="text-white text-sm mb-2">Timeline Component:</div>
-            <VideoTimeline
-              currentTime={props.currentTime}
-              duration={videoPlayer.duration}
-              comments={props.comments}
-              onTimeClick={props.onTimeClick}
-              previewVideoRef={videoPlayer.previewVideoRef}
-              timeFormat={videoPlayer.timeFormat}
-              assetId={props.src}
-            />
-          </div>
+          <VideoTimeline
+            currentTime={props.currentTime}
+            duration={videoPlayer.duration}
+            comments={props.comments}
+            onTimeClick={props.onTimeClick}
+            previewVideoRef={videoPlayer.previewVideoRef}
+            timeFormat={videoPlayer.timeFormat}
+            assetId={props.src}
+          />
           
           {/* Simple Video Controls */}
-          <div className="bg-purple-900 p-4 rounded">
-            <div className="text-white text-sm mb-2">Simple Video Controls:</div>
-            <SimpleVideoControls
-              isPlaying={videoPlayer.isPlaying}
-              onTogglePlayPause={videoPlayer.togglePlayPause}
-              volume={videoPlayer.volume}
-              onVolumeToggle={videoPlayer.handleVolumeToggle}
-              currentTime={props.currentTime}
-              duration={videoPlayer.duration}
-            />
-          </div>
+          <SimpleVideoControls
+            isPlaying={videoPlayer.isPlaying}
+            onTogglePlayPause={videoPlayer.togglePlayPause}
+            volume={videoPlayer.volume}
+            onVolumeToggle={videoPlayer.handleVolumeToggle}
+            currentTime={props.currentTime}
+            duration={videoPlayer.duration}
+          />
         </div>
       </div>
 
