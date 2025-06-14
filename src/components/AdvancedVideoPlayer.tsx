@@ -123,6 +123,7 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
             onTimeClick={props.onTimeClick}
             previewVideoRef={videoPlayer.previewVideoRef}
             timeFormat={videoPlayer.timeFormat}
+            assetId={props.src}
           />
         </div>
       </div>
