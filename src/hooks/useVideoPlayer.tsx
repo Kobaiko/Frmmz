@@ -1,205 +1,216 @@
-import { useEffect, useRef, useState } from "react";
+
+import { useEffect, useRef, useState, useCallback } from "react";
 
 interface UseVideoPlayerProps {
   src: string;
-  currentTime: number;
-  onTimeUpdate: (time: number) => void;
-  onDurationChange?: (duration: number) => void;
 }
 
-export const useVideoPlayer = ({ 
-  src, 
-  currentTime, 
-  onTimeUpdate, 
-  onDurationChange 
-}: UseVideoPlayerProps) => {
+export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
   const animationFrameRef = useRef<number>();
-  const [duration, setDuration] = useState<number>(0);
+
+  // Core player state
   const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState<number>(0);
+  const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(1);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [quality, setQuality] = useState('1080p');
-  const [availableQualities, setAvailableQualities] = useState<string[]>(['1080p', '720p', '540p', '360p']);
-  const [maxQuality, setMaxQuality] = useState('1080p');
   const [isLooping, setIsLooping] = useState(false);
+
+  // Quality and format state
+  const [quality, setQuality] = useState('1080p');
+  const [availableQualities, setAvailableQualities] = useState<string[]>(['1080p']);
+  const [maxQuality, setMaxQuality] = useState('1080p');
   const [timeFormat, setTimeFormat] = useState<'timecode' | 'frames' | 'seconds'>('timecode');
 
-  // High-frequency time update for frame-accurate display
-  const updateTime = () => {
+  // Loading and error state
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
+  const [videoDebugInfo, setVideoDebugInfo] = useState<any>({});
+  const [loadingAttempts, setLoadingAttempts] = useState(0);
+  const [useDirectPlayback, setUseDirectPlayback] = useState(false);
+  
+  const updateDebugInfo = useCallback(() => {
     const video = videoRef.current;
-    if (video && !video.paused) {
-      onTimeUpdate(video.currentTime);
-      animationFrameRef.current = requestAnimationFrame(updateTime);
-    }
-  };
+    if (!video) return;
+    
+    const debugInfo = {
+      src: video.src,
+      readyState: video.readyState,
+      videoWidth: video.videoWidth,
+      videoHeight: video.videoHeight,
+      duration: video.duration,
+      currentTime: video.currentTime,
+      paused: video.paused,
+      ended: video.ended,
+      networkState: video.networkState,
+      canPlayType: {
+        mp4: video.canPlayType('video/mp4'),
+        webm: video.canPlayType('video/webm'),
+        ogg: video.canPlayType('video/ogg')
+      },
+      error: video.error ? { code: video.error.code, message: video.error.message } : null,
+      crossOrigin: video.crossOrigin,
+      loadingAttempts
+    };
+    
+    console.log('📊 Video Debug Info:', debugInfo);
+    setVideoDebugInfo(debugInfo);
+  }, [loadingAttempts]);
 
   useEffect(() => {
     const video = videoRef.current;
-    const previewVideo = previewVideoRef.current;
-    if (!video) return;
+    if (!video || !src || useDirectPlayback) return;
 
-    console.log('🎬 Loading video source:', src);
+    console.log('🎬 Setting up video monitoring for:', src);
+    setVideoLoaded(false);
+    setVideoError(null);
+    setLoadingAttempts(prev => prev + 1);
 
+    const metadataTimeout = setTimeout(() => {
+      if (video.readyState < 1) { // HAVE_METADATA is 1
+        console.error('⏰ Video metadata loading timeout');
+        setVideoError('Video format may not be supported or loading timed out.');
+      }
+    }, 5000);
+
+    const updateTime = () => {
+      if (video && !video.paused) {
+        setCurrentTime(video.currentTime);
+        animationFrameRef.current = requestAnimationFrame(updateTime);
+      }
+    };
+    
+    const handlePlay = () => {
+      setIsPlaying(true);
+      animationFrameRef.current = requestAnimationFrame(updateTime);
+    };
+
+    const handlePause = () => {
+      setIsPlaying(false);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+    
+    const handleTimeUpdate = () => {
+      if (!isPlaying) {
+        setCurrentTime(video.currentTime);
+      }
+    };
+    
     const handleLoadedMetadata = () => {
-      console.log('✅ Video metadata loaded successfully');
-      const videoDuration = video.duration;
-      setDuration(videoDuration);
-      
-      // Set up preview video
-      if (previewVideo) {
-        previewVideo.src = src;
-        previewVideo.muted = true;
-        console.log('🔗 Preview video source set');
+      console.log('📊 Video metadata loaded');
+      clearTimeout(metadataTimeout);
+      setDuration(video.duration);
+      if (previewVideoRef.current) {
+        previewVideoRef.current.src = src;
+        previewVideoRef.current.muted = true;
       }
       
-      // Determine max quality based on video resolution
       const videoHeight = video.videoHeight;
-      let maxQual = '360p';
-      let availableQuals = ['360p'];
-      
-      if (videoHeight >= 2160) {
-        maxQual = '2160p';
-        availableQuals = ['2160p', '1080p', '720p', '540p', '360p'];
-      } else if (videoHeight >= 1080) {
-        maxQual = '1080p';
-        availableQuals = ['1080p', '720p', '540p', '360p'];
-      } else if (videoHeight >= 720) {
-        maxQual = '720p';
-        availableQuals = ['720p', '540p', '360p'];
-      } else if (videoHeight >= 540) {
-        maxQual = '540p';
-        availableQuals = ['540p', '360p'];
-      }
+      let maxQual = '360p', availableQuals = ['360p'];
+      if (videoHeight >= 1080) { maxQual = '1080p'; availableQuals = ['1080p', '720p', '540p', '360p']; }
+      else if (videoHeight >= 720) { maxQual = '720p'; availableQuals = ['720p', '540p', '360p']; }
+      else if (videoHeight >= 540) { maxQual = '540p'; availableQuals = ['540p', '360p']; }
       
       setMaxQuality(maxQual);
       setQuality(maxQual);
       setAvailableQualities(availableQuals);
       
       console.log(`📺 Video resolution: ${video.videoWidth}x${videoHeight}, Max quality: ${maxQual}`);
-      
-      if (onDurationChange) {
-        onDurationChange(videoDuration);
-      }
-    };
-
-    const handleLoadStart = () => {
-      console.log('🚀 Video load started');
+      updateDebugInfo();
     };
 
     const handleCanPlay = () => {
-      console.log('✅ Video can play');
+      console.log('▶️ Video can play');
+      setVideoLoaded(true);
+      setVideoError(null);
+      clearTimeout(metadataTimeout);
+      updateDebugInfo();
     };
 
     const handleError = (e: Event) => {
-      console.error('❌ Video loading error:', e);
+      console.error('❌ Video error event:', e);
       const target = e.target as HTMLVideoElement;
-      if (target && target.error) {
-        console.error('Video error details:', {
-          code: target.error.code,
-          message: target.error.message,
-          networkState: target.networkState,
-          readyState: target.readyState
-        });
+      let errorMsg = 'Video format not supported by browser';
+      if (target?.error) {
+        switch (target.error.code) {
+          case 3: errorMsg = 'Video file is corrupted or in unsupported format'; break;
+          case 4: errorMsg = 'Video format not supported by this browser'; break;
+          default: errorMsg = `Video error: ${target.error.message || 'Unknown error'}`;
+        }
       }
-    };
-
-    const handleTimeUpdate = () => {
-      // Only use this for fallback when not using high-frequency updates
-      if (!isPlaying) {
-        onTimeUpdate(video.currentTime);
-      }
-    };
-
-    const handlePlay = () => {
-      setIsPlaying(true);
-      // Start high-frequency time updates for frame-accurate display
-      animationFrameRef.current = requestAnimationFrame(updateTime);
+      setVideoError(errorMsg);
+      setVideoLoaded(false);
+      clearTimeout(metadataTimeout);
+      updateDebugInfo();
     };
     
-    const handlePause = () => {
-      setIsPlaying(false);
-      // Stop high-frequency updates
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-    
-    video.addEventListener('loadstart', handleLoadStart);
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('error', handleError);
-    video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
+    video.addEventListener('timeupdate', handleTimeUpdate);
 
-    // Set video source with CORS attributes for external URLs
-    video.crossOrigin = 'anonymous';
-    video.src = src;
-    console.log('🔗 Video source set with CORS anonymous');
+    try {
+      video.crossOrigin = 'anonymous';
+      video.preload = 'metadata';
+      if (video.src !== src) {
+        video.src = src;
+      }
+      video.load();
+      console.log('🔗 Video source set and load() called');
+    } catch (err) {
+      console.error('❌ Error setting video source:', err);
+      setVideoError('Failed to load video');
+    }
+    
+    updateDebugInfo();
 
     return () => {
-      video.removeEventListener('loadstart', handleLoadStart);
+      clearTimeout(metadataTimeout);
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleError);
-      video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
-      
-      // Clean up animation frame
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
+      video.removeEventListener('timeupdate', handleTimeUpdate);
     };
-  }, [src, onTimeUpdate, onDurationChange]);
+  }, [src, useDirectPlayback, updateDebugInfo]);
 
-  // Simple loop effect - just set the loop attribute
   useEffect(() => {
     const video = videoRef.current;
-    if (video) {
-      video.loop = isLooping;
-      console.log(`Loop ${isLooping ? 'enabled' : 'disabled'}`);
-    }
+    if (video) video.loop = isLooping;
   }, [isLooping]);
 
-  // 🔥 FIXED: Frame-accurate seeking for drawings! Changed threshold from 0.5 to 0.016 (1 frame at 60fps)
-  useEffect(() => {
+  const handleSeek = useCallback((time: number) => {
     const video = videoRef.current;
-    if (video && Math.abs(video.currentTime - currentTime) > 0.016) {
-      console.log(`🎯 FRAME-ACCURATE SEEK: ${video.currentTime.toFixed(3)}s → ${currentTime.toFixed(3)}s (diff: ${Math.abs(video.currentTime - currentTime).toFixed(3)}s)`);
-      video.currentTime = currentTime;
+    if (video && isFinite(time)) {
+      video.currentTime = time;
+      setCurrentTime(time);
     }
-  }, [currentTime]);
+  }, []);
 
-  const togglePlayPause = () => {
+  const togglePlayPause = useCallback(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (video) isPlaying ? video.pause() : video.play();
+  }, [isPlaying]);
 
-    if (isPlaying) {
-      video.pause();
-    } else {
-      video.play();
-    }
-  };
-
-  const toggleLoop = () => {
-    setIsLooping(prev => !prev);
-  };
-
-  const handleSpeedChange = (speeds: number[]) => {
+  const toggleLoop = useCallback(() => setIsLooping(prev => !prev), []);
+  
+  const handleSpeedChange = useCallback((speeds: number[]) => {
     const speed = speeds[0];
     setPlaybackSpeed(speed);
-    if (videoRef.current) {
-      videoRef.current.playbackRate = speed;
-    }
-  };
-
-  const handleVolumeToggle = () => {
+    if (videoRef.current) videoRef.current.playbackRate = speed;
+  }, []);
+  
+  const handleVolumeToggle = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-    
     if (video.muted || volume === 0) {
       video.muted = false;
       const newVolume = volume === 0 ? 0.5 : volume;
@@ -209,30 +220,42 @@ export const useVideoPlayer = ({
       video.muted = true;
       setVolume(0);
     }
-  };
-
-  const handleVolumeChange = (newVolume: number[]) => {
+  }, [volume]);
+  
+  const handleVolumeChange = useCallback((newVolume: number[]) => {
     const volumeValue = newVolume[0];
     setVolume(volumeValue);
     if (videoRef.current) {
       videoRef.current.volume = volumeValue;
       videoRef.current.muted = volumeValue === 0;
     }
-  };
-
-  const handleQualityChange = (newQuality: string) => {
+  }, []);
+  
+  const handleQualityChange = useCallback((newQuality: string) => {
     setQuality(newQuality);
-    if (videoRef.current) {
-      const currentTime = videoRef.current.currentTime;
-      console.log(`Quality changed to: ${newQuality}`);
-      videoRef.current.currentTime = currentTime;
+  }, []);
+  
+  const retryVideo = useCallback(() => {
+    setVideoError(null);
+    setUseDirectPlayback(false);
+    setLoadingAttempts(0);
+    const video = videoRef.current;
+    if (video) {
+      video.load();
     }
-  };
+  }, []);
+
+  const forceDirectPlayback = useCallback(() => {
+    setUseDirectPlayback(true);
+    setVideoError(null);
+  }, []);
 
   return {
     videoRef,
     previewVideoRef,
     duration,
+    currentTime,
+    setCurrentTime,
     isPlaying,
     volume,
     playbackSpeed,
@@ -242,11 +265,20 @@ export const useVideoPlayer = ({
     isLooping,
     timeFormat,
     setTimeFormat,
+    videoLoaded,
+    videoError,
+    videoDebugInfo,
+    useDirectPlayback,
+    loadingAttempts,
     togglePlayPause,
     toggleLoop,
     handleSpeedChange,
     handleVolumeToggle,
     handleVolumeChange,
-    handleQualityChange
+    handleQualityChange,
+    handleSeek,
+    retryVideo,
+    forceDirectPlayback
   };
 };
+

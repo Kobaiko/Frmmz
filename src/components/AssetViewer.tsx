@@ -41,18 +41,11 @@ interface AssetViewerProps {
 export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [asset, setAsset] = useState<Asset | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [currentTime, setCurrentTime] = useState(0);
   const [showComments, setShowComments] = useState(true);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [annotations, setAnnotations] = useState(true);
   const [userName, setUserName] = useState<string>('Kivaiko');
   const [loading, setLoading] = useState(true);
-  const [videoError, setVideoError] = useState<string | null>(null);
-  const [videoLoaded, setVideoLoaded] = useState(false);
-  const [videoDebugInfo, setVideoDebugInfo] = useState<any>({});
-  const [loadingAttempts, setLoadingAttempts] = useState(0);
-  const [corsError, setCorsError] = useState(false);
-  const [useDirectPlayback, setUseDirectPlayback] = useState(false);
   const [guides, setGuides] = useState({
     enabled: false,
     ratio: '16:9',
@@ -66,6 +59,8 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     videoRef,
     previewVideoRef,
     duration,
+    currentTime,
+    setCurrentTime,
     isPlaying,
     volume,
     playbackSpeed,
@@ -75,17 +70,22 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     isLooping,
     timeFormat,
     setTimeFormat,
+    videoLoaded,
+    videoError,
+    videoDebugInfo,
+    useDirectPlayback,
+    loadingAttempts,
     togglePlayPause,
     toggleLoop,
     handleSpeedChange,
     handleVolumeToggle,
     handleVolumeChange,
-    handleQualityChange
+    handleQualityChange,
+    handleSeek,
+    retryVideo,
+    forceDirectPlayback
   } = useVideoPlayer({
     src: asset?.file_url || '',
-    currentTime,
-    onTimeUpdate: setCurrentTime,
-    onDurationChange: (dur) => console.log('Duration:', dur)
   });
 
   useEffect(() => {
@@ -131,137 +131,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
     fetchAsset();
   }, [assetId]);
-
-  // Enhanced video monitoring with format detection and fallback
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !asset?.file_url || useDirectPlayback) return;
-
-    console.log('🎬 Setting up video monitoring for:', asset.file_url);
-    setLoadingAttempts(prev => prev + 1);
-    setCorsError(false);
-    setVideoError(null);
-
-    // Set aggressive timeout for metadata loading
-    const metadataTimeout = setTimeout(() => {
-      if (video.readyState === 0) {
-        console.error('⏰ Video metadata loading timeout - trying direct playback');
-        setVideoError('Video format may not be supported by this browser');
-        setUseDirectPlayback(true);
-      }
-    }, 5000);
-
-    const updateDebugInfo = () => {
-      const debugInfo = {
-        src: video.src,
-        readyState: video.readyState,
-        videoWidth: video.videoWidth,
-        videoHeight: video.videoHeight,
-        duration: video.duration,
-        currentTime: video.currentTime,
-        paused: video.paused,
-        ended: video.ended,
-        networkState: video.networkState,
-        canPlayType: {
-          mp4: video.canPlayType('video/mp4'),
-          webm: video.canPlayType('video/webm'),
-          ogg: video.canPlayType('video/ogg')
-        },
-        error: video.error ? {
-          code: video.error.code,
-          message: video.error.message
-        } : null,
-        crossOrigin: video.crossOrigin,
-        loadingAttempts
-      };
-      
-      console.log('📊 Video Debug Info:', debugInfo);
-      setVideoDebugInfo(debugInfo);
-      
-      // Check if video is ready
-      const isReady = video.readyState >= 2 && video.videoWidth > 0 && !video.error;
-      
-      if (isReady && !videoLoaded) {
-        console.log('✅ Video is ready!');
-        setVideoLoaded(true);
-        setVideoError(null);
-        clearTimeout(metadataTimeout);
-      }
-    };
-
-    const handleLoadedMetadata = () => {
-      console.log('📊 Video metadata loaded');
-      clearTimeout(metadataTimeout);
-      updateDebugInfo();
-    };
-
-    const handleCanPlay = () => {
-      console.log('▶️ Video can play');
-      setVideoLoaded(true);
-      setVideoError(null);
-      clearTimeout(metadataTimeout);
-      updateDebugInfo();
-    };
-
-    const handleError = (e: Event) => {
-      console.error('❌ Video error event:', e);
-      const target = e.target as HTMLVideoElement;
-      
-      let errorMsg = 'Video format not supported by browser';
-      
-      if (target && target.error) {
-        const errorCode = target.error.code;
-        console.error('❌ Video error details:', {
-          code: errorCode,
-          message: target.error.message,
-          src: target.src
-        });
-        
-        switch (errorCode) {
-          case 3: // MEDIA_ERR_DECODE
-            errorMsg = 'Video file is corrupted or in unsupported format';
-            break;
-          case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
-            errorMsg = 'Video format not supported by this browser';
-            break;
-          default:
-            errorMsg = `Video error: ${target.error.message}`;
-        }
-      }
-      
-      setVideoError(errorMsg);
-      setVideoLoaded(false);
-      setUseDirectPlayback(true);
-      clearTimeout(metadataTimeout);
-      updateDebugInfo();
-    };
-
-    // Add event listeners
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    video.addEventListener('canplay', handleCanPlay);
-    video.addEventListener('error', handleError);
-
-    // Set video source with error handling
-    try {
-      video.crossOrigin = 'anonymous';
-      video.preload = 'metadata';
-      video.src = asset.file_url;
-      console.log('🔗 Video source set');
-    } catch (err) {
-      console.error('❌ Error setting video source:', err);
-      setVideoError('Failed to load video');
-      setUseDirectPlayback(true);
-    }
-
-    updateDebugInfo();
-
-    return () => {
-      clearTimeout(metadataTimeout);
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      video.removeEventListener('canplay', handleCanPlay);
-      video.removeEventListener('error', handleError);
-    };
-  }, [asset?.file_url, loadingAttempts, useDirectPlayback]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -361,23 +230,13 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   };
 
   const handleSeekToComment = (timestamp: number) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = timestamp;
-      setCurrentTime(timestamp);
-    }
+    handleSeek(timestamp);
   };
 
   const handleStartDrawing = () => {
     setIsDrawingMode(true);
-    if (videoRef.current && !videoRef.current.paused) {
-      videoRef.current.pause();
-    }
-  };
-
-  const handleSeek = (time: number) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = time;
-      setCurrentTime(time);
+    if (isPlaying) {
+      togglePlayPause();
     }
   };
 
@@ -417,14 +276,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
   const handleRetryVideo = () => {
     console.log('🔄 Retrying video load...');
-    setVideoError(null);
-    setVideoLoaded(false);
-    setLoadingAttempts(0);
-    setCorsError(false);
-    setUseDirectPlayback(false);
-    if (videoRef.current) {
-      videoRef.current.load();
-    }
+    retryVideo();
   };
 
   const handleDirectDownload = () => {
@@ -434,8 +286,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   };
 
   const handleUseDirectPlayback = () => {
-    setUseDirectPlayback(true);
-    setVideoError(null);
+    forceDirectPlayback();
   };
 
   if (loading) {
