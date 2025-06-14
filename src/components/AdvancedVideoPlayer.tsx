@@ -111,11 +111,11 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
   };
 
   return (
-    <div className="flex h-full bg-black">
+    <div className="flex h-screen bg-black">
       {/* Main Video Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Video Player */}
-        <div className="flex-1 relative">
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Video Player Container */}
+        <div className="flex-1 relative min-h-0">
           <VideoPlayer {...props} />
           
           {/* Video Overlay Info */}
@@ -142,8 +142,9 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
           </div>
         </div>
 
-        {/* Enhanced Timeline and Controls - Fixed at bottom */}
-        <div className="bg-gray-900 border-t border-gray-700 p-4 space-y-4 flex-shrink-0">
+        {/* Timeline and Controls Container - Always visible at bottom */}
+        <div className="bg-gray-900 border-t border-gray-700 p-4 space-y-4">
+          {/* Timeline */}
           <VideoTimeline
             currentTime={props.currentTime}
             duration={videoPlayer.duration}
@@ -153,40 +154,40 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
             timeFormat={videoPlayer.timeFormat}
             assetId={props.src}
           />
-          <div className="border-t border-gray-700 pt-4">
-            <VideoControls
-              isPlaying={videoPlayer.isPlaying}
-              onTogglePlayPause={videoPlayer.togglePlayPause}
-              isLooping={videoPlayer.isLooping}
-              onToggleLoop={videoPlayer.toggleLoop}
-              playbackSpeed={videoPlayer.playbackSpeed}
-              onSpeedChange={videoPlayer.handleSpeedChange}
-              volume={videoPlayer.volume}
-              onVolumeToggle={videoPlayer.handleVolumeToggle}
-              onVolumeChange={videoPlayer.handleVolumeChange}
-              currentTime={props.currentTime}
-              duration={videoPlayer.duration}
-              timeFormat={videoPlayer.timeFormat}
-              onTimeFormatChange={videoPlayer.setTimeFormat}
-              quality={videoPlayer.quality}
-              availableQualities={videoPlayer.availableQualities}
-              onQualityChange={videoPlayer.handleQualityChange}
-              guides={guides}
-              onGuidesToggle={() => setGuides(prev => ({ ...prev, enabled: !prev.enabled }))}
-              onGuidesRatioChange={(ratio) => setGuides(prev => ({ ...prev, ratio }))}
-              onGuidesMaskToggle={() => setGuides(prev => ({ ...prev, mask: !prev.mask }))}
-              zoom={zoom}
-              onZoomChange={handleZoomChange}
-              encodeComments={encodeComments}
-              setEncodeComments={setEncodeComments}
-              annotations={props.annotations}
-              setAnnotations={props.setAnnotations}
-              onSetFrameAsThumb={() => console.log('Set frame as thumbnail')}
-              onDownloadStill={() => console.log('Download still')}
-              onToggleFullscreen={handleToggleFullscreen}
-              formatTime={formatTime}
-            />
-          </div>
+          
+          {/* Video Controls */}
+          <VideoControls
+            isPlaying={videoPlayer.isPlaying}
+            onTogglePlayPause={videoPlayer.togglePlayPause}
+            isLooping={videoPlayer.isLooping}
+            onToggleLoop={videoPlayer.toggleLoop}
+            playbackSpeed={videoPlayer.playbackSpeed}
+            onSpeedChange={videoPlayer.handleSpeedChange}
+            volume={videoPlayer.volume}
+            onVolumeToggle={videoPlayer.handleVolumeToggle}
+            onVolumeChange={videoPlayer.handleVolumeChange}
+            currentTime={props.currentTime}
+            duration={videoPlayer.duration}
+            timeFormat={videoPlayer.timeFormat}
+            onTimeFormatChange={videoPlayer.setTimeFormat}
+            quality={videoPlayer.quality}
+            availableQualities={videoPlayer.availableQualities}
+            onQualityChange={videoPlayer.handleQualityChange}
+            guides={guides}
+            onGuidesToggle={() => setGuides(prev => ({ ...prev, enabled: !prev.enabled }))}
+            onGuidesRatioChange={(ratio) => setGuides(prev => ({ ...prev, ratio }))}
+            onGuidesMaskToggle={() => setGuides(prev => ({ ...prev, mask: !prev.mask }))}
+            zoom={zoom}
+            onZoomChange={handleZoomChange}
+            encodeComments={encodeComments}
+            setEncodeComments={setEncodeComments}
+            annotations={props.annotations}
+            setAnnotations={props.setAnnotations}
+            onSetFrameAsThumb={() => console.log('Set frame as thumbnail')}
+            onDownloadStill={() => console.log('Download still')}
+            onToggleFullscreen={handleToggleFullscreen}
+            formatTime={formatTime}
+          />
         </div>
       </div>
 
