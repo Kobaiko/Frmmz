@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -383,10 +384,10 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   return (
     <div className="h-screen bg-black text-white flex overflow-hidden">
       {/* Main Content Area */}
-      <div className="flex flex-col flex-1 min-w-0">
-        {/* Header */}
-        <div className="border-b border-gray-800 px-6 py-4 flex-shrink-0">
-          <div className="flex items-center justify-between">
+      <div className="flex flex-col flex-1 min-w-0 h-full">
+        {/* Header - Fixed height */}
+        <div className="border-b border-gray-800 px-6 py-4 flex-shrink-0 h-20">
+          <div className="flex items-center justify-between h-full">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
@@ -448,8 +449,8 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           </div>
         </div>
 
-        {/* Video Container - Calculate height to leave room for controls */}
-        <div className="flex-1 relative bg-black" style={{ height: 'calc(100vh - 320px)' }}>
+        {/* Video Container - Takes remaining space minus controls */}
+        <div className="flex-1 relative bg-black min-h-0">
           {asset.file_type === 'video' ? (
             <>
               <video
@@ -513,10 +514,18 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           )}
         </div>
 
-        {/* VIDEO CONTROLS - ALWAYS VISIBLE AT BOTTOM */}
+        {/* VIDEO CONTROLS - ALWAYS VISIBLE AT BOTTOM - Fixed height */}
         {asset.file_type === 'video' && duration > 0 && (
-          <div className="bg-red-900 border-t-4 border-yellow-400 p-6 flex-shrink-0 h-[240px] overflow-y-auto">
+          <div className="bg-red-900 border-t-4 border-yellow-400 p-4 flex-shrink-0 h-60 overflow-y-auto">
             <div className="text-yellow-400 text-xl font-bold mb-4">🎮 VIDEO CONTROLS SECTION 🎮</div>
+            
+            {/* Debug Info */}
+            <div className="bg-blue-900 p-2 rounded text-white mb-4">
+              <div className="text-sm">Debug Info:</div>
+              <div className="text-xs">isPlaying: {String(isPlaying)}</div>
+              <div className="text-xs">duration: {duration}</div>
+              <div className="text-xs">currentTime: {currentTime}</div>
+            </div>
             
             {/* Timeline */}
             <div className="mb-4">
@@ -533,7 +542,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             </div>
             
             {/* Simple Video Controls */}
-            <div className="bg-blue-900 p-4 rounded">
+            <div className="bg-purple-900 p-4 rounded">
               <div className="text-white text-sm mb-2">CONTROLS:</div>
               <SimpleVideoControls
                 isPlaying={isPlaying}
