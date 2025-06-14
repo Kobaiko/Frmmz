@@ -1,5 +1,5 @@
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 
 interface VideoPreviewProps {
   previewVideoRef: React.RefObject<HTMLVideoElement>;
@@ -41,61 +41,52 @@ export const VideoPreview = ({
     }
   };
 
-  const updatePreviewFrame = (time: number) => {
-    const previewVideo = previewVideoRef.current;
+  useEffect(() => {
+    if (!isHovering) {
+      setPreviewFrame('');
+      return;
+    }
+
+    const video = previewVideoRef.current;
     const canvas = previewCanvasRef.current;
-    if (!previewVideo || !canvas) return;
+    if (!video || !canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Use the preview video element (doesn't affect main playback)
-    previewVideo.currentTime = time;
-    
-    // Wait for seeked event to ensure frame is loaded
-    const handleSeeked = () => {
+    const onSeeked = () => {
       canvas.width = 160;
       canvas.height = 90;
-      ctx.drawImage(previewVideo, 0, 0, 160, 90);
+      ctx.drawImage(video, 0, 0, 160, 90);
       setPreviewFrame(canvas.toDataURL());
-      previewVideo.removeEventListener('seeked', handleSeeked);
     };
 
-    previewVideo.addEventListener('seeked', handleSeeked);
-  };
+    video.addEventListener('seeked', onSeeked, { once: true });
+    video.currentTime = hoverTime;
 
-  // Update preview when hover time changes
-  if (isHovering) {
-    updatePreviewFrame(hoverTime);
-  }
-
-  if (!isHovering) return null;
+    return () => {
+      video.removeEventListener('seeked', onSeeked);
+    };
+  }, [isHovering, hoverTime, previewVideoRef]);
 
   return (
     <>
-      <canvas
-        ref={previewCanvasRef}
-        style={{ display: 'none' }}
-      />
-      <div
-        className="absolute -top-32 transform -translate-x-1/2 bg-gray-200 text-black text-xs rounded-lg shadow-xl border border-gray-300 z-20"
-        style={{ left: `${duration > 0 ? (hoverTime / duration) * 100 : 0}%` }}
-      >
-        {/* Frame preview */}
-        {previewFrame && (
-          <div className="mb-1">
-            <img 
-              src={previewFrame} 
-              alt="Frame preview"
-              className="rounded-t-lg w-40 h-auto border-b border-gray-300"
-            />
+      <canvas ref={previewCanvasRef} className="hidden" />
+      {isHovering && previewFrame && (
+        <div
+          className="absolute -top-32 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded-lg shadow-xl border border-gray-700 z-20 pointer-events-none"
+          style={{ left: `${duration > 0 ? (hoverTime / duration) * 100 : 0}%` }}
+        >
+          <img 
+            src={previewFrame} 
+            alt="Frame preview"
+            className="rounded-t-lg w-40 h-auto border-b border-gray-700"
+          />
+          <div className="px-3 py-2 text-center font-mono">
+            {formatTimeByFormat(hoverTime)}
           </div>
-        )}
-        {/* Time display with selected format */}
-        <div className="px-3 py-2 text-center font-mono">
-          {formatTimeByFormat(hoverTime)}
         </div>
-      </div>
+      )}
     </>
   );
 };
