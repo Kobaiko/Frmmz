@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -584,6 +585,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                     previewVideoRef.current.currentTime = time;
                   }
                 }}
+                assetId={asset.id}
               />
             </div>
             

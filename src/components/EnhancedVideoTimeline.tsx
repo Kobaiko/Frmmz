@@ -1,9 +1,11 @@
+
 import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, Edit, CheckCircle, Clock, Zap } from "lucide-react";
 import type { Comment } from "@/pages/Index";
+import { VideoPreview } from "./VideoPreview";
 
 interface EnhancedVideoTimelineProps {
   currentTime: number;
@@ -16,6 +18,7 @@ interface EnhancedVideoTimelineProps {
   onHover?: (time: number | null) => void;
   markers?: TimelineMarker[];
   chapters?: Chapter[];
+  assetId?: string;
 }
 
 interface TimelineMarker {
@@ -42,7 +45,8 @@ export const EnhancedVideoTimeline = ({
   frameRate = 30,
   onHover,
   markers = [],
-  chapters = []
+  chapters = [],
+  assetId,
 }: EnhancedVideoTimelineProps) => {
   const timelineRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -137,7 +141,17 @@ export const EnhancedVideoTimeline = ({
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="space-y-2">
+      <div className="space-y-2 relative">
+        {assetId && previewVideoRef && (
+          <VideoPreview
+            assetId={assetId}
+            previewVideoRef={previewVideoRef}
+            isHovering={hoverTime !== null && showPreview}
+            hoverTime={hoverTime ?? 0}
+            timeFormat={timeFormat}
+            duration={duration}
+          />
+        )}
         {/* Chapters */}
         {chapters.length > 0 && (
           <div className="relative h-2">
@@ -191,7 +205,7 @@ export const EnhancedVideoTimeline = ({
                   variant="ghost"
                   size="sm"
                   className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 w-6 h-6 p-0 bg-yellow-500 hover:bg-yellow-400 rounded-full z-10"
-                  style={{ left: `${(group.time / duration) * 100}%` }}
+                  style={{ left: `${duration > 0 ? (group.time / duration) * 100 : 0}%` }}
                   onClick={(e) => {
                     e.stopPropagation();
                     onTimeClick(group.time);
@@ -228,7 +242,7 @@ export const EnhancedVideoTimeline = ({
               <TooltipTrigger asChild>
                 <div
                   className={`absolute top-0 w-1 h-full ${marker.color || 'bg-red-500'} z-5`}
-                  style={{ left: `${(marker.time / duration) * 100}%` }}
+                  style={{ left: `${duration > 0 ? (marker.time / duration) * 100 : 0}%` }}
                 >
                   <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 text-xs">
                     {getMarkerIcon(marker)}
