@@ -389,36 +389,35 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         <div className="flex-1 bg-black flex items-center justify-center relative overflow-hidden">
           {asset.file_type === 'video' ? (
             <div className="w-full h-full flex items-center justify-center relative">
-              {/* Standard video element */}
-              {!useDirectPlayback && (
-                <>
-                  <video
-                    ref={videoRef}
-                    className="max-w-full max-h-full object-contain"
-                    playsInline
-                    preload="metadata"
-                    controls={false}
-                    style={{ 
-                      display: videoLoaded ? 'block' : 'none',
-                      backgroundColor: 'transparent'
-                    }}
-                  />
+              {/* Always render the video element - this is the key fix */}
+              <video
+                ref={videoRef}
+                src={asset.file_url}
+                className="max-w-full max-h-full object-contain"
+                playsInline
+                preload="metadata"
+                controls={false}
+                crossOrigin="anonymous"
+                style={{ 
+                  display: 'block',
+                  backgroundColor: 'transparent',
+                  opacity: videoLoaded ? 1 : 0
+                }}
+              />
 
-                  <video
-                    ref={previewVideoRef}
-                    src={asset.file_url}
-                    muted
-                    playsInline
-                    preload="metadata"
-                    className="hidden"
-                    crossOrigin="anonymous"
-                  />
-                </>
-              )}
+              <video
+                ref={previewVideoRef}
+                src={asset.file_url}
+                muted
+                playsInline
+                preload="metadata"
+                className="hidden"
+                crossOrigin="anonymous"
+              />
 
               {/* Direct playback fallback */}
               {useDirectPlayback && (
-                <div className="w-full h-full flex items-center justify-center">
+                <div className="absolute inset-0 w-full h-full flex items-center justify-center">
                   <video
                     src={asset.file_url}
                     controls
