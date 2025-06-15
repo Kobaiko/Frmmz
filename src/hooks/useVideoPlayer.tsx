@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState, useCallback } from "react";
 
 interface UseVideoPlayerProps {
@@ -61,7 +60,7 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !src || useDirectPlayback) return;
+    if (!video || !src) return;
 
     console.log('🎬 Setting up video monitoring for:', src);
     setVideoLoaded(false);
@@ -158,9 +157,7 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
     try {
       video.crossOrigin = 'anonymous';
       video.preload = 'metadata';
-      if (video.src !== src) {
-        video.src = src;
-      }
+      video.src = src;
       video.load();
       console.log('🔗 Video source set and load() called');
     } catch (err) {
@@ -180,7 +177,7 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('timeupdate', handleTimeUpdate);
     };
-  }, [src, useDirectPlayback, updateDebugInfo]);
+  }, [src, updateDebugInfo]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -281,4 +278,3 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
     forceDirectPlayback
   };
 };
-

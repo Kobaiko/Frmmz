@@ -389,10 +389,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         <div className="flex-1 bg-black flex items-center justify-center relative overflow-hidden">
           {asset.file_type === 'video' ? (
             <div className="w-full h-full flex items-center justify-center relative">
-              {/* Always render the video element - this is the key fix */}
+              {/* Video element - now managed entirely by the hook */}
               <video
                 ref={videoRef}
-                src={asset.file_url}
                 className="max-w-full max-h-full object-contain"
                 playsInline
                 preload="metadata"
@@ -407,7 +406,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
               <video
                 ref={previewVideoRef}
-                src={asset.file_url}
                 muted
                 playsInline
                 preload="metadata"
