@@ -60,11 +60,9 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !src) return;
+    const previewVideo = previewVideoRef.current;
+    if (!video || !previewVideo || !src) return;
 
-    // This is the key change to fix the infinite loop.
-    // The effect should only re-run when the video source (`src`) changes.
-    // We reset the loading attempts when the src changes.
     setLoadingAttempts(1);
 
     console.log('🎬 Setting up video monitoring for:', src);
@@ -159,7 +157,16 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
       video.preload = 'metadata';
       video.src = src;
       video.load();
-      console.log('🔗 Video source set and load() called');
+      console.log('🔗 Main video source set and load() called');
+
+      if (previewVideo.src !== src) {
+        previewVideo.crossOrigin = 'anonymous';
+        previewVideo.preload = 'metadata';
+        previewVideo.src = src;
+        previewVideo.muted = true;
+        previewVideo.load();
+        console.log('🔗 Preview video source set and load() called');
+      }
     } catch (err) {
       console.error('❌ Error setting video source:', err);
       setVideoError('Failed to load video');
@@ -177,17 +184,7 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('timeupdate', handleTimeUpdate);
     };
-  }, [src]); // The dependency array is now just [src], which breaks the loop.
-
-  useEffect(() => {
-    if (videoLoaded && previewVideoRef.current && src) {
-      if (previewVideoRef.current.src !== src) {
-        console.log('🔗 Setting preview video source:', src);
-        previewVideoRef.current.src = src;
-        previewVideoRef.current.muted = true;
-      }
-    }
-  }, [videoLoaded, src]);
+  }, [src]);
 
   useEffect(() => {
     const video = videoRef.current;
