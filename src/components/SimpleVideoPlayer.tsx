@@ -29,22 +29,20 @@ export const SimpleVideoPlayer = ({ src, onError, onLoad }: SimpleVideoPlayerPro
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
+  const [loadingStrategy, setLoadingStrategy] = useState<'default' | 'no-cors' | 'blob' | 'direct'>('default');
   const [debugInfo, setDebugInfo] = useState<any>({});
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
 
-    console.log('🎬 SimpleVideoPlayer: Starting fresh load attempt', retryCount + 1);
+    console.log(`🎬 Trying loading strategy: ${loadingStrategy}`);
     
-    // Reset all states
+    // Reset states
     setIsLoading(true);
     setError(null);
     setIsLoaded(false);
     setIsPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
 
     const updateDebugInfo = () => {
       const info = {
@@ -55,32 +53,19 @@ export const SimpleVideoPlayer = ({ src, onError, onLoad }: SimpleVideoPlayerPro
           code: video.error.code,
           message: video.error.message
         } : null,
-        canPlayType: {
-          mp4: video.canPlayType('video/mp4'),
-          mp4Codecs: video.canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"'),
-        },
-        videoWidth: video.videoWidth,
-        videoHeight: video.videoHeight,
-        duration: video.duration,
-        buffered: video.buffered.length > 0 ? `${video.buffered.end(0)}/${video.duration}` : '0/0',
+        strategy: loadingStrategy,
         currentSrc: video.currentSrc,
-        retryCount
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight
       };
-      console.log('📊 Video Debug Info:', info);
       setDebugInfo(info);
     };
 
-    const handleLoadStart = () => {
-      console.log('🚀 Video load started');
-      updateDebugInfo();
-    };
-
     const handleLoadedMetadata = () => {
-      console.log('✅ Video metadata loaded successfully');
+      console.log('✅ Video metadata loaded');
       setDuration(video.duration);
       setIsLoaded(true);
       setIsLoading(false);
-      setError(null);
       updateDebugInfo();
       onLoad?.();
     };
@@ -92,145 +77,107 @@ export const SimpleVideoPlayer = ({ src, onError, onLoad }: SimpleVideoPlayerPro
       updateDebugInfo();
     };
 
-    const handleCanPlayThrough = () => {
-      console.log('✅ Video can play through');
-      setIsLoaded(true);
-      setIsLoading(false);
-      updateDebugInfo();
-    };
-
     const handleTimeUpdate = () => {
       setCurrentTime(video.currentTime);
     };
 
-    const handlePlay = () => {
-      setIsPlaying(true);
-    };
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
 
-    const handlePause = () => {
-      setIsPlaying(false);
-    };
-
-    const handleError = (e: Event) => {
-      console.error('❌ Video error event:', e);
-      const target = e.target as HTMLVideoElement;
-      let errorMsg = 'Video failed to load';
+    const handleError = () => {
+      console.error('❌ Video error with strategy:', loadingStrategy);
       
-      if (target?.error) {
-        switch (target.error.code) {
-          case MediaError.MEDIA_ERR_ABORTED:
-            errorMsg = 'Video loading was aborted';
-            break;
-          case MediaError.MEDIA_ERR_NETWORK:
-            errorMsg = 'Network error while loading video';
-            break;
-          case MediaError.MEDIA_ERR_DECODE:
-            errorMsg = 'Video decode error';
-            break;
-          case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-            errorMsg = 'Video format not supported';
-            break;
-          default:
-            errorMsg = `Video error: ${target.error.message || 'Unknown error'}`;
-        }
+      // Try next strategy
+      if (loadingStrategy === 'default') {
+        setLoadingStrategy('no-cors');
+        return;
+      } else if (loadingStrategy === 'no-cors') {
+        setLoadingStrategy('blob');
+        return;
+      } else if (loadingStrategy === 'blob') {
+        setLoadingStrategy('direct');
+        return;
       }
       
-      console.error('❌ Video error details:', errorMsg);
-      setError(errorMsg);
+      // All strategies failed
+      setError('Video could not be loaded with any method');
       setIsLoading(false);
-      setIsLoaded(false);
       updateDebugInfo();
-      onError?.(errorMsg);
+      onError?.('All loading strategies failed');
     };
 
-    const handleProgress = () => {
-      console.log('📶 Video loading progress');
-      updateDebugInfo();
-    };
+    // Add event listeners
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+    video.addEventListener('error', handleError);
 
-    const handleSuspend = () => {
-      console.log('⏸️ Video loading suspended');
-      updateDebugInfo();
-    };
+    // Try different loading strategies
+    const loadVideo = async () => {
+      try {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
 
-    const handleStalled = () => {
-      console.log('🚫 Video loading stalled');
-      updateDebugInfo();
-    };
+        switch (loadingStrategy) {
+          case 'default':
+            video.crossOrigin = 'anonymous';
+            video.src = src;
+            break;
+            
+          case 'no-cors':
+            video.removeAttribute('crossOrigin');
+            video.src = src;
+            break;
+            
+          case 'blob':
+            try {
+              const response = await fetch(src, { mode: 'no-cors' });
+              const blob = await response.blob();
+              video.src = URL.createObjectURL(blob);
+            } catch {
+              video.src = src;
+            }
+            break;
+            
+          case 'direct':
+            // Remove all CORS restrictions and use direct URL
+            video.removeAttribute('crossOrigin');
+            video.src = src;
+            video.controls = true; // Fallback to native controls
+            break;
+        }
 
-    const handleEmptied = () => {
-      console.log('🗑️ Video emptied');
-      updateDebugInfo();
-    };
-
-    const handleWaiting = () => {
-      console.log('⏳ Video waiting for data');
-      updateDebugInfo();
-    };
-
-    // Add comprehensive event listeners
-    const events = [
-      ['loadstart', handleLoadStart],
-      ['progress', handleProgress],
-      ['suspend', handleSuspend],
-      ['stalled', handleStalled],
-      ['emptied', handleEmptied],
-      ['waiting', handleWaiting],
-      ['loadedmetadata', handleLoadedMetadata],
-      ['canplay', handleCanPlay],
-      ['canplaythrough', handleCanPlayThrough],
-      ['timeupdate', handleTimeUpdate],
-      ['play', handlePlay],
-      ['pause', handlePause],
-      ['error', handleError]
-    ] as const;
-
-    events.forEach(([event, handler]) => {
-      video.addEventListener(event, handler as EventListener);
-    });
-
-    // Completely reset video element
-    video.pause();
-    video.removeAttribute('src');
-    video.load();
-
-    // Create cache-busting URL with multiple parameters
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(7);
-    const cacheBustingUrl = `${src}?v=${timestamp}&r=${random}&retry=${retryCount}&t=${encodeURIComponent(new Date().toISOString())}`;
-    
-    console.log('🔗 Setting video source with aggressive cache busting:', cacheBustingUrl);
-
-    // Set video properties for maximum compatibility
-    video.preload = 'auto';
-    video.muted = false; // Start unmuted
-    video.playsInline = true;
-    video.controls = false;
-    
-    // Set source and force load
-    video.src = cacheBustingUrl;
-    video.load();
-
-    // Initial debug info
-    setTimeout(updateDebugInfo, 100);
-
-    // Timeout fallback - if nothing happens in 10 seconds, show error
-    const timeoutId = setTimeout(() => {
-      if (video.readyState === 0) {
-        console.error('⏰ Video loading timeout - ReadyState still 0 after 10 seconds');
-        setError('Video loading timeout - network or format issue');
-        setIsLoading(false);
+        video.preload = 'metadata';
+        video.load();
         updateDebugInfo();
+        
+        // Timeout check
+        setTimeout(() => {
+          if (video.readyState === 0) {
+            handleError();
+          }
+        }, 5000);
+        
+      } catch (err) {
+        console.error('Load strategy failed:', err);
+        handleError();
       }
-    }, 10000);
+    };
+
+    loadVideo();
 
     return () => {
-      clearTimeout(timeoutId);
-      events.forEach(([event, handler]) => {
-        video.removeEventListener(event, handler as EventListener);
-      });
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('error', handleError);
     };
-  }, [src, onError, onLoad, retryCount]);
+  }, [src, loadingStrategy, onError, onLoad]);
 
   const togglePlayPause = () => {
     const video = videoRef.current;
@@ -240,7 +187,7 @@ export const SimpleVideoPlayer = ({ src, onError, onLoad }: SimpleVideoPlayerPro
       video.pause();
     } else {
       video.play().catch(e => {
-        console.error('❌ Play failed:', e);
+        console.error('Play failed:', e);
         setError('Failed to play video');
       });
     }
@@ -261,13 +208,11 @@ export const SimpleVideoPlayer = ({ src, onError, onLoad }: SimpleVideoPlayerPro
   };
 
   const handleRetry = () => {
-    console.log('🔄 Manual retry triggered');
-    setRetryCount(prev => prev + 1);
+    setLoadingStrategy('default');
   };
 
-  const handleDirectOpen = () => {
-    console.log('🔗 Opening video directly in new tab');
-    window.open(src, '_blank');
+  const handleUseNativeFallback = () => {
+    setLoadingStrategy('direct');
   };
 
   const formatTime = (seconds: number) => {
@@ -284,25 +229,25 @@ export const SimpleVideoPlayer = ({ src, onError, onLoad }: SimpleVideoPlayerPro
         ref={videoRef}
         className="w-full h-full object-contain"
         playsInline
-        style={{ backgroundColor: 'black' }}
+        style={{ 
+          backgroundColor: 'black',
+          display: loadingStrategy === 'direct' ? 'block' : (isLoaded ? 'block' : 'none')
+        }}
       />
 
       {/* Loading Overlay */}
-      {isLoading && !error && (
+      {isLoading && !error && loadingStrategy !== 'direct' && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/95">
           <div className="text-center max-w-lg p-6">
             <div className="w-16 h-16 border-4 border-pink-600 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
             <h3 className="text-white text-lg mb-3">Loading Video...</h3>
-            <p className="text-gray-400 mb-4">Attempt #{retryCount + 1}</p>
+            <p className="text-gray-400 mb-4">Strategy: {loadingStrategy}</p>
             
             <div className="bg-gray-800 rounded-lg p-4 text-left space-y-2 text-sm">
-              <div className="text-blue-400">🔗 Source: {src.split('/').pop()}</div>
-              <div className="text-yellow-400">🔄 Cache Busting: Active</div>
-              <div className="text-green-400">📱 Ready State: {debugInfo.readyState || 0}/4</div>
-              <div className="text-purple-400">🌐 Network State: {debugInfo.networkState || 0}</div>
-              {debugInfo.canPlayType && (
-                <div className="text-cyan-400">🎥 MP4 Support: {debugInfo.canPlayType.mp4 || 'unknown'}</div>
-              )}
+              <div className="text-blue-400">🔗 File: {src.split('/').pop()}</div>
+              <div className="text-yellow-400">🔄 Method: {loadingStrategy}</div>
+              <div className="text-green-400">📱 Ready: {debugInfo.readyState || 0}/4</div>
+              <div className="text-purple-400">🌐 Network: {debugInfo.networkState || 0}</div>
             </div>
           </div>
         </div>
@@ -317,49 +262,46 @@ export const SimpleVideoPlayer = ({ src, onError, onLoad }: SimpleVideoPlayerPro
             <p className="text-gray-400 mb-4">{error}</p>
             
             <div className="bg-gray-800 rounded-lg p-4 text-left mb-6 space-y-2 text-sm">
-              <div className="text-red-400">❌ Error: {error}</div>
-              <div className="text-gray-400">🔄 Attempts: {retryCount + 1}</div>
-              <div className="text-gray-400">📱 Ready State: {debugInfo.readyState || 0}/4</div>
-              <div className="text-gray-400">🌐 Network State: {debugInfo.networkState || 0}</div>
+              <div className="text-red-400">❌ All strategies failed</div>
               <div className="text-gray-400">📁 File: {src.split('/').pop()}</div>
-              {debugInfo.canPlayType && (
-                <div className="text-gray-400">🎥 MP4 Support: {debugInfo.canPlayType.mp4 || 'none'}</div>
-              )}
+              <div className="text-gray-400">🔄 Last strategy: {loadingStrategy}</div>
             </div>
             
             <div className="space-y-3">
               <Button 
-                onClick={handleRetry} 
+                onClick={handleUseNativeFallback}
                 className="w-full bg-pink-600 hover:bg-pink-700"
               >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Retry Loading (#{retryCount + 2})
+                <Play className="h-4 w-4 mr-2" />
+                Use Native Player
               </Button>
               
-              <Button 
-                onClick={handleDirectOpen}
-                variant="outline"
-                className="w-full border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Open Video Directly
-              </Button>
-              
-              <Button 
-                onClick={() => window.location.reload()}
-                variant="outline"
-                className="w-full border-gray-600 text-gray-300"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Reload Page
-              </Button>
+              <div className="flex space-x-2">
+                <Button 
+                  onClick={handleRetry}
+                  variant="outline"
+                  className="border-gray-600 text-gray-300"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Retry
+                </Button>
+                
+                <Button 
+                  onClick={() => window.open(src, '_blank')}
+                  variant="outline"
+                  className="border-blue-600 text-blue-400"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open Direct
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Controls Overlay */}
-      {isLoaded && !error && (
+      {/* Controls Overlay - only show if not using direct/native controls */}
+      {isLoaded && !error && loadingStrategy !== 'direct' && (
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -386,7 +328,7 @@ export const SimpleVideoPlayer = ({ src, onError, onLoad }: SimpleVideoPlayerPro
             
             <div className="flex items-center space-x-2">
               <Badge className="bg-green-600/80 text-white border-0">
-                Ready: {debugInfo.readyState || 0}/4
+                {loadingStrategy}
               </Badge>
               {debugInfo.videoWidth && (
                 <Badge className="bg-blue-600/80 text-white border-0">
