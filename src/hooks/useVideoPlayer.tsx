@@ -62,10 +62,14 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
     const video = videoRef.current;
     if (!video || !src) return;
 
+    // This is the key change to fix the infinite loop.
+    // The effect should only re-run when the video source (`src`) changes.
+    // We reset the loading attempts when the src changes.
+    setLoadingAttempts(1);
+
     console.log('🎬 Setting up video monitoring for:', src);
     setVideoLoaded(false);
     setVideoError(null);
-    setLoadingAttempts(prev => prev + 1);
 
     const metadataTimeout = setTimeout(() => {
       if (video.readyState < 1) { // HAVE_METADATA is 1
@@ -177,7 +181,7 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('timeupdate', handleTimeUpdate);
     };
-  }, [src, updateDebugInfo]);
+  }, [src]); // The dependency array is now just [src], which breaks the loop.
 
   useEffect(() => {
     const video = videoRef.current;
@@ -235,7 +239,7 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
   const retryVideo = useCallback(() => {
     setVideoError(null);
     setUseDirectPlayback(false);
-    setLoadingAttempts(0);
+    setLoadingAttempts(prev => prev + 1); // Increment attempts on retry
     const video = videoRef.current;
     if (video) {
       video.load();
