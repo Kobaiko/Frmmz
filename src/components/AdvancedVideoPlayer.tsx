@@ -1,5 +1,5 @@
+
 import { useState, useRef, useEffect } from "react";
-import { VideoPlayer } from "./VideoPlayer";
 import { PresenceSystem } from "./PresenceSystem";
 import { MediaProcessingStatus } from "./MediaProcessingStatus";
 import { VideoTimeline } from "./VideoTimeline";
