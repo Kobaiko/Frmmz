@@ -28,18 +28,22 @@ export const SimpleVideoPlayer = ({ src, onError, onLoad }: SimpleVideoPlayerPro
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
 
-    console.log('🎬 SimpleVideoPlayer: Setting up video with src:', src);
+    // Add cache-busting timestamp to force fresh load
+    const cacheBustingSrc = `${src}?t=${Date.now()}&retry=${retryCount}`;
+    console.log('🎬 SimpleVideoPlayer: Loading video with cache-busting:', cacheBustingSrc);
 
     const handleLoadedMetadata = () => {
       console.log('✅ Video metadata loaded:', {
         duration: video.duration,
         videoWidth: video.videoWidth,
-        videoHeight: video.videoHeight
+        videoHeight: video.videoHeight,
+        readyState: video.readyState
       });
       setDuration(video.duration);
       setIsLoaded(true);
@@ -49,7 +53,13 @@ export const SimpleVideoPlayer = ({ src, onError, onLoad }: SimpleVideoPlayerPro
     };
 
     const handleCanPlay = () => {
-      console.log('✅ Video can play');
+      console.log('✅ Video can play, readyState:', video.readyState);
+      setIsLoaded(true);
+      setIsLoading(false);
+    };
+
+    const handleLoadedData = () => {
+      console.log('✅ Video data loaded, readyState:', video.readyState);
       setIsLoaded(true);
       setIsLoading(false);
     };
@@ -85,34 +95,62 @@ export const SimpleVideoPlayer = ({ src, onError, onLoad }: SimpleVideoPlayerPro
     };
 
     const handleLoadStart = () => {
-      console.log('🚀 Video load started');
+      console.log('🚀 Video load started, readyState:', video.readyState);
       setIsLoading(true);
       setError(null);
     };
 
-    // Add event listeners
+    const handleProgress = () => {
+      console.log('📶 Video loading progress, readyState:', video.readyState);
+      if (video.buffered.length > 0) {
+        console.log('📊 Buffered:', video.buffered.end(0), 'of', video.duration);
+      }
+    };
+
+    const handleSuspend = () => {
+      console.log('⏸️ Video loading suspended, readyState:', video.readyState);
+    };
+
+    const handleStalled = () => {
+      console.log('🚫 Video loading stalled, readyState:', video.readyState);
+    };
+
+    // Add all event listeners
     video.addEventListener('loadstart', handleLoadStart);
+    video.addEventListener('progress', handleProgress);
+    video.addEventListener('suspend', handleSuspend);
+    video.addEventListener('stalled', handleStalled);
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('loadeddata', handleLoadedData);
     video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
     video.addEventListener('error', handleError);
 
-    // Set source and load
-    video.src = src;
-    video.load();
+    // Reset video element completely
+    video.removeAttribute('src');
+    video.load(); // Clear any previous state
+    
+    // Set new source with cache busting
+    video.src = cacheBustingSrc;
+    video.preload = 'auto'; // Force aggressive preloading
+    video.load(); // Force load
 
     return () => {
       video.removeEventListener('loadstart', handleLoadStart);
+      video.removeEventListener('progress', handleProgress);
+      video.removeEventListener('suspend', handleSuspend);
+      video.removeEventListener('stalled', handleStalled);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('loadeddata', handleLoadedData);
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('error', handleError);
     };
-  }, [src, onError, onLoad]);
+  }, [src, onError, onLoad, retryCount]);
 
   const togglePlayPause = () => {
     const video = videoRef.current;
@@ -143,14 +181,16 @@ export const SimpleVideoPlayer = ({ src, onError, onLoad }: SimpleVideoPlayerPro
   };
 
   const handleRetry = () => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    console.log('🔄 Retrying video load...');
+    console.log('🔄 Retrying video load with cache bust...');
+    setRetryCount(prev => prev + 1);
     setError(null);
     setIsLoading(true);
     setIsLoaded(false);
-    video.load();
+  };
+
+  const handleForceReload = () => {
+    console.log('🔄 Force reloading page to clear all caches...');
+    window.location.reload();
   };
 
   const formatTime = (seconds: number) => {
@@ -166,15 +206,25 @@ export const SimpleVideoPlayer = ({ src, onError, onLoad }: SimpleVideoPlayerPro
         ref={videoRef}
         className="w-full h-full object-contain"
         playsInline
-        preload="metadata"
+        muted={false}
+        style={{ backgroundColor: 'black' }}
       />
 
       {/* Loading Overlay */}
       {isLoading && !error && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/90">
-          <div className="text-center">
+          <div className="text-center max-w-md">
             <div className="w-12 h-12 border-4 border-pink-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-white">Loading video...</p>
+            <p className="text-white mb-2">Loading video...</p>
+            <p className="text-gray-400 text-sm mb-4">Attempt #{retryCount + 1}</p>
+            
+            {retryCount > 0 && (
+              <div className="bg-gray-800 rounded p-3 text-xs text-left space-y-1">
+                <p className="text-yellow-400">🔄 Retry #{retryCount}</p>
+                <p className="text-blue-400">📊 Cache busting enabled</p>
+                <p className="text-green-400">🚀 Aggressive preload: auto</p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -184,12 +234,23 @@ export const SimpleVideoPlayer = ({ src, onError, onLoad }: SimpleVideoPlayerPro
         <div className="absolute inset-0 flex items-center justify-center bg-black/90">
           <div className="text-center max-w-md p-6">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-white mb-2">Video Error</p>
+            <p className="text-white mb-2">Video Loading Failed</p>
             <p className="text-gray-400 text-sm mb-4">{error}</p>
-            <div className="flex space-x-2 justify-center">
+            
+            <div className="bg-gray-800 rounded p-3 text-xs text-left mb-4 space-y-1">
+              <p className="text-red-400">❌ Error: {error}</p>
+              <p className="text-gray-400">🔄 Attempts: {retryCount + 1}</p>
+              <p className="text-gray-400">📁 Source: {src.split('/').pop()}</p>
+            </div>
+            
+            <div className="flex flex-col space-y-2">
               <Button onClick={handleRetry} className="bg-pink-600 hover:bg-pink-700">
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Retry
+                Retry with Cache Bust
+              </Button>
+              <Button onClick={handleForceReload} variant="outline" className="border-gray-600 text-gray-300">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Force Page Reload
               </Button>
               <Button 
                 onClick={() => window.open(src, '_blank')}
@@ -197,7 +258,7 @@ export const SimpleVideoPlayer = ({ src, onError, onLoad }: SimpleVideoPlayerPro
                 className="border-gray-600 text-gray-300"
               >
                 <Download className="h-4 w-4 mr-2" />
-                Download
+                Download Original
               </Button>
             </div>
           </div>
@@ -232,8 +293,13 @@ export const SimpleVideoPlayer = ({ src, onError, onLoad }: SimpleVideoPlayerPro
             
             <div className="flex items-center space-x-2">
               <Badge className="bg-black/50 text-white">
-                {videoRef.current?.videoWidth}x{videoRef.current?.videoHeight}
+                Ready State: {videoRef.current?.readyState || 0}/4
               </Badge>
+              {videoRef.current?.videoWidth && (
+                <Badge className="bg-black/50 text-white">
+                  {videoRef.current.videoWidth}x{videoRef.current.videoHeight}
+                </Badge>
+              )}
             </div>
           </div>
         </div>
