@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { VideoPlayer } from "./VideoPlayer";
 import { PresenceSystem } from "./PresenceSystem";
@@ -23,11 +22,7 @@ import type { Comment } from "@/pages/Index";
 
 interface AdvancedVideoPlayerProps {
   src: string;
-  currentTime: number;
-  onTimeUpdate: (time: number) => void;
-  onDurationChange: (duration: number) => void;
   comments: Comment[];
-  onTimeClick: (timestamp: number) => void;
   isDrawingMode: boolean;
   onDrawingModeChange: (enabled: boolean) => void;
   annotations: boolean;
@@ -64,9 +59,6 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
 
   const videoPlayer = useVideoPlayer({
     src: props.src,
-    currentTime: props.currentTime,
-    onTimeUpdate: props.onTimeUpdate,
-    onDurationChange: props.onDurationChange
   });
 
   useVideoKeyboardShortcuts({
@@ -83,7 +75,7 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
     console.log('🎯 Video player state:', {
       isPlaying: videoPlayer.isPlaying,
       duration: videoPlayer.duration,
-      currentTime: props.currentTime,
+      currentTime: videoPlayer.currentTime,
       videoRef: videoPlayer.videoRef?.current ? 'exists' : 'null',
       videoSrc: props.src
     });
@@ -110,7 +102,7 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
         }
       });
     }
-  }, [videoPlayer.isPlaying, videoPlayer.duration, props.currentTime, props.src]);
+  }, [videoPlayer.isPlaying, videoPlayer.duration, videoPlayer.currentTime, props.src, videoPlayer.videoRef]);
 
   return (
     <div className="flex h-screen bg-black">
@@ -207,7 +199,7 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
             <div className="grid grid-cols-4 gap-4">
               <div>Playing: {String(videoPlayer.isPlaying)}</div>
               <div>Duration: {videoPlayer.duration.toFixed(1)}s</div>
-              <div>Current: {props.currentTime.toFixed(1)}s</div>
+              <div>Current: {videoPlayer.currentTime.toFixed(1)}s</div>
               <div>Ready: {videoPlayer.videoRef?.current?.readyState || 0}/4</div>
             </div>
             <div className="grid grid-cols-2 gap-4 mt-2">
@@ -218,10 +210,10 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
           
           {/* Timeline */}
           <VideoTimeline
-            currentTime={props.currentTime}
+            currentTime={videoPlayer.currentTime}
             duration={videoPlayer.duration}
             comments={props.comments}
-            onTimeClick={props.onTimeClick}
+            onTimeClick={videoPlayer.handleSeek}
             previewVideoRef={videoPlayer.previewVideoRef}
             timeFormat={videoPlayer.timeFormat}
             assetId={props.src}
@@ -233,7 +225,7 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
             onTogglePlayPause={videoPlayer.togglePlayPause}
             volume={videoPlayer.volume}
             onVolumeToggle={videoPlayer.handleVolumeToggle}
-            currentTime={props.currentTime}
+            currentTime={videoPlayer.currentTime}
             duration={videoPlayer.duration}
           />
         </div>
