@@ -1,30 +1,22 @@
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { PresenceSystem } from "./PresenceSystem";
 import { MediaProcessingStatus } from "./MediaProcessingStatus";
-import { VideoTimeline } from "./VideoTimeline";
-import { SimpleVideoControls } from "./SimpleVideoControls";
-import { useVideoPlayer } from "@/hooks/useVideoPlayer";
-import { useVideoKeyboardShortcuts } from "@/hooks/useVideoKeyboardShortcuts";
+import { SimpleVideoPlayer } from "./SimpleVideoPlayer";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Users, 
   Settings, 
-  Layers, 
   Activity,
   Clock,
-  Zap,
-  RefreshCw,
-  Play
+  Zap
 } from "lucide-react";
-import type { Comment } from "@/pages/Index";
 
 interface AdvancedVideoPlayerProps {
   src: string;
-  comments: Comment[];
+  comments: any[];
   isDrawingMode: boolean;
   onDrawingModeChange: (enabled: boolean) => void;
   annotations: boolean;
@@ -59,91 +51,16 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
     }
   ]);
 
-  const videoPlayer = useVideoPlayer({
-    src: props.src,
-  });
-
-  useVideoKeyboardShortcuts({
-    videoRef: videoPlayer.videoRef,
-    volume: videoPlayer.volume,
-    isPlaying: videoPlayer.isPlaying,
-    setVolume: (vol) => videoPlayer.handleVolumeChange([vol]),
-    onZoomChange: () => {}
-  });
-
-  // Debug logging
-  useEffect(() => {
-    console.log('🎬 AdvancedVideoPlayer rendering with src:', props.src);
-    console.log('🎯 Video player state:', {
-      isPlaying: videoPlayer.isPlaying,
-      duration: videoPlayer.duration,
-      currentTime: videoPlayer.currentTime,
-      videoLoaded: videoPlayer.videoLoaded,
-      videoError: videoPlayer.videoError,
-      videoRef: videoPlayer.videoRef?.current ? 'exists' : 'null'
-    });
-    
-    if (videoPlayer.videoRef?.current) {
-      const video = videoPlayer.videoRef.current;
-      console.log('📺 Video element:', {
-        src: video.src,
-        readyState: video.readyState,
-        videoWidth: video.videoWidth,
-        videoHeight: video.videoHeight,
-        paused: video.paused,
-        currentTime: video.currentTime,
-        duration: video.duration
-      });
-    }
-  }, [videoPlayer, props.src]);
-
-  const handleRetryWithDirectPlayback = () => {
-    console.log('🔄 Trying direct video playback...');
-    if (videoPlayer.videoRef.current) {
-      // Reset video element completely
-      const video = videoPlayer.videoRef.current;
-      video.load();
-      
-      // Try to play after a short delay
-      setTimeout(() => {
-        video.play().catch(e => console.log('Play failed:', e));
-      }, 100);
-    }
-  };
-
   return (
     <div className="flex h-screen bg-black">
       {/* Main Video Area */}
       <div className="flex-1 flex flex-col">
         {/* Video Player Container */}
         <div className="flex-1 flex items-center justify-center bg-black relative min-h-0">
-          {/* Main video element - simplified approach */}
-          <video
-            ref={videoPlayer.videoRef}
+          <SimpleVideoPlayer 
             src={props.src}
-            className="w-full h-full object-contain bg-black"
-            style={{ 
-              maxWidth: '100%',
-              maxHeight: '100%',
-              display: 'block'
-            }}
-            controls={false}
-            playsInline
-            preload="metadata"
-            onLoadStart={() => console.log('🚀 Video load started')}
-            onLoadedMetadata={() => console.log('✅ Video metadata loaded')}
-            onCanPlay={() => console.log('▶️ Video can play')}
-            onError={(e) => console.error('❌ Video error:', e)}
-          />
-          
-          {/* Hidden preview video for timeline */}
-          <video
-            ref={videoPlayer.previewVideoRef}
-            src={props.src}
-            className="hidden"
-            muted
-            playsInline
-            preload="metadata"
+            onError={(error) => console.error('Video error:', error)}
+            onLoad={() => console.log('Video loaded successfully')}
           />
           
           {/* Video Overlay Info */}
@@ -154,11 +71,6 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
             {props.annotations && (
               <Badge className="bg-green-600 text-white">
                 Annotations On
-              </Badge>
-            )}
-            {videoPlayer.videoRef?.current?.videoWidth && (
-              <Badge className="bg-blue-600 text-white">
-                {videoPlayer.videoRef.current.videoWidth}x{videoPlayer.videoRef.current.videoHeight}
               </Badge>
             )}
           </div>
@@ -173,110 +85,6 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
               3 viewers
             </Badge>
           </div>
-
-          {/* Loading indicator - only show if video hasn't loaded */}
-          {!videoPlayer.videoLoaded && !videoPlayer.videoError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 z-20">
-              <div className="text-center max-w-md">
-                <div className="w-12 h-12 border-4 border-pink-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-white mb-2">Loading video...</p>
-                <p className="text-gray-400 text-sm mb-4">{props.src.split('/').pop()}</p>
-                
-                {/* Simplified debug info */}
-                <div className="bg-gray-800 rounded p-3 text-xs text-left space-y-1 mb-4">
-                  <p className="text-blue-400">Ready State: {videoPlayer.videoRef?.current?.readyState || 0}/4</p>
-                  <p className="text-green-400">Network State: {videoPlayer.videoRef?.current?.networkState || 0}</p>
-                  <p className="text-yellow-400">Attempts: {videoPlayer.loadingAttempts}</p>
-                </div>
-                
-                {videoPlayer.loadingAttempts > 1 && (
-                  <div className="space-y-2">
-                    <Button 
-                      onClick={handleRetryWithDirectPlayback}
-                      className="bg-pink-600 hover:bg-pink-700"
-                    >
-                      <Play className="h-4 w-4 mr-2" />
-                      Try Direct Playback
-                    </Button>
-                    <Button 
-                      onClick={videoPlayer.retryVideo}
-                      variant="outline"
-                      className="border-gray-600 text-gray-300"
-                    >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Retry Loading
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Error overlay */}
-          {videoPlayer.videoError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 z-20">
-              <div className="text-center max-w-md">
-                <p className="text-red-400 mb-4">Error: {videoPlayer.videoError}</p>
-                <div className="space-y-2">
-                  <Button 
-                    onClick={handleRetryWithDirectPlayback}
-                    className="bg-pink-600 hover:bg-pink-700"
-                  >
-                    <Play className="h-4 w-4 mr-2" />
-                    Try Direct Playback
-                  </Button>
-                  <Button 
-                    onClick={videoPlayer.retryVideo}
-                    variant="outline"
-                    className="border-gray-600 text-gray-300"
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Retry
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Controls Section */}
-        <div className="bg-gray-900 border-t border-gray-700 p-4 space-y-4 flex-shrink-0">
-          {/* Debug Info */}
-          <div className="bg-gray-800 p-3 rounded text-white text-sm">
-            <div className="grid grid-cols-4 gap-4">
-              <div>Playing: {String(videoPlayer.isPlaying)}</div>
-              <div>Duration: {videoPlayer.duration.toFixed(1)}s</div>
-              <div>Current: {videoPlayer.currentTime.toFixed(1)}s</div>
-              <div>Loaded: {String(videoPlayer.videoLoaded)}</div>
-            </div>
-            <div className="grid grid-cols-2 gap-4 mt-2">
-              <div>Video Size: {videoPlayer.videoRef?.current?.videoWidth || 0}x{videoPlayer.videoRef?.current?.videoHeight || 0}</div>
-              <div>Ready State: {videoPlayer.videoRef?.current?.readyState || 0}/4</div>
-            </div>
-          </div>
-          
-          {/* Timeline - only show if video has loaded */}
-          {videoPlayer.videoLoaded && (
-            <VideoTimeline
-              currentTime={videoPlayer.currentTime}
-              duration={videoPlayer.duration}
-              comments={props.comments}
-              onTimeClick={videoPlayer.handleSeek}
-              previewVideoRef={videoPlayer.previewVideoRef}
-              timeFormat={videoPlayer.timeFormat}
-              assetId={props.src}
-            />
-          )}
-          
-          {/* Simple Video Controls */}
-          <SimpleVideoControls
-            isPlaying={videoPlayer.isPlaying}
-            onTogglePlayPause={videoPlayer.togglePlayPause}
-            volume={videoPlayer.volume}
-            onVolumeToggle={videoPlayer.handleVolumeToggle}
-            currentTime={videoPlayer.currentTime}
-            duration={videoPlayer.duration}
-          />
         </div>
       </div>
 
@@ -340,34 +148,10 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
                 <CardContent className="p-4">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-white">Video Quality</span>
-                      <Badge className="bg-gray-700 text-white">
-                        {videoPlayer.quality}
+                      <span className="text-sm text-white">Annotations</span>
+                      <Badge className={props.annotations ? "bg-green-600" : "bg-gray-600"}>
+                        {props.annotations ? "On" : "Off"}
                       </Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-white">Playback Speed</span>
-                      <Badge className="bg-gray-700 text-white">
-                        {videoPlayer.playbackSpeed}x
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-white">Time Format</span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          const formats = ['timecode', 'frames', 'seconds'] as const;
-                          const currentIndex = formats.indexOf(videoPlayer.timeFormat);
-                          const nextFormat = formats[(currentIndex + 1) % formats.length];
-                          videoPlayer.setTimeFormat(nextFormat);
-                        }}
-                        className="border-gray-600 text-gray-300 text-xs h-6"
-                      >
-                        {videoPlayer.timeFormat}
-                      </Button>
                     </div>
                   </div>
                 </CardContent>
