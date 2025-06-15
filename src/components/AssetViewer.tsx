@@ -404,6 +404,15 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                 }}
               />
 
+              <video
+                ref={previewVideoRef}
+                muted
+                playsInline
+                preload="metadata"
+                className="hidden"
+                crossOrigin="anonymous"
+              />
+
               {/* Direct playback fallback */}
               {useDirectPlayback && (
                 <div className="absolute inset-0 w-full h-full flex items-center justify-center">
