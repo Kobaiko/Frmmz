@@ -107,10 +107,6 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
       console.log('📊 Video metadata loaded');
       clearTimeout(metadataTimeout);
       setDuration(video.duration);
-      if (previewVideoRef.current) {
-        previewVideoRef.current.src = src;
-        previewVideoRef.current.muted = true;
-      }
       
       const videoHeight = video.videoHeight;
       let maxQual = '360p', availableQuals = ['360p'];
@@ -182,6 +178,16 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
     };
   }, [src]); // The dependency array is now just [src], which breaks the loop.
+
+  useEffect(() => {
+    if (videoLoaded && previewVideoRef.current && src) {
+      if (previewVideoRef.current.src !== src) {
+        console.log('🔗 Setting preview video source:', src);
+        previewVideoRef.current.src = src;
+        previewVideoRef.current.muted = true;
+      }
+    }
+  }, [videoLoaded, src]);
 
   useEffect(() => {
     const video = videoRef.current;
