@@ -24,7 +24,18 @@ const AppContent = () => {
   const { user, loading } = useAuth();
   const [appState, setAppState] = useState<AppState>({ view: 'dashboard' });
 
+  // Debug logging for development
+  useEffect(() => {
+    console.log('🚀 App starting up');
+    console.log('🌐 Current URL:', window.location.href);
+    console.log('📍 Origin:', window.location.origin);
+    console.log('🔧 Port:', window.location.port);
+    console.log('👤 User:', user);
+    console.log('📱 App State:', appState);
+  }, [user, appState]);
+
   const handleProjectSelect = (projectId: string, projectName: string) => {
+    console.log('📂 Project selected:', projectId, projectName);
     setAppState({ 
       view: 'project', 
       selectedProjectId: projectId,
@@ -33,6 +44,7 @@ const AppContent = () => {
   };
 
   const handleAssetOpen = (assetId: string) => {
+    console.log('🎬 Asset opened:', assetId);
     setAppState(prev => ({ 
       ...prev, 
       view: 'asset', 
@@ -41,10 +53,12 @@ const AppContent = () => {
   };
 
   const handleBackToDashboard = () => {
+    console.log('🏠 Back to dashboard');
     setAppState({ view: 'dashboard' });
   };
 
   const handleBackToProject = () => {
+    console.log('📂 Back to project');
     setAppState(prev => ({ 
       ...prev, 
       view: 'project',
@@ -59,7 +73,8 @@ const AppContent = () => {
           <div className="w-8 h-8 bg-pink-600 rounded-lg flex items-center justify-center mx-auto mb-4">
             <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
           </div>
-          <p className="text-gray-400">Loading...</p>
+          <p className="text-gray-400">Loading Frmmz...</p>
+          <p className="text-gray-600 text-sm mt-1">Port: {window.location.port || '80'}</p>
         </div>
       </div>
     );
