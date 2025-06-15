@@ -1,37 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { DrawingCanvas } from "./DrawingCanvas";
-import { CommentPanel } from "./CommentPanel";
-import { VideoTimeline } from "./VideoTimeline";
-import { VideoControls } from "./VideoControls";
-import { useVideoPlayer } from "@/hooks/useVideoPlayer";
-import { supabase } from "@/integrations/supabase/client";
-import type { Comment } from "@/pages/Index";
-import { 
-  ArrowLeft, 
-  Download, 
-  Share2, 
-  FileVideo,
-  AlertCircle,
-  RefreshCw,
-  ExternalLink,
-  Play
-} from "lucide-react";
 
-interface Asset {
-  id: string;
-  name: string;
-  file_type: string;
-  file_url: string;
-  thumbnail_url?: string;
-  duration?: string;
-  file_size: number;
-  resolution?: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-}
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Download, Share2, MessageCircle } from "lucide-react";
+import { useAssets } from "@/hooks/useAssets";
+import { SimpleVideoPlayer } from "./SimpleVideoPlayer";
+import { StorageDebugger } from "./StorageDebugger";
 
 interface AssetViewerProps {
   assetId: string;
@@ -39,262 +12,24 @@ interface AssetViewerProps {
 }
 
 export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
-  const [asset, setAsset] = useState<Asset | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [showComments, setShowComments] = useState(true);
-  const [isDrawingMode, setIsDrawingMode] = useState(false);
-  const [annotations, setAnnotations] = useState(true);
-  const [userName, setUserName] = useState<string>('Kivaiko');
-  const [loading, setLoading] = useState(true);
-  const [guides, setGuides] = useState({
-    enabled: false,
-    ratio: '16:9',
-    mask: false
-  });
-  const [zoom, setZoom] = useState('fit');
-  const [encodeComments, setEncodeComments] = useState(false);
-
-  // Use the comprehensive video player hook
-  const {
-    videoRef,
-    previewVideoRef,
-    duration,
-    currentTime,
-    setCurrentTime,
-    isPlaying,
-    volume,
-    playbackSpeed,
-    quality,
-    availableQualities,
-    maxQuality,
-    isLooping,
-    timeFormat,
-    setTimeFormat,
-    videoLoaded,
-    videoError,
-    videoDebugInfo,
-    useDirectPlayback,
-    loadingAttempts,
-    togglePlayPause,
-    toggleLoop,
-    handleSpeedChange,
-    handleVolumeToggle,
-    handleVolumeChange,
-    handleQualityChange,
-    handleSeek,
-    retryVideo,
-    forceDirectPlayback
-  } = useVideoPlayer({
-    src: asset?.file_url || '',
-  });
+  const { assets, loading } = useAssets();
+  const [asset, setAsset] = useState<any>(null);
+  const [showDebugger, setShowDebugger] = useState(false);
 
   useEffect(() => {
-    const fetchAsset = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('assets')
-          .select('*')
-          .eq('id', assetId)
-          .single();
-
-        if (error) throw error;
-        
-        console.log('✅ Asset fetched successfully:', data);
-        console.log('🔗 Video URL:', data.file_url);
-        
-        setAsset(data as Asset);
-        
-        // Fetch comments for this asset
-        const { data: commentsData, error: commentsError } = await supabase
-          .from('comments')
-          .select('*')
-          .eq('asset_id', assetId)
-          .order('created_at', { ascending: true });
-
-        if (!commentsError && commentsData) {
-          const formattedComments: Comment[] = commentsData.map(comment => ({
-            id: comment.id,
-            timestamp: comment.timestamp_seconds || -1,
-            text: comment.content,
-            author: 'Kivaiko',
-            createdAt: new Date(comment.created_at),
-            parentId: comment.parent_id || undefined
-          }));
-          setComments(formattedComments);
-        }
-      } catch (error) {
-        console.error('❌ Error fetching asset:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAsset();
-  }, [assetId]);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'processing': return 'bg-yellow-600';
-      case 'ready': return 'bg-blue-600';
-      case 'needs_review': return 'bg-orange-600';
-      case 'approved': return 'bg-green-600';
-      case 'rejected': return 'bg-red-600';
-      default: return 'bg-gray-600';
+    if (assets && assets.length > 0) {
+      const foundAsset = assets.find(a => a.id === assetId);
+      setAsset(foundAsset);
+      console.log('🎬 Asset found:', foundAsset);
     }
-  };
-
-  const handleAddComment = async (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
-    if (!asset) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('comments')
-        .insert([
-          {
-            asset_id: asset.id,
-            user_id: (await supabase.auth.getUser()).data.user?.id,
-            content: text,
-            timestamp_seconds: attachTime ? currentTime : null,
-            is_internal: isInternal || false,
-            has_drawing: hasDrawing || false
-          }
-        ])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      const newComment: Comment = {
-        id: data.id,
-        timestamp: data.timestamp_seconds || -1,
-        text: data.content,
-        author: userName,
-        createdAt: new Date(data.created_at),
-      };
-      
-      setComments([...comments, newComment]);
-    } catch (error) {
-      console.error('Error adding comment:', error);
-    }
-  };
-
-  const handleReplyComment = async (parentId: string, text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
-    if (!asset) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('comments')
-        .insert([
-          {
-            asset_id: asset.id,
-            user_id: (await supabase.auth.getUser()).data.user?.id,
-            content: text,
-            parent_id: parentId,
-            timestamp_seconds: attachTime ? currentTime : null,
-            is_internal: isInternal || false,
-            has_drawing: hasDrawing || false
-          }
-        ])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      const newComment: Comment = {
-        id: data.id,
-        timestamp: data.timestamp_seconds || -1,
-        text: data.content,
-        author: userName,
-        createdAt: new Date(data.created_at),
-        parentId
-      };
-      
-      setComments([...comments, newComment]);
-    } catch (error) {
-      console.error('Error replying to comment:', error);
-    }
-  };
-
-  const handleDeleteComment = async (commentId: string) => {
-    try {
-      const { error } = await supabase
-        .from('comments')
-        .delete()
-        .eq('id', commentId);
-
-      if (error) throw error;
-      setComments(comments.filter(comment => comment.id !== commentId));
-    } catch (error) {
-      console.error('Error deleting comment:', error);
-    }
-  };
-
-  const handleSeekToComment = (timestamp: number) => {
-    handleSeek(timestamp);
-  };
-
-  const handleStartDrawing = () => {
-    setIsDrawingMode(true);
-    if (isPlaying) {
-      togglePlayPause();
-    }
-  };
-
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleGuidesToggle = () => {
-    setGuides(prev => ({ ...prev, enabled: !prev.enabled }));
-  };
-
-  const handleGuidesRatioChange = (ratio: string) => {
-    setGuides(prev => ({ ...prev, ratio }));
-  };
-
-  const handleGuidesMaskToggle = () => {
-    setGuides(prev => ({ ...prev, mask: !prev.mask }));
-  };
-
-  const handleSetFrameAsThumb = () => {
-    console.log('Set frame as thumbnail at:', currentTime);
-  };
-
-  const handleDownloadStill = () => {
-    console.log('Download still frame at:', currentTime);
-  };
-
-  const handleToggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-    } else {
-      document.exitFullscreen();
-    }
-  };
-
-  const handleRetryVideo = () => {
-    console.log('🔄 Retrying video load...');
-    retryVideo();
-  };
-
-  const handleDirectDownload = () => {
-    if (asset?.file_url) {
-      window.open(asset.file_url, '_blank');
-    }
-  };
-
-  const handleUseDirectPlayback = () => {
-    forceDirectPlayback();
-  };
+  }, [assets, assetId]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 bg-pink-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-            <FileVideo className="h-5 w-5 text-white animate-pulse" />
+            <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
           </div>
           <p className="text-gray-400">Loading asset...</p>
         </div>
@@ -306,9 +41,8 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Asset not found</h2>
-          <p className="text-gray-400 mb-4">The requested asset could not be loaded.</p>
-          <Button onClick={onBack} variant="outline" className="border-gray-600 text-gray-300">
+          <h2 className="text-2xl font-bold mb-4">Asset not found</h2>
+          <Button onClick={onBack} className="bg-pink-600 hover:bg-pink-700">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Go Back
           </Button>
@@ -318,321 +52,83 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black text-white flex overflow-hidden">
-      {/* Main Content Area */}
-      <div className="flex flex-col flex-1">
-        {/* Header */}
-        <div className="border-b border-gray-800 px-6 py-4 bg-black flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onBack}
-                className="text-gray-400 hover:text-white hover:bg-gray-700"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div className="flex items-center space-x-3">
-                <div className="text-pink-500">
-                  <FileVideo className="h-5 w-5" />
-                </div>
-                <div>
-                  <h1 className="text-sm font-medium text-white text-left">{asset.name}</h1>
-                  <div className="flex items-center space-x-4 text-xs text-gray-400">
-                    <span>{asset.file_type.toUpperCase()}</span>
-                    <span>•</span>
-                    <span>{Math.round(asset.file_size / 1024 / 1024)} MB</span>
-                    {asset.resolution && (
-                      <>
-                        <span>•</span>
-                        <span>{asset.resolution}</span>
-                      </>
-                    )}
-                    {asset.duration && (
-                      <>
-                        <span>•</span>
-                        <span>{asset.duration}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
+    <div className="min-h-screen bg-black text-white">
+      {/* Header */}
+      <div className="border-b border-gray-800 p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onBack}
+              className="text-gray-400 hover:text-white hover:bg-gray-700"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">{asset.name}</h1>
+              <div className="flex items-center space-x-4 text-sm text-gray-400 mt-1">
+                <span>{asset.file_type}</span>
+                <span>•</span>
+                <span>{Math.round(asset.file_size / 1024 / 1024)} MB</span>
+                <span>•</span>
+                <span>Uploaded {new Date(asset.created_at).toLocaleDateString()}</span>
               </div>
             </div>
-            
-            <div className="flex items-center space-x-3">
-              <Badge className={`${getStatusColor(asset.status)} text-white border-0`}>
-                {asset.status.replace('_', ' ')}
-              </Badge>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-gray-600 text-gray-300 hover:bg-gray-700"
-              >
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                onClick={handleDirectDownload}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Download
-              </Button>
-            </div>
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              onClick={() => setShowDebugger(!showDebugger)}
+              className="bg-yellow-600 hover:bg-yellow-700 text-white"
+            >
+              {showDebugger ? 'Hide' : 'Show'} Debug
+            </Button>
+            <Button variant="ghost" className="text-gray-400 hover:text-white">
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Comment
+            </Button>
+            <Button variant="ghost" className="text-gray-400 hover:text-white">
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
+            </Button>
+            <Button variant="ghost" className="text-gray-400 hover:text-white">
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
           </div>
         </div>
+      </div>
 
-        {/* Video Container */}
-        <div className="flex-1 bg-black flex items-center justify-center relative overflow-hidden">
+      {/* Debug Panel */}
+      {showDebugger && <StorageDebugger />}
+
+      {/* Main Content */}
+      <div className="flex-1 p-6">
+        <div className="max-w-6xl mx-auto">
           {asset.file_type === 'video' ? (
-            <div className="w-full h-full flex items-center justify-center relative">
-              {/* Video element - now managed entirely by the hook */}
-              <video
-                ref={videoRef}
-                className="max-w-full max-h-full object-contain"
-                playsInline
-                preload="metadata"
-                controls={false}
-                crossOrigin="anonymous"
-                style={{ 
-                  display: 'block',
-                  backgroundColor: 'transparent',
-                  opacity: videoLoaded ? 1 : 0
-                }}
-              />
-
-              <video
-                ref={previewVideoRef}
-                muted
-                playsInline
-                preload="metadata"
-                className="hidden"
-                crossOrigin="anonymous"
-              />
-
-              {/* Direct playback fallback */}
-              {useDirectPlayback && (
-                <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-                  <video
-                    src={asset.file_url}
-                    controls
-                    className="max-w-full max-h-full object-contain"
-                    playsInline
-                    preload="auto"
-                    style={{ backgroundColor: 'black' }}
-                  />
-                </div>
-              )}
-              
-              {/* Drawing canvas overlay */}
-              {(videoLoaded || useDirectPlayback) && (
-                <div className="absolute inset-0 pointer-events-none z-10">
-                  <DrawingCanvas
-                    currentTime={currentTime}
-                    videoRef={videoRef}
-                    isDrawingMode={isDrawingMode}
-                    annotations={annotations}
-                  />
-                </div>
-              )}
-
-              {/* Loading overlay */}
-              {!videoLoaded && !videoError && !useDirectPlayback && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black z-30">
-                  <div className="text-center max-w-lg">
-                    <div className="w-12 h-12 border-4 border-pink-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-white mb-2">Loading video...</p>
-                    <p className="text-gray-400 text-sm mb-6">{asset.name}</p>
-                    
-                    {/* Debug information */}
-                    <div className="bg-gray-800 rounded p-4 text-xs text-left space-y-2">
-                      <p className="text-green-400">✅ Video URL: {asset.file_url.split('/').pop()}</p>
-                      <p className="text-blue-400">📊 Ready State: {videoDebugInfo.readyState || 0}/4</p>
-                      <p className="text-purple-400">📐 Dimensions: {videoDebugInfo.videoWidth || 0}x{videoDebugInfo.videoHeight || 0}</p>
-                      <p className="text-yellow-400">⏱️ Duration: {videoDebugInfo.duration || 'Unknown'}</p>
-                      <p className="text-cyan-400">🌐 Network State: {videoDebugInfo.networkState || 0}</p>
-                      <p className="text-pink-400">🔄 Attempts: {loadingAttempts}</p>
-                      <p className="text-orange-400">🔒 CORS: {videoDebugInfo.crossOrigin || 'anonymous'}</p>
-                      {videoDebugInfo.canPlayType && (
-                        <p className="text-green-400">🎬 MP4 Support: {videoDebugInfo.canPlayType.mp4 || 'none'}</p>
-                      )}
-                    </div>
-                    
-                    {loadingAttempts > 1 && (
-                      <div className="mt-4 flex flex-col space-y-2">
-                        <Button 
-                          onClick={handleUseDirectPlayback}
-                          className="bg-pink-600 hover:bg-pink-700"
-                        >
-                          <Play className="h-4 w-4 mr-2" />
-                          Try Direct Playback
-                        </Button>
-                        <div className="flex space-x-2">
-                          <Button 
-                            onClick={handleRetryVideo}
-                            variant="outline"
-                            className="border-gray-600 text-gray-300"
-                          >
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                            Retry
-                          </Button>
-                          <Button 
-                            onClick={handleDirectDownload}
-                            variant="outline"
-                            className="border-gray-600 text-gray-300"
-                          >
-                            <Download className="h-4 w-4 mr-2" />
-                            Download
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Error overlay */}
-              {videoError && !useDirectPlayback && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black z-30">
-                  <div className="text-center max-w-lg">
-                    <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <AlertCircle className="h-6 w-6 text-white" />
-                    </div>
-                    <p className="text-white mb-2">Video Playback Issue</p>
-                    <p className="text-gray-400 text-sm mb-4">{videoError}</p>
-                    
-                    <div className="bg-gray-800 rounded p-4 text-xs text-left mb-4 space-y-1">
-                      <p className="text-red-400">❌ Error: {videoError}</p>
-                      <p className="text-gray-400">📁 File: {asset.name}</p>
-                      <p className="text-gray-400">📏 Size: {Math.round(asset.file_size / 1024 / 1024)} MB</p>
-                      <p className="text-gray-400">🔄 Attempts: {loadingAttempts}</p>
-                    </div>
-                    
-                    <div className="flex flex-col space-y-2">
-                      <Button 
-                        onClick={handleUseDirectPlayback}
-                        className="bg-pink-600 hover:bg-pink-700"
-                      >
-                        <Play className="h-4 w-4 mr-2" />
-                        Try Direct Playback
-                      </Button>
-                      <div className="flex space-x-2">
-                        <Button 
-                          onClick={handleRetryVideo}
-                          variant="outline"
-                          className="border-gray-600 text-gray-300"
-                        >
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Retry
-                        </Button>
-                        <Button 
-                          onClick={handleDirectDownload}
-                          variant="outline"
-                          className="border-gray-600 text-gray-300"
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          Download
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : asset.file_type === 'image' ? (
-            <div className="w-full h-full flex items-center justify-center">
-              <img
+            <div className="bg-gray-900 rounded-lg overflow-hidden">
+              <SimpleVideoPlayer
                 src={asset.file_url}
-                alt={asset.name}
-                className="max-w-full max-h-full object-contain"
+                onError={(error) => console.error('❌ Video player error:', error)}
+                onLoad={() => console.log('✅ Video loaded successfully')}
               />
             </div>
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <div className="text-center">
-                <FileVideo className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-400 mb-4">Preview not available for this file type</p>
-                <Button
-                  onClick={handleDirectDownload}
-                  className="bg-pink-600 hover:bg-pink-700"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download File
-                </Button>
-              </div>
+            <div className="bg-gray-900 rounded-lg p-8 text-center">
+              <p className="text-gray-400">Preview not available for {asset.file_type} files</p>
+              <Button 
+                onClick={() => window.open(asset.file_url, '_blank')}
+                className="bg-blue-600 hover:bg-blue-700 mt-4"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Open File
+              </Button>
             </div>
           )}
         </div>
-
-        {/* Video Controls */}
-        {asset.file_type === 'video' && (videoLoaded || useDirectPlayback) && !useDirectPlayback && (
-          <div className="bg-gray-900 border-t border-gray-700 p-4 flex-shrink-0">
-            <div className="mb-4">
-              <VideoTimeline
-                currentTime={currentTime}
-                duration={duration}
-                comments={comments}
-                onTimeClick={handleSeek}
-                previewVideoRef={previewVideoRef}
-                timeFormat={timeFormat}
-                assetId={asset.id}
-              />
-            </div>
-            
-            <VideoControls
-              isPlaying={isPlaying}
-              onTogglePlayPause={togglePlayPause}
-              isLooping={isLooping}
-              onToggleLoop={toggleLoop}
-              playbackSpeed={playbackSpeed}
-              onSpeedChange={handleSpeedChange}
-              volume={volume}
-              onVolumeToggle={handleVolumeToggle}
-              onVolumeChange={handleVolumeChange}
-              currentTime={currentTime}
-              duration={duration}
-              timeFormat={timeFormat}
-              onTimeFormatChange={setTimeFormat}
-              quality={quality}
-              availableQualities={availableQualities}
-              onQualityChange={handleQualityChange}
-              guides={guides}
-              onGuidesToggle={handleGuidesToggle}
-              onGuidesRatioChange={handleGuidesRatioChange}
-              onGuidesMaskToggle={handleGuidesMaskToggle}
-              zoom={zoom}
-              onZoomChange={setZoom}
-              encodeComments={encodeComments}
-              setEncodeComments={setEncodeComments}
-              annotations={annotations}
-              setAnnotations={setAnnotations}
-              onSetFrameAsThumb={handleSetFrameAsThumb}
-              onDownloadStill={handleDownloadStill}
-              onToggleFullscreen={handleToggleFullscreen}
-              formatTime={formatTime}
-            />
-          </div>
-        )}
       </div>
-
-      {/* Comments Panel */}
-      {showComments && (
-        <div className="w-80 border-l border-gray-700 bg-gray-900 flex-shrink-0">
-          <CommentPanel
-            comments={comments}
-            currentTime={currentTime}
-            onCommentClick={handleSeekToComment}
-            onDeleteComment={handleDeleteComment}
-            onReplyComment={handleReplyComment}
-            onAddComment={handleAddComment}
-            onStartDrawing={handleStartDrawing}
-            isDrawingMode={isDrawingMode}
-          />
-        </div>
-      )}
     </div>
   );
 };
