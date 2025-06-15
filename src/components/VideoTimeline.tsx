@@ -1,9 +1,9 @@
-
 import { useState } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { VideoPreview } from "./VideoPreview";
 import type { Comment } from "@/pages/Index";
+import { Clock, Edit } from "lucide-react";
 
 interface VideoTimelineProps {
   currentTime: number;
@@ -41,6 +41,9 @@ export const VideoTimeline = ({
     const percentage = hoverX / rect.width;
     const time = percentage * duration;
     setHoverTime(time);
+    if (previewVideoRef.current && time >= 0 && time <= duration) {
+      previewVideoRef.current.currentTime = time;
+    }
   };
 
   const getCommentMarkers = () => {
@@ -139,10 +142,7 @@ export const VideoTimeline = ({
                       #{comment.commentNumber}
                     </span>
                     <span className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded flex items-center space-x-1">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12,6 12,12 16,14"/>
-                      </svg>
+                      <Clock className="w-2.5 h-2.5" />
                       <span>{formatTime(comment.timestamp)}</span>
                     </span>
                   </div>
@@ -165,10 +165,7 @@ export const VideoTimeline = ({
                     )}
                     {comment.hasDrawing && (
                       <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full flex items-center space-x-1">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M12 19l7-7 3 3-7 7-3-3z"/>
-                          <path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
-                        </svg>
+                        <Edit className="w-2.5 h-2.5" />
                         <span>Drawing</span>
                       </span>
                     )}

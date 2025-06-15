@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DrawingCanvas } from "./DrawingCanvas";
 import { CommentPanel } from "./CommentPanel";
-import { EnhancedVideoTimeline } from "./EnhancedVideoTimeline";
+import { VideoTimeline } from "./VideoTimeline";
 import { VideoControls } from "./VideoControls";
 import { useVideoPlayer } from "@/hooks/useVideoPlayer";
 import { supabase } from "@/integrations/supabase/client";
@@ -572,19 +571,13 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         {asset.file_type === 'video' && (videoLoaded || useDirectPlayback) && !useDirectPlayback && (
           <div className="bg-gray-900 border-t border-gray-700 p-4 flex-shrink-0">
             <div className="mb-4">
-              <EnhancedVideoTimeline
+              <VideoTimeline
                 currentTime={currentTime}
                 duration={duration}
                 comments={comments}
                 onTimeClick={handleSeek}
                 previewVideoRef={previewVideoRef}
                 timeFormat={timeFormat}
-                frameRate={30}
-                onHover={(time) => {
-                  if (time !== null && previewVideoRef.current) {
-                    previewVideoRef.current.currentTime = time;
-                  }
-                }}
                 assetId={asset.id}
               />
             </div>
