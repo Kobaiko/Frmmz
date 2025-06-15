@@ -16,7 +16,9 @@ import {
   Layers, 
   Activity,
   Clock,
-  Zap
+  Zap,
+  RefreshCw,
+  Play
 } from "lucide-react";
 import type { Comment } from "@/pages/Index";
 
@@ -95,13 +97,27 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
     }
   }, [videoPlayer, props.src]);
 
+  const handleRetryWithDirectPlayback = () => {
+    console.log('🔄 Trying direct video playback...');
+    if (videoPlayer.videoRef.current) {
+      // Reset video element completely
+      const video = videoPlayer.videoRef.current;
+      video.load();
+      
+      // Try to play after a short delay
+      setTimeout(() => {
+        video.play().catch(e => console.log('Play failed:', e));
+      }, 100);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-black">
       {/* Main Video Area */}
       <div className="flex-1 flex flex-col">
         {/* Video Player Container */}
         <div className="flex-1 flex items-center justify-center bg-black relative min-h-0">
-          {/* Simple video element */}
+          {/* Main video element - simplified approach */}
           <video
             ref={videoPlayer.videoRef}
             src={props.src}
@@ -114,7 +130,6 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
             controls={false}
             playsInline
             preload="metadata"
-            crossOrigin="anonymous"
             onLoadStart={() => console.log('🚀 Video load started')}
             onLoadedMetadata={() => console.log('✅ Video metadata loaded')}
             onCanPlay={() => console.log('▶️ Video can play')}
@@ -129,7 +144,6 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
             muted
             playsInline
             preload="metadata"
-            crossOrigin="anonymous"
           />
           
           {/* Video Overlay Info */}
@@ -160,25 +174,66 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
             </Badge>
           </div>
 
-          {/* Simple loading indicator - only show if video hasn't loaded */}
+          {/* Loading indicator - only show if video hasn't loaded */}
           {!videoPlayer.videoLoaded && !videoPlayer.videoError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80">
-              <div className="text-center">
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 z-20">
+              <div className="text-center max-w-md">
                 <div className="w-12 h-12 border-4 border-pink-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-white">Loading video...</p>
-                <p className="text-gray-400 text-sm mt-2">Ready State: {videoPlayer.videoRef?.current?.readyState || 0}/4</p>
+                <p className="text-white mb-2">Loading video...</p>
+                <p className="text-gray-400 text-sm mb-4">{props.src.split('/').pop()}</p>
+                
+                {/* Simplified debug info */}
+                <div className="bg-gray-800 rounded p-3 text-xs text-left space-y-1 mb-4">
+                  <p className="text-blue-400">Ready State: {videoPlayer.videoRef?.current?.readyState || 0}/4</p>
+                  <p className="text-green-400">Network State: {videoPlayer.videoRef?.current?.networkState || 0}</p>
+                  <p className="text-yellow-400">Attempts: {videoPlayer.loadingAttempts}</p>
+                </div>
+                
+                {videoPlayer.loadingAttempts > 1 && (
+                  <div className="space-y-2">
+                    <Button 
+                      onClick={handleRetryWithDirectPlayback}
+                      className="bg-pink-600 hover:bg-pink-700"
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      Try Direct Playback
+                    </Button>
+                    <Button 
+                      onClick={videoPlayer.retryVideo}
+                      variant="outline"
+                      className="border-gray-600 text-gray-300"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Retry Loading
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           {/* Error overlay */}
           {videoPlayer.videoError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80">
-              <div className="text-center">
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 z-20">
+              <div className="text-center max-w-md">
                 <p className="text-red-400 mb-4">Error: {videoPlayer.videoError}</p>
-                <Button onClick={videoPlayer.retryVideo} className="bg-pink-600 hover:bg-pink-700">
-                  Retry
-                </Button>
+                <div className="space-y-2">
+                  <Button 
+                    onClick={handleRetryWithDirectPlayback}
+                    className="bg-pink-600 hover:bg-pink-700"
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    Try Direct Playback
+                  </Button>
+                  <Button 
+                    onClick={videoPlayer.retryVideo}
+                    variant="outline"
+                    className="border-gray-600 text-gray-300"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Retry
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -200,16 +255,18 @@ export const AdvancedVideoPlayer = (props: AdvancedVideoPlayerProps) => {
             </div>
           </div>
           
-          {/* Timeline */}
-          <VideoTimeline
-            currentTime={videoPlayer.currentTime}
-            duration={videoPlayer.duration}
-            comments={props.comments}
-            onTimeClick={videoPlayer.handleSeek}
-            previewVideoRef={videoPlayer.previewVideoRef}
-            timeFormat={videoPlayer.timeFormat}
-            assetId={props.src}
-          />
+          {/* Timeline - only show if video has loaded */}
+          {videoPlayer.videoLoaded && (
+            <VideoTimeline
+              currentTime={videoPlayer.currentTime}
+              duration={videoPlayer.duration}
+              comments={props.comments}
+              onTimeClick={videoPlayer.handleSeek}
+              previewVideoRef={videoPlayer.previewVideoRef}
+              timeFormat={videoPlayer.timeFormat}
+              assetId={props.src}
+            />
+          )}
           
           {/* Simple Video Controls */}
           <SimpleVideoControls

@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState, useCallback } from "react";
 
 interface UseVideoPlayerProps {
@@ -50,7 +51,6 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
         ogg: video.canPlayType('video/ogg')
       },
       error: video.error ? { code: video.error.code, message: video.error.message } : null,
-      crossOrigin: video.crossOrigin,
       loadingAttempts
     };
     
@@ -63,18 +63,11 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
     const previewVideo = previewVideoRef.current;
     if (!video || !previewVideo || !src) return;
 
-    setLoadingAttempts(1);
+    setLoadingAttempts(prev => prev + 1);
 
-    console.log('🎬 Setting up video monitoring for:', src);
+    console.log('🎬 Setting up video for:', src);
     setVideoLoaded(false);
     setVideoError(null);
-
-    const metadataTimeout = setTimeout(() => {
-      if (video.readyState < 1) { // HAVE_METADATA is 1
-        console.error('⏰ Video metadata loading timeout');
-        setVideoError('Video format may not be supported or loading timed out.');
-      }
-    }, 5000);
 
     const updateTime = () => {
       if (video && !video.paused) {
@@ -84,11 +77,13 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
     };
     
     const handlePlay = () => {
+      console.log('▶️ Video started playing');
       setIsPlaying(true);
       animationFrameRef.current = requestAnimationFrame(updateTime);
     };
 
     const handlePause = () => {
+      console.log('⏸️ Video paused');
       setIsPlaying(false);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -102,15 +97,21 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
     };
     
     const handleLoadedMetadata = () => {
-      console.log('📊 Video metadata loaded');
-      clearTimeout(metadataTimeout);
+      console.log('📊 Video metadata loaded - Duration:', video.duration);
       setDuration(video.duration);
       
       const videoHeight = video.videoHeight;
       let maxQual = '360p', availableQuals = ['360p'];
-      if (videoHeight >= 1080) { maxQual = '1080p'; availableQuals = ['1080p', '720p', '540p', '360p']; }
-      else if (videoHeight >= 720) { maxQual = '720p'; availableQuals = ['720p', '540p', '360p']; }
-      else if (videoHeight >= 540) { maxQual = '540p'; availableQuals = ['540p', '360p']; }
+      if (videoHeight >= 1080) { 
+        maxQual = '1080p'; 
+        availableQuals = ['1080p', '720p', '540p', '360p']; 
+      } else if (videoHeight >= 720) { 
+        maxQual = '720p'; 
+        availableQuals = ['720p', '540p', '360p']; 
+      } else if (videoHeight >= 540) { 
+        maxQual = '540p'; 
+        availableQuals = ['540p', '360p']; 
+      }
       
       setMaxQuality(maxQual);
       setQuality(maxQual);
@@ -121,19 +122,20 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
     };
 
     const handleCanPlay = () => {
-      console.log('▶️ Video can play');
+      console.log('✅ Video can play - setting loaded to true');
       setVideoLoaded(true);
       setVideoError(null);
-      clearTimeout(metadataTimeout);
       updateDebugInfo();
     };
 
     const handleError = (e: Event) => {
       console.error('❌ Video error event:', e);
       const target = e.target as HTMLVideoElement;
-      let errorMsg = 'Video format not supported by browser';
+      let errorMsg = 'Video could not be loaded';
       if (target?.error) {
         switch (target.error.code) {
+          case 1: errorMsg = 'Video loading was aborted'; break;
+          case 2: errorMsg = 'Network error while loading video'; break;
           case 3: errorMsg = 'Video file is corrupted or in unsupported format'; break;
           case 4: errorMsg = 'Video format not supported by this browser'; break;
           default: errorMsg = `Video error: ${target.error.message || 'Unknown error'}`;
@@ -141,10 +143,22 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
       }
       setVideoError(errorMsg);
       setVideoLoaded(false);
-      clearTimeout(metadataTimeout);
+      updateDebugInfo();
+    };
+
+    const handleLoadStart = () => {
+      console.log('🚀 Video load started');
+      updateDebugInfo();
+    };
+
+    const handleProgress = () => {
+      console.log('📶 Video loading progress');
       updateDebugInfo();
     };
     
+    // Add all event listeners
+    video.addEventListener('loadstart', handleLoadStart);
+    video.addEventListener('progress', handleProgress);
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('error', handleError);
@@ -153,14 +167,13 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
     video.addEventListener('timeupdate', handleTimeUpdate);
 
     try {
-      video.crossOrigin = 'anonymous';
+      // Simplified video setup - remove problematic CORS settings
       video.preload = 'metadata';
       video.src = src;
       video.load();
       console.log('🔗 Main video source set and load() called');
 
       if (previewVideo.src !== src) {
-        previewVideo.crossOrigin = 'anonymous';
         previewVideo.preload = 'metadata';
         previewVideo.src = src;
         previewVideo.muted = true;
@@ -175,8 +188,9 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
     updateDebugInfo();
 
     return () => {
-      clearTimeout(metadataTimeout);
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      video.removeEventListener('loadstart', handleLoadStart);
+      video.removeEventListener('progress', handleProgress);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleError);
@@ -184,7 +198,7 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('timeupdate', handleTimeUpdate);
     };
-  }, [src]);
+  }, [src, updateDebugInfo]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -194,6 +208,7 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
   const handleSeek = useCallback((time: number) => {
     const video = videoRef.current;
     if (video && isFinite(time)) {
+      console.log('⏭️ Seeking to:', time);
       video.currentTime = time;
       setCurrentTime(time);
     }
@@ -201,7 +216,18 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
 
   const togglePlayPause = useCallback(() => {
     const video = videoRef.current;
-    if (video) isPlaying ? video.pause() : video.play();
+    if (!video) return;
+    
+    if (isPlaying) {
+      console.log('⏸️ Pausing video');
+      video.pause();
+    } else {
+      console.log('▶️ Playing video');
+      video.play().catch(err => {
+        console.error('❌ Play failed:', err);
+        setVideoError('Unable to play video');
+      });
+    }
   }, [isPlaying]);
 
   const toggleLoop = useCallback(() => setIsLooping(prev => !prev), []);
@@ -240,9 +266,10 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
   }, []);
   
   const retryVideo = useCallback(() => {
+    console.log('🔄 Retrying video load...');
     setVideoError(null);
+    setVideoLoaded(false);
     setUseDirectPlayback(false);
-    setLoadingAttempts(prev => prev + 1); // Increment attempts on retry
     const video = videoRef.current;
     if (video) {
       video.load();
@@ -250,6 +277,7 @@ export const useVideoPlayer = ({ src }: UseVideoPlayerProps) => {
   }, []);
 
   const forceDirectPlayback = useCallback(() => {
+    console.log('🎯 Forcing direct playback mode...');
     setUseDirectPlayback(true);
     setVideoError(null);
   }, []);
