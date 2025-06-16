@@ -160,7 +160,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
   if (loading) {
     return (
-      <div className="h-screen bg-black text-white flex items-center justify-center">
+      <div className="h-screen w-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 bg-pink-600 rounded-lg flex items-center justify-center mx-auto mb-4">
             <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -173,7 +173,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
   if (!asset) {
     return (
-      <div className="h-screen bg-black text-white flex items-center justify-center">
+      <div className="h-screen w-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Asset not found</h2>
           <Button onClick={onBack} className="bg-pink-600 hover:bg-pink-700">
@@ -188,11 +188,11 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="h-screen w-full bg-black flex overflow-hidden">
-      {/* Main Video Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Header */}
-        <div className="h-12 bg-black flex items-center justify-between px-4 border-b border-gray-800">
+    <div className="h-screen w-screen bg-black overflow-hidden flex">
+      {/* Main Content Area - Video Player */}
+      <div className="flex-1 flex flex-col">
+        {/* Minimal Header */}
+        <div className="h-12 bg-black flex items-center justify-between px-4">
           <div className="flex items-center space-x-3">
             <Button
               variant="ghost"
@@ -202,7 +202,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <span className="text-white font-medium text-sm">{asset.name}</span>
+            <span className="text-white font-medium">{asset.name}</span>
           </div>
           
           <div className="flex items-center space-x-1">
@@ -218,7 +218,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           </div>
         </div>
 
-        {/* Video Player Area */}
+        {/* Video Player Container */}
         <div className="flex-1 relative bg-black">
           {asset.file_type === 'video' ? (
             <>
@@ -230,44 +230,42 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                 controls={false}
               />
               
-              {/* Video Controls Overlay */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+              {/* Video Controls at Bottom */}
+              <div className="absolute bottom-0 left-0 right-0 bg-black p-4">
                 {/* Progress Bar */}
                 <div 
                   className="w-full h-1 bg-gray-600 rounded-full mb-3 cursor-pointer"
                   onClick={handleSeek}
                 >
                   <div 
-                    className="h-full bg-pink-500 rounded-full"
+                    className="h-full bg-white rounded-full"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
 
                 {/* Control Buttons */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={togglePlayPause}
-                      className="text-white hover:bg-white/20 p-2"
-                    >
-                      {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-                    </Button>
-                    
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={toggleMute}
-                      className="text-white hover:bg-white/20 p-2"
-                    >
-                      {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                    </Button>
-                    
-                    <span className="text-white text-xs font-mono">
-                      {formatTime(currentTime)} / {formatTime(duration)}
-                    </span>
-                  </div>
+                <div className="flex items-center space-x-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={togglePlayPause}
+                    className="text-white hover:bg-white/20 p-2"
+                  >
+                    {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                  </Button>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleMute}
+                    className="text-white hover:bg-white/20 p-2"
+                  >
+                    {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                  </Button>
+                  
+                  <span className="text-white text-sm font-mono">
+                    {formatTime(currentTime)} / {formatTime(duration)}
+                  </span>
                 </div>
               </div>
             </>
@@ -288,9 +286,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         </div>
       </div>
 
-      {/* Comments Sidebar - Fixed Width */}
+      {/* Comments Panel - Fixed Width on Right */}
       {asset.file_type === 'video' && (
-        <div className="w-80 bg-gray-900 border-l border-gray-800 flex-shrink-0">
+        <div className="w-80 bg-gray-900 flex-shrink-0">
           <CommentPanel
             comments={comments.map(comment => ({
               id: comment.id,
