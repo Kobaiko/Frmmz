@@ -204,131 +204,28 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="h-screen bg-black flex">
-      {/* Main Video Area */}
-      <div className="flex-1 flex flex-col relative">
-        {/* Top Header Bar */}
-        <div className="absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/80 to-transparent">
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onBack}
-                className="text-white hover:bg-white/20"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <span className="text-white font-medium">{asset.name}</span>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
-                <Share2 className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
-                <Download className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
-                <Settings className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Video Container */}
-        <div 
-          className="flex-1 relative bg-black flex items-center justify-center"
-          onMouseMove={handleMouseMove}
-        >
-          {asset.file_type === 'video' ? (
-            <>
-              <video
-                ref={videoRef}
-                src={asset.file_url}
-                className="max-w-full max-h-full object-contain"
-                playsInline
-                controls={false}
-              />
-              
-              {/* Video Controls Overlay */}
-              <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-opacity duration-300 ${
-                showControls ? 'opacity-100' : 'opacity-0'
-              }`}>
-                <div className="p-6">
-                  {/* Progress Bar */}
-                  <div 
-                    className="w-full h-2 bg-gray-700 rounded-full mb-4 cursor-pointer group"
-                    onClick={handleSeek}
-                  >
-                    <div 
-                      className="h-full bg-pink-500 rounded-full transition-all duration-100"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-
-                  {/* Control Buttons */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <Button
-                        variant="ghost"
-                        size="lg"
-                        onClick={togglePlayPause}
-                        className="text-white hover:bg-white/20 w-12 h-12 rounded-full"
-                      >
-                        {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
-                      </Button>
-                      
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={toggleMute}
-                        className="text-white hover:bg-white/20"
-                      >
-                        {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-                      </Button>
-                      
-                      <div className="text-white text-lg font-mono">
-                        {formatTime(currentTime)} / {formatTime(duration)}
-                      </div>
-                    </div>
-
-                    <div className="text-white text-sm opacity-75">
-                      {Math.round(progress)}% complete
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <p className="text-gray-400 mb-4">Preview not available for {asset.file_type} files</p>
-                <Button 
-                  onClick={() => window.open(asset.file_url, '_blank')}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Open File
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Comments Panel - Clean professional design */}
-      {asset.file_type === 'video' && (
-        <div className="w-80 border-l border-gray-700 flex-shrink-0">
-          <VideoReviewInterface
-            comments={comments}
-            onAddComment={handleAddComment}
-            onDeleteComment={handleDeleteComment}
-            currentTime={currentTime}
-            onCommentClick={handleCommentClick}
-          />
-        </div>
-      )}
+    <div className="h-screen w-screen bg-black fixed inset-0 z-50">
+      <VideoReviewInterface
+        asset={asset}
+        comments={comments}
+        onAddComment={handleAddComment}
+        onDeleteComment={handleDeleteComment}
+        currentTime={currentTime}
+        onCommentClick={handleCommentClick}
+        onBack={onBack}
+        videoRef={videoRef}
+        isPlaying={isPlaying}
+        duration={duration}
+        volume={volume}
+        isMuted={isMuted}
+        showControls={showControls}
+        onMouseMove={handleMouseMove}
+        onTogglePlayPause={togglePlayPause}
+        onToggleMute={toggleMute}
+        onSeek={handleSeek}
+        formatTime={formatTime}
+        progress={progress}
+      />
     </div>
   );
 };
