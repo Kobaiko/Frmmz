@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,8 +123,18 @@ export const VideoReviewInterface = ({
 
     try {
       const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      // Use smaller dimensions for thumbnail
+      const maxWidth = 320;
+      const maxHeight = 180;
+      const aspectRatio = video.videoWidth / video.videoHeight;
+      
+      if (aspectRatio > maxWidth / maxHeight) {
+        canvas.width = maxWidth;
+        canvas.height = maxWidth / aspectRatio;
+      } else {
+        canvas.height = maxHeight;
+        canvas.width = maxHeight * aspectRatio;
+      }
       
       const ctx = canvas.getContext('2d');
       if (!ctx) {
@@ -190,41 +201,6 @@ export const VideoReviewInterface = ({
     }
   };
 
-  const ensureStorageBucket = async () => {
-    try {
-      // Check if bucket exists
-      const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-      
-      if (listError) {
-        console.error('Error listing buckets:', listError);
-        return false;
-      }
-
-      const bucketExists = buckets?.some(bucket => bucket.name === 'assets');
-      
-      if (!bucketExists) {
-        // Create bucket if it doesn't exist
-        const { error: createError } = await supabase.storage.createBucket('assets', {
-          public: true,
-          allowedMimeTypes: ['image/*', 'video/*'],
-          fileSizeLimit: 1024 * 1024 * 100 // 100MB limit
-        });
-
-        if (createError) {
-          console.error('Error creating bucket:', createError);
-          return false;
-        }
-        
-        console.log('Assets bucket created successfully');
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error ensuring storage bucket:', error);
-      return false;
-    }
-  };
-
   const handleSetFrameAsThumb = async () => {
     console.log('Starting set frame as thumbnail process...');
     
@@ -239,24 +215,23 @@ export const VideoReviewInterface = ({
     }
 
     try {
-      // Ensure storage bucket exists
-      const bucketReady = await ensureStorageBucket();
-      if (!bucketReady) {
-        throw new Error('Storage bucket not available');
-      }
-
-      // Convert canvas to blob
+      // Convert canvas to blob with high compression
       const blob = await new Promise<Blob | null>((resolve) => {
         canvas.toBlob((blob) => {
           resolve(blob);
-        }, 'image/jpeg', 0.8);
+        }, 'image/jpeg', 0.6); // Lower quality for smaller file size
       });
 
       if (!blob) {
         throw new Error('Failed to create image blob');
       }
 
-      console.log('Blob created, size:', blob.size);
+      console.log('Blob created, size:', Math.round(blob.size / 1024), 'KB');
+
+      // Check if blob is too large (limit to 1MB for safety)
+      if (blob.size > 1024 * 1024) {
+        throw new Error('Image file too large. Please try a different frame.');
+      }
 
       // Upload thumbnail to Supabase storage
       const fileName = `thumbnails/${asset.id}_${Date.now()}.jpg`;
@@ -271,10 +246,10 @@ export const VideoReviewInterface = ({
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
-        throw uploadError;
+        throw new Error(`Upload failed: ${uploadError.message}`);
       }
 
-      console.log('Upload successful:', uploadData);
+      console.log('Upload successful:', uploadData.path);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
@@ -302,13 +277,13 @@ export const VideoReviewInterface = ({
 
       toast({
         title: "Success",
-        description: "Thumbnail updated successfully"
+        description: "Thumbnail updated successfully! The page will refresh to show the new thumbnail."
       });
 
       // Force a page refresh to show the new thumbnail
       setTimeout(() => {
         window.location.reload();
-      }, 1000);
+      }, 1500);
 
     } catch (error) {
       console.error('Error setting thumbnail:', error);
