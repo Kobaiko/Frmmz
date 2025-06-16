@@ -19,7 +19,8 @@ import {
   Play,
   Pause,
   Volume2,
-  VolumeX
+  VolumeX,
+  Repeat
 } from "lucide-react";
 
 interface VideoComment {
@@ -77,6 +78,7 @@ export const VideoReviewInterface = ({
 }: VideoReviewInterfaceProps) => {
   const [newComment, setNewComment] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLooping, setIsLooping] = useState(false);
 
   const handleAddComment = () => {
     if (newComment.trim()) {
@@ -91,13 +93,21 @@ export const VideoReviewInterface = ({
     }
   };
 
+  const toggleLoop = () => {
+    const video = videoRef.current;
+    if (video) {
+      video.loop = !isLooping;
+      setIsLooping(!isLooping);
+    }
+  };
+
   const filteredComments = comments.filter(comment =>
     comment.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
     comment.author.toLowerCase().includes(searchQuery.toLowerCase())
   ).sort((a, b) => a.timestamp - b.timestamp);
 
   return (
-    <div className="h-full w-full bg-black flex">
+    <div className="h-screen w-screen bg-black flex fixed inset-0 z-50">
       {/* Main Video Area */}
       <div className="flex-1 flex flex-col relative">
         {/* Top Header Bar */}
@@ -170,6 +180,15 @@ export const VideoReviewInterface = ({
                         className="text-white hover:bg-white/20 w-12 h-12 rounded-full"
                       >
                         {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
+                      </Button>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={toggleLoop}
+                        className={`text-white hover:bg-white/20 ${isLooping ? 'bg-white/20' : ''}`}
+                      >
+                        <Repeat className="h-5 w-5" />
                       </Button>
                       
                       <Button
