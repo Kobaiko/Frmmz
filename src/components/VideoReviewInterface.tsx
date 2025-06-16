@@ -110,40 +110,49 @@ export const VideoReviewInterface = ({
       case 'Fit':
         video.style.transform = 'scale(1)';
         video.style.objectFit = 'contain';
+        video.style.transformOrigin = 'center center';
         setZoomLevel(1);
+        console.log('Zoom: Fit to screen');
         break;
       case 'Fill':
         video.style.transform = 'scale(1)';
         video.style.objectFit = 'cover';
+        video.style.transformOrigin = 'center center';
         setZoomLevel(1);
+        console.log('Zoom: Fill screen');
         break;
       case 'Zoom In':
         const newZoomIn = Math.min(zoomLevel * 1.25, 5);
         video.style.transform = `scale(${newZoomIn})`;
         video.style.objectFit = 'contain';
+        video.style.transformOrigin = 'center center';
         setZoomLevel(newZoomIn);
+        console.log('Zoom In to:', Math.round(newZoomIn * 100) + '%');
         break;
       case 'Zoom Out':
         const newZoomOut = Math.max(zoomLevel * 0.8, 0.25);
         video.style.transform = `scale(${newZoomOut})`;
         video.style.objectFit = 'contain';
+        video.style.transformOrigin = 'center center';
         setZoomLevel(newZoomOut);
+        console.log('Zoom Out to:', Math.round(newZoomOut * 100) + '%');
         break;
       case '100%':
         video.style.transform = 'scale(1)';
         video.style.objectFit = 'none';
+        video.style.transformOrigin = 'center center';
         setZoomLevel(1);
+        console.log('Zoom: 100% actual size');
         break;
       default:
         video.style.transform = 'scale(1)';
         video.style.objectFit = 'contain';
+        video.style.transformOrigin = 'center center';
         setZoomLevel(1);
     }
-    
-    console.log('Zoom changed to:', newZoom, 'Level:', zoomLevel);
   };
 
-  // Enable keyboard shortcuts
+  // Enable keyboard shortcuts - make sure this is called with the correct handleZoomChange
   useVideoKeyboardShortcuts({
     videoRef,
     volume: internalVolume,
