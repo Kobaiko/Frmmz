@@ -531,6 +531,13 @@ export const VideoReviewInterface = ({
                 style={{ objectFit: 'contain' }}
                 playsInline
                 controls={false}
+                crossOrigin="anonymous"
+                onLoadedData={() => {
+                  console.log('Video loaded and ready for frame capture');
+                }}
+                onError={(e) => {
+                  console.error('Video error:', e);
+                }}
               />
               
               {/* Video Guides Overlay */}
