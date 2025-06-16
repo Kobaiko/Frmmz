@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,6 +91,7 @@ export const VideoReviewInterface = ({
   const [isLooping, setIsLooping] = useState(false);
   const [timestampFormat, setTimestampFormat] = useState<TimestampFormat>('standard');
   const [internalVolume, setInternalVolume] = useState(volume);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
@@ -343,13 +343,23 @@ export const VideoReviewInterface = ({
     }
   };
 
+  const handlePlaybackSpeedChange = (speeds: number[]) => {
+    const speed = speeds[0];
+    setPlaybackSpeed(speed);
+    const video = videoRef.current;
+    if (video) {
+      video.playbackRate = speed;
+    }
+  };
+
   // Enable keyboard shortcuts - make sure this is called with the correct handleZoomChange
   useVideoKeyboardShortcuts({
     videoRef,
     volume: internalVolume,
     isPlaying,
     setVolume: setInternalVolume,
-    onZoomChange: handleZoomChange
+    onZoomChange: handleZoomChange,
+    onPlaybackSpeedChange: handlePlaybackSpeedChange
   });
 
   const handleAddComment = () => {
@@ -584,6 +594,47 @@ export const VideoReviewInterface = ({
                         >
                           <Repeat className="h-5 w-5" />
                         </Button>
+
+                        {/* Playback Speed Control */}
+                        <HoverCard>
+                          <HoverCardTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-white hover:bg-white/20 px-3 py-2 text-sm font-mono"
+                            >
+                              {playbackSpeed}x
+                            </Button>
+                          </HoverCardTrigger>
+                          <HoverCardContent 
+                            side="top" 
+                            className="w-80 p-4 bg-gray-800 border-gray-700"
+                          >
+                            <div className="space-y-3">
+                              <div className="text-white text-sm font-medium">Playback speed</div>
+                              <div className="relative">
+                                <Slider
+                                  value={[playbackSpeed]}
+                                  onValueChange={handlePlaybackSpeedChange}
+                                  min={0.25}
+                                  max={2}
+                                  step={0.25}
+                                  className="w-full"
+                                />
+                                <div className="flex justify-between mt-2 text-xs text-gray-300">
+                                  <span>0.25x</span>
+                                  <span>0.5x</span>
+                                  <span>0.75x</span>
+                                  <span>1x</span>
+                                  <span>1.25x</span>
+                                  <span>1.5x</span>
+                                  <span>1.75x</span>
+                                  <span>2x</span>
+                                </div>
+                              </div>
+                            </div>
+                          </HoverCardContent>
+                        </HoverCard>
                         
                         <HoverCard>
                           <HoverCardTrigger asChild>
