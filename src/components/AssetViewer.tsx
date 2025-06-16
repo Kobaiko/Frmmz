@@ -5,7 +5,6 @@ import { ArrowLeft, Download, Share2, Settings } from "lucide-react";
 import { useAssets } from "@/hooks/useAssets";
 import { SimpleVideoPlayer } from "./SimpleVideoPlayer";
 import { CommentPanel } from "./CommentPanel";
-import { DrawingCanvas } from "./DrawingCanvas";
 
 interface AssetViewerProps {
   assetId: string;
@@ -69,7 +68,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     if (assets && assets.length > 0) {
       const foundAsset = assets.find(a => a.id === assetId);
       setAsset(foundAsset);
-      console.log('🎬 Asset found:', foundAsset);
     }
   }, [assets, assetId]);
 
@@ -84,20 +82,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
       resolved: false
     };
     setComments(prev => [...prev, newComment]);
-  };
-
-  const handleResolveComment = (commentId: string) => {
-    setComments(prev => 
-      prev.map(comment => 
-        comment.id === commentId 
-          ? { ...comment, resolved: !comment.resolved }
-          : comment
-      )
-    );
-  };
-
-  const handleDeleteComment = (commentId: string) => {
-    setComments(prev => prev.filter(comment => comment.id !== commentId));
   };
 
   const handleCommentClick = (timestamp: number) => {
@@ -135,65 +119,55 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   }
 
   return (
-    <div className="h-screen bg-black text-white flex">
-      {/* Main Video Area - Full Screen */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Header */}
-        <div className="bg-black border-b border-gray-800 p-3 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center space-x-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onBack}
-              className="text-gray-400 hover:text-white hover:bg-gray-700 h-8 w-8"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <h1 className="text-lg font-medium">{asset.name}</h1>
-              <div className="flex items-center space-x-3 text-xs text-gray-400">
-                <span>{asset.file_type}</span>
-                <span>•</span>
-                <span>{Math.round(asset.file_size / 1024 / 1024)} MB</span>
-              </div>
+    <div className="h-screen bg-black text-white flex flex-col">
+      {/* Top Header */}
+      <div className="bg-black border-b border-gray-800 p-3 flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center space-x-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onBack}
+            className="text-gray-400 hover:text-white hover:bg-gray-700 h-8 w-8"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-lg font-medium">{asset.name}</h1>
+            <div className="flex items-center space-x-3 text-xs text-gray-400">
+              <span>{asset.file_type}</span>
+              <span>•</span>
+              <span>{Math.round(asset.file_size / 1024 / 1024)} MB</span>
             </div>
           </div>
-          
-          <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white text-xs">
-              <Share2 className="h-4 w-4 mr-1" />
-              Share
-            </Button>
-            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white text-xs">
-              <Download className="h-4 w-4 mr-1" />
-              Download
-            </Button>
-            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-              <Settings className="h-4 w-4" />
-            </Button>
-          </div>
         </div>
+        
+        <div className="flex items-center space-x-2">
+          <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white text-xs">
+            <Share2 className="h-4 w-4 mr-1" />
+            Share
+          </Button>
+          <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white text-xs">
+            <Download className="h-4 w-4 mr-1" />
+            Download
+          </Button>
+          <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+            <Settings className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
-        {/* Video Player - Full remaining space */}
-        <div className="flex-1 relative bg-black">
+      {/* Main Content Area */}
+      <div className="flex-1 flex">
+        {/* Video Player Area - Takes most of the space */}
+        <div className="flex-1 bg-black relative">
           {asset.file_type === 'video' ? (
-            <>
-              <SimpleVideoPlayer
-                ref={videoRef}
-                src={asset.file_url}
-                onTimeUpdate={setCurrentTime}
-                onError={(error) => console.error('❌ Video player error:', error)}
-                onLoad={() => console.log('✅ Video loaded successfully')}
-              />
-              
-              {/* Drawing Canvas Overlay */}
-              <DrawingCanvas
-                currentTime={currentTime}
-                videoRef={videoRef}
-                isDrawingMode={isDrawingMode}
-                annotations={true}
-              />
-            </>
+            <SimpleVideoPlayer
+              ref={videoRef}
+              src={asset.file_url}
+              onTimeUpdate={setCurrentTime}
+              onError={(error) => console.error('❌ Video player error:', error)}
+              onLoad={() => console.log('✅ Video loaded successfully')}
+            />
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -209,33 +183,35 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             </div>
           )}
         </div>
-      </div>
 
-      {/* Comments Panel - Fixed width on the right */}
-      {asset.file_type === 'video' && (
-        <div className="w-80 flex-shrink-0">
-          <CommentPanel
-            comments={comments.map(comment => ({
-              id: comment.id,
-              text: comment.content,
-              author: comment.author,
-              timestamp: comment.timestamp,
-              createdAt: comment.createdAt,
-              isInternal: false,
-              parentId: undefined
-            }))}
-            currentTime={currentTime}
-            onCommentClick={handleCommentClick}
-            onDeleteComment={handleDeleteComment}
-            onReplyComment={(parentId, text) => {
-              console.log('Reply to:', parentId, text);
-            }}
-            onAddComment={(text) => handleAddComment(currentTime, text)}
-            onStartDrawing={() => setIsDrawingMode(!isDrawingMode)}
-            isDrawingMode={isDrawingMode}
-          />
-        </div>
-      )}
+        {/* Comments Panel - Fixed width on the right */}
+        {asset.file_type === 'video' && (
+          <div className="w-80 flex-shrink-0">
+            <CommentPanel
+              comments={comments.map(comment => ({
+                id: comment.id,
+                text: comment.content,
+                author: comment.author,
+                timestamp: comment.timestamp,
+                createdAt: comment.createdAt,
+                isInternal: false,
+                parentId: undefined
+              }))}
+              currentTime={currentTime}
+              onCommentClick={handleCommentClick}
+              onDeleteComment={(commentId) => {
+                setComments(prev => prev.filter(comment => comment.id !== commentId));
+              }}
+              onReplyComment={(parentId, text) => {
+                console.log('Reply to:', parentId, text);
+              }}
+              onAddComment={(text) => handleAddComment(currentTime, text)}
+              onStartDrawing={() => setIsDrawingMode(!isDrawingMode)}
+              isDrawingMode={isDrawingMode}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 };
