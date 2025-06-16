@@ -174,7 +174,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black text-white flex items-center justify-center">
+      <div className="h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 bg-pink-600 rounded-lg flex items-center justify-center mx-auto mb-4">
             <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -187,7 +187,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
   if (!asset) {
     return (
-      <div className="fixed inset-0 bg-black text-white flex items-center justify-center">
+      <div className="h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Asset not found</h2>
           <Button onClick={onBack} className="bg-pink-600 hover:bg-pink-700">
@@ -202,7 +202,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="fixed inset-0 bg-black flex">
+    <div className="h-screen bg-black flex">
       {/* Main Video Area */}
       <div className="flex-1 flex flex-col relative">
         {/* Top Header Bar */}
