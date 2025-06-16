@@ -1,10 +1,12 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Share2, MessageCircle } from "lucide-react";
+import { ArrowLeft, Download, Share2, MessageCircle, Pencil } from "lucide-react";
 import { useAssets } from "@/hooks/useAssets";
 import { SimpleVideoPlayer } from "./SimpleVideoPlayer";
 import { VideoReviewInterface } from "./VideoReviewInterface";
+import { DrawingCanvas } from "./DrawingCanvas";
+import { DrawingToolsMenu } from "./DrawingToolsMenu";
 import { StorageDebugger } from "./StorageDebugger";
 
 interface AssetViewerProps {
@@ -30,6 +32,10 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [comments, setComments] = useState<VideoComment[]>([]);
   const [currentTime, setCurrentTime] = useState(0);
   const [showComments, setShowComments] = useState(true);
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
+  const [showDrawingTools, setShowDrawingTools] = useState(false);
+  const [showAnnotations, setShowAnnotations] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Mock comments for demonstration
   useEffect(() => {
@@ -100,6 +106,15 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     setComments(prev => prev.filter(comment => comment.id !== commentId));
   };
 
+  const toggleDrawingMode = () => {
+    setIsDrawingMode(!isDrawingMode);
+    if (!isDrawingMode) {
+      setShowDrawingTools(true);
+    } else {
+      setShowDrawingTools(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -161,6 +176,24 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             >
               {showDebugger ? 'Hide' : 'Show'} Debug
             </Button>
+            
+            {/* Drawing Toggle */}
+            {asset.file_type === 'video' && (
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  onClick={toggleDrawingMode}
+                  className={`text-sm ${isDrawingMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'text-gray-400 hover:text-white'}`}
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Draw
+                </Button>
+                {showDrawingTools && (
+                  <DrawingToolsMenu onClose={() => setShowDrawingTools(false)} />
+                )}
+              </div>
+            )}
+            
             <Button 
               variant="ghost" 
               onClick={() => setShowComments(!showComments)}
@@ -191,14 +224,23 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
       {/* Main Content Area */}
       <div className="flex h-[calc(100vh-120px)]">
         {/* Video Player Area */}
-        <div className={`flex-1 flex items-center justify-center p-6 ${showComments ? 'pr-3' : ''}`}>
+        <div className={`${showComments ? 'flex-1' : 'w-full'} flex items-center justify-center p-6 relative`}>
           {asset.file_type === 'video' ? (
-            <div className="w-full h-full max-w-5xl bg-gray-900 rounded-lg overflow-hidden">
+            <div className="w-full h-full max-w-5xl bg-gray-900 rounded-lg overflow-hidden relative">
               <SimpleVideoPlayer
+                ref={videoRef}
                 src={asset.file_url}
                 onTimeUpdate={setCurrentTime}
                 onError={(error) => console.error('❌ Video player error:', error)}
                 onLoad={() => console.log('✅ Video loaded successfully')}
+              />
+              
+              {/* Drawing Canvas Overlay */}
+              <DrawingCanvas
+                currentTime={currentTime}
+                videoRef={videoRef}
+                isDrawingMode={isDrawingMode}
+                annotations={showAnnotations}
               />
             </div>
           ) : (
