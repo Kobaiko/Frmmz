@@ -9,6 +9,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { VideoSettingsMenu } from "./VideoSettingsMenu";
 import { VideoGuides } from "./VideoGuides";
+import { useVideoKeyboardShortcuts } from "@/hooks/useVideoKeyboardShortcuts";
 import { 
   MessageCircle, 
   Search,
@@ -86,6 +87,7 @@ export const VideoReviewInterface = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isLooping, setIsLooping] = useState(false);
   const [timestampFormat, setTimestampFormat] = useState<TimestampFormat>('standard');
+  const [internalVolume, setInternalVolume] = useState(volume);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   
   // Video settings state
@@ -96,6 +98,59 @@ export const VideoReviewInterface = ({
     mask: false
   });
   const [zoom, setZoom] = useState('Fit');
+  const [zoomLevel, setZoomLevel] = useState(1);
+
+  const handleZoomChange = (newZoom: string) => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    setZoom(newZoom);
+    
+    switch (newZoom) {
+      case 'Fit':
+        video.style.transform = 'scale(1)';
+        video.style.objectFit = 'contain';
+        setZoomLevel(1);
+        break;
+      case 'Fill':
+        video.style.transform = 'scale(1)';
+        video.style.objectFit = 'cover';
+        setZoomLevel(1);
+        break;
+      case 'Zoom In':
+        const newZoomIn = Math.min(zoomLevel * 1.25, 5);
+        video.style.transform = `scale(${newZoomIn})`;
+        video.style.objectFit = 'contain';
+        setZoomLevel(newZoomIn);
+        break;
+      case 'Zoom Out':
+        const newZoomOut = Math.max(zoomLevel * 0.8, 0.25);
+        video.style.transform = `scale(${newZoomOut})`;
+        video.style.objectFit = 'contain';
+        setZoomLevel(newZoomOut);
+        break;
+      case '100%':
+        video.style.transform = 'scale(1)';
+        video.style.objectFit = 'none';
+        setZoomLevel(1);
+        break;
+      default:
+        video.style.transform = 'scale(1)';
+        video.style.objectFit = 'contain';
+        setZoomLevel(1);
+    }
+    
+    console.log('Zoom changed to:', newZoom, 'Level:', zoomLevel);
+  };
+
+  // Enable keyboard shortcuts
+  useVideoKeyboardShortcuts({
+    videoRef,
+    volume: internalVolume,
+    isPlaying,
+    setVolume: setInternalVolume,
+    onZoomChange: handleZoomChange
+  });
 
   const handleAddComment = () => {
     if (newComment.trim()) {
@@ -124,6 +179,7 @@ export const VideoReviewInterface = ({
       const volumeValue = newVolume[0] / 100;
       video.volume = volumeValue;
       video.muted = volumeValue === 0;
+      setInternalVolume(volumeValue);
     }
   };
 
@@ -216,11 +272,6 @@ export const VideoReviewInterface = ({
     setGuides(prev => ({ ...prev, mask: !prev.mask }));
   };
 
-  const handleZoomChange = (newZoom: string) => {
-    setZoom(newZoom);
-    console.log('Zoom changed to:', newZoom);
-  };
-
   const handleSetFrameAsThumb = () => {
     console.log('Set frame as thumbnail at:', currentTime);
   };
@@ -267,7 +318,7 @@ export const VideoReviewInterface = ({
         {/* Video Container */}
         <div 
           ref={videoContainerRef}
-          className="flex-1 relative bg-black flex items-center justify-center"
+          className="flex-1 relative bg-black flex items-center justify-center overflow-hidden"
           onMouseMove={onMouseMove}
         >
           {asset.file_type === 'video' ? (
@@ -275,7 +326,8 @@ export const VideoReviewInterface = ({
               <video
                 ref={videoRef}
                 src={asset.file_url}
-                className="max-w-full max-h-full object-contain"
+                className="max-w-full max-h-full transition-transform duration-200"
+                style={{ objectFit: 'contain' }}
                 playsInline
                 controls={false}
               />
@@ -348,15 +400,8 @@ export const VideoReviewInterface = ({
                           <div className="flex items-center space-x-3">
                             <VolumeX className="h-4 w-4 text-gray-400" />
                             <Slider
-                              value={[isMuted ? 0 : Math.round(volume * 100)]}
-                              onValueChange={(newVolume) => {
-                                const video = videoRef.current;
-                                if (video) {
-                                  const volumeValue = newVolume[0] / 100;
-                                  video.volume = volumeValue;
-                                  video.muted = volumeValue === 0;
-                                }
-                              }}
+                              value={[isMuted ? 0 : Math.round(internalVolume * 100)]}
+                              onValueChange={handleVolumeChange}
                               max={100}
                               step={1}
                               className="w-20"
@@ -557,14 +602,7 @@ export const VideoReviewInterface = ({
               <Textarea
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                    if (newComment.trim()) {
-                      onAddComment(currentTime, newComment.trim());
-                      setNewComment('');
-                    }
-                  }
-                }}
+                onKeyPress={handleKeyPress}
                 placeholder="Leave your comment..."
                 className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400 min-h-[80px] resize-none"
               />
@@ -574,12 +612,7 @@ export const VideoReviewInterface = ({
                   Press ⌘+Enter to send
                 </span>
                 <Button
-                  onClick={() => {
-                    if (newComment.trim()) {
-                      onAddComment(currentTime, newComment.trim());
-                      setNewComment('');
-                    }
-                  }}
+                  onClick={handleAddComment}
                   disabled={!newComment.trim()}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
