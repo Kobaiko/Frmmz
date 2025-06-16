@@ -1,12 +1,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Share2, MessageCircle, Pencil } from "lucide-react";
+import { ArrowLeft, Download, Share2, Settings } from "lucide-react";
 import { useAssets } from "@/hooks/useAssets";
 import { SimpleVideoPlayer } from "./SimpleVideoPlayer";
-import { VideoReviewInterface } from "./VideoReviewInterface";
+import { CommentPanel } from "./CommentPanel";
 import { DrawingCanvas } from "./DrawingCanvas";
-import { DrawingToolsMenu } from "./DrawingToolsMenu";
 import { StorageDebugger } from "./StorageDebugger";
 
 interface AssetViewerProps {
@@ -31,10 +30,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [showDebugger, setShowDebugger] = useState(false);
   const [comments, setComments] = useState<VideoComment[]>([]);
   const [currentTime, setCurrentTime] = useState(0);
-  const [showComments, setShowComments] = useState(true);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
-  const [showDrawingTools, setShowDrawingTools] = useState(false);
-  const [showAnnotations, setShowAnnotations] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Mock comments for demonstration
@@ -106,12 +102,10 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     setComments(prev => prev.filter(comment => comment.id !== commentId));
   };
 
-  const toggleDrawingMode = () => {
-    setIsDrawingMode(!isDrawingMode);
-    if (!isDrawingMode) {
-      setShowDrawingTools(true);
-    } else {
-      setShowDrawingTools(false);
+  const handleCommentClick = (timestamp: number) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = timestamp;
+      setCurrentTime(timestamp);
     }
   };
 
@@ -143,9 +137,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
+    <div className="h-screen bg-black text-white flex flex-col">
       {/* Header */}
-      <div className="border-b border-gray-800 p-4">
+      <div className="border-b border-gray-800 p-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Button
@@ -185,69 +179,85 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
               <Download className="h-4 w-4 mr-2" />
               Download
             </Button>
+            <Button variant="ghost" className="text-gray-400 hover:text-white text-sm">
+              <Settings className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Debug Panel */}
       {showDebugger && (
-        <div className="border-b border-gray-800">
+        <div className="border-b border-gray-800 flex-shrink-0">
           <StorageDebugger />
         </div>
       )}
 
-      {/* Main Content - Video Player */}
-      <div className="flex-1 flex items-center justify-center p-6 relative">
-        {asset.file_type === 'video' ? (
-          <div className="w-full h-full max-w-5xl bg-gray-900 rounded-lg overflow-hidden relative">
-            <SimpleVideoPlayer
-              ref={videoRef}
-              src={asset.file_url}
-              onTimeUpdate={setCurrentTime}
-              onError={(error) => console.error('❌ Video player error:', error)}
-              onLoad={() => console.log('✅ Video loaded successfully')}
-            />
-            
-            {/* Drawing Canvas Overlay */}
-            <DrawingCanvas
+      {/* Main Content - Full Screen Layout */}
+      <div className="flex-1 flex min-h-0">
+        {/* Video Player Area - Takes most of the screen */}
+        <div className="flex-1 flex flex-col relative">
+          {asset.file_type === 'video' ? (
+            <div className="flex-1 bg-black relative">
+              <SimpleVideoPlayer
+                ref={videoRef}
+                src={asset.file_url}
+                onTimeUpdate={setCurrentTime}
+                onError={(error) => console.error('❌ Video player error:', error)}
+                onLoad={() => console.log('✅ Video loaded successfully')}
+              />
+              
+              {/* Drawing Canvas Overlay */}
+              <DrawingCanvas
+                currentTime={currentTime}
+                videoRef={videoRef}
+                isDrawingMode={isDrawingMode}
+                annotations={true}
+              />
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center bg-gray-900">
+              <div className="text-center">
+                <p className="text-gray-400 mb-4">Preview not available for {asset.file_type} files</p>
+                <Button 
+                  onClick={() => window.open(asset.file_url, '_blank')}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Open File
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Comments Panel - Right Side */}
+        {asset.file_type === 'video' && (
+          <div className="w-80 flex-shrink-0">
+            <CommentPanel
+              comments={comments.map(comment => ({
+                id: comment.id,
+                text: comment.content,
+                author: comment.author,
+                timestamp: comment.timestamp,
+                createdAt: comment.createdAt,
+                isInternal: false,
+                parentId: undefined
+              }))}
               currentTime={currentTime}
-              videoRef={videoRef}
+              onCommentClick={handleCommentClick}
+              onDeleteComment={handleDeleteComment}
+              onReplyComment={(parentId, text) => {
+                // Handle reply logic
+                console.log('Reply to:', parentId, text);
+              }}
+              onAddComment={(text) => handleAddComment(currentTime, text)}
+              onStartDrawing={() => setIsDrawingMode(!isDrawingMode)}
               isDrawingMode={isDrawingMode}
-              annotations={showAnnotations}
             />
-          </div>
-        ) : (
-          <div className="bg-gray-900 rounded-lg p-8 text-center">
-            <p className="text-gray-400">Preview not available for {asset.file_type} files</p>
-            <Button 
-              onClick={() => window.open(asset.file_url, '_blank')}
-              className="bg-blue-600 hover:bg-blue-700 mt-4"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Open File
-            </Button>
           </div>
         )}
       </div>
-
-      {/* Bottom Comments Panel */}
-      {asset.file_type === 'video' && (
-        <div className="h-80 border-t border-gray-700 bg-gray-900">
-          <VideoReviewInterface
-            comments={comments}
-            onAddComment={handleAddComment}
-            onResolveComment={handleResolveComment}
-            onDeleteComment={handleDeleteComment}
-            currentTime={currentTime}
-            isDrawingMode={isDrawingMode}
-            onToggleDrawingMode={toggleDrawingMode}
-            showDrawingTools={showDrawingTools}
-            onToggleDrawingTools={() => setShowDrawingTools(!showDrawingTools)}
-            showAnnotations={showAnnotations}
-            onToggleAnnotations={() => setShowAnnotations(!showAnnotations)}
-          />
-        </div>
-      )}
     </div>
   );
 };
