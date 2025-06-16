@@ -1,12 +1,15 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 
 interface VideoPreviewProps {
-  previewVideoRef: React.RefObject<HTMLVideoElement>;
   isHovering: boolean;
   hoverTime: number;
-  timeFormat: 'timecode' | 'frames' | 'seconds'; // Or other relevant types
   duration: number;
-  assetId?: string; // Added assetId as it's in VideoTimeline's props for VideoPreview
+  // previewVideoRef is no longer directly used by this component's render method
+  // as VideoTimeline handles the seeking of the referenced video.
+  // We keep it in props if VideoTimeline still passes it, but it's unused here.
+  previewVideoRef?: React.RefObject<HTMLVideoElement>;
+  timeFormat?: 'timecode' | 'frames' | 'seconds';
+  assetId?: string;
 }
 
 const formatTime = (seconds: number) => {
@@ -16,66 +19,40 @@ const formatTime = (seconds: number) => {
 };
 
 export const VideoPreview: React.FC<VideoPreviewProps> = ({
-  previewVideoRef,
   isHovering,
   hoverTime,
-  timeFormat, // Currently unused, but available for future enhancement
   duration,
-  assetId, // Currently unused
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (isHovering && previewVideoRef.current && containerRef.current) {
-      // Ensure the preview video's time is updated
-      if (hoverTime >= 0 && hoverTime <= duration) {
-        previewVideoRef.current.currentTime = hoverTime;
-      }
-    }
-  }, [isHovering, hoverTime, duration, previewVideoRef]);
-
-  if (!isHovering) {
+  if (!isHovering || duration === 0) { // also check duration to prevent division by zero
     return null;
   }
 
-  // Calculate position: This is a rough estimate.
-  // In a real scenario, this would need to be calculated based on mouse position
-  // and timeline dimensions, passed as props or derived.
-  const previewWidth = 160; // Example width
+  const previewWidth = 120; // Example width for the time display box
   const positionStyle: React.CSSProperties = {
     position: 'absolute',
     bottom: '100%', // Position above the timeline
     left: `calc(${(hoverTime / duration) * 100}% - ${previewWidth / 2}px)`,
     width: `${previewWidth}px`,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    padding: '4px',
-    borderRadius: '4px',
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    padding: '8px', // Increased padding
+    borderRadius: '6px', // Slightly more rounded
     color: 'white',
     textAlign: 'center',
-    zIndex: 100, // Ensure it's above other elements
-    pointerEvents: 'none', // So it doesn't interfere with mouse events on the timeline
-    transform: 'translateY(-10px)', // Small offset from the timeline
+    zIndex: 100,
+    pointerEvents: 'none',
+    transform: 'translateY(-12px)', // Slightly more offset
+    boxShadow: '0 4px 12px rgba(0,0,0,0.3)', // Added shadow for better depth
+    fontSize: '13px', // Slightly larger font
   };
 
   return (
-    <div ref={containerRef} style={positionStyle}>
-      {previewVideoRef.current && (
-        <video
-          ref={previewVideoRef} // Note: This might cause issues if the same ref is used directly by VideoTimeline for its own video element.
-                               // It's better if VideoTimeline owns the <video> element and passes the ref,
-                               // and this component just uses the passed ref to *control* it or read from it.
-                               // For now, we assume VideoTimeline passes a dedicated previewVideoRef.
-          style={{ width: '100%', height: 'auto', display: 'block' }}
-          muted
-          // src will be set by the parent component managing the previewVideoRef
-        />
-      )}
-      <div style={{ fontSize: '12px', marginTop: '4px' }}>
-        {formatTime(hoverTime)}
-      </div>
+    <div style={positionStyle}>
+      {/*
+        Visual preview (thumbnail or video frame) would go here.
+        For now, the main video element itself will be seeking,
+        so this component primarily shows the time.
+      */}
+      {formatTime(hoverTime)}
     </div>
   );
 };
-
-// Export as default if that was the original convention, or keep as named.
-// Based on `import { VideoPreview } from "./VideoPreview";` in VideoTimeline.tsx, named export is correct.
