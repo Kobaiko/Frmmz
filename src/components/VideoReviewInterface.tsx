@@ -10,6 +10,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { VideoSettingsMenu } from "./VideoSettingsMenu";
 import { VideoGuides } from "./VideoGuides";
 import { useVideoKeyboardShortcuts } from "@/hooks/useVideoKeyboardShortcuts";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { 
   MessageCircle, 
   Search,
@@ -89,6 +91,7 @@ export const VideoReviewInterface = ({
   const [timestampFormat, setTimestampFormat] = useState<TimestampFormat>('standard');
   const [internalVolume, setInternalVolume] = useState(volume);
   const videoContainerRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
   
   // Video settings state
   const [quality, setQuality] = useState('720p');
@@ -99,6 +102,111 @@ export const VideoReviewInterface = ({
   });
   const [zoom, setZoom] = useState('Fit');
   const [zoomLevel, setZoomLevel] = useState(1);
+
+  const captureVideoFrame = () => {
+    const video = videoRef.current;
+    if (!video) return null;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  };
+
+  const handleDownloadStill = async () => {
+    const canvas = captureVideoFrame();
+    if (!canvas) {
+      toast({
+        title: "Error",
+        description: "Failed to capture video frame",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${asset.name}_frame_${Math.floor(currentTime)}s.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Success",
+        description: "Frame downloaded successfully"
+      });
+    }, 'image/png');
+  };
+
+  const handleSetFrameAsThumb = async () => {
+    const canvas = captureVideoFrame();
+    if (!canvas) {
+      toast({
+        title: "Error",
+        description: "Failed to capture video frame",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Convert canvas to blob
+      const blob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+        }, 'image/jpeg', 0.8);
+      });
+
+      if (!blob) throw new Error('Failed to create image blob');
+
+      // Upload thumbnail to Supabase storage
+      const fileName = `thumbnails/${asset.id}_${Date.now()}.jpg`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('assets')
+        .upload(fileName, blob, {
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('assets')
+        .getPublicUrl(fileName);
+
+      // Update asset record with new thumbnail URL
+      const { error: updateError } = await supabase
+        .from('assets')
+        .update({ thumbnail_url: publicUrl })
+        .eq('id', asset.id);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Success",
+        description: "Thumbnail updated successfully"
+      });
+
+      console.log('Thumbnail set successfully:', publicUrl);
+    } catch (error) {
+      console.error('Error setting thumbnail:', error);
+      toast({
+        title: "Error",
+        description: "Failed to set frame as thumbnail",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleZoomChange = (newZoom: string) => {
     const video = videoRef.current;
@@ -279,14 +387,6 @@ export const VideoReviewInterface = ({
 
   const handleGuidesMaskToggle = () => {
     setGuides(prev => ({ ...prev, mask: !prev.mask }));
-  };
-
-  const handleSetFrameAsThumb = () => {
-    console.log('Set frame as thumbnail at:', currentTime);
-  };
-
-  const handleDownloadStill = () => {
-    console.log('Download still at:', currentTime);
   };
 
   const filteredComments = comments.filter(comment =>
