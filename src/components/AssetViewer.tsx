@@ -119,52 +119,48 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   }
 
   return (
-    <div className="h-screen bg-black text-white flex flex-col overflow-hidden">
-      {/* Minimal Top Header */}
-      <div className="bg-black border-b border-gray-800/50 px-4 py-2 flex items-center justify-between flex-shrink-0 z-10">
-        <div className="flex items-center space-x-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onBack}
-            className="text-gray-400 hover:text-white hover:bg-gray-800/50 h-8 w-8"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-sm font-medium text-white">{asset.name}</h1>
+    <div className="h-screen bg-black text-white flex">
+      {/* Main Video Player Area - Takes full width minus sidebar */}
+      <div className="flex-1 flex flex-col">
+        {/* Minimal Top Bar */}
+        <div className="h-12 bg-black/90 border-b border-gray-800/30 flex items-center justify-between px-4 flex-shrink-0">
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onBack}
+              className="text-gray-400 hover:text-white h-8 w-8"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm text-white font-medium">{asset.name}</span>
+          </div>
+          
+          <div className="flex items-center space-x-1">
+            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white h-8 px-2 text-xs">
+              <Share2 className="h-3 w-3 mr-1" />
+              Share
+            </Button>
+            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white h-8 px-2 text-xs">
+              <Download className="h-3 w-3 mr-1" />
+              Download
+            </Button>
+            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white h-8 w-8 px-0">
+              <Settings className="h-3 w-3" />
+            </Button>
           </div>
         </div>
-        
-        <div className="flex items-center space-x-1">
-          <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white text-xs h-7 px-2">
-            <Share2 className="h-3 w-3 mr-1" />
-            Share
-          </Button>
-          <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white text-xs h-7 px-2">
-            <Download className="h-3 w-3 mr-1" />
-            Download
-          </Button>
-          <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white h-7 w-7 px-0">
-            <Settings className="h-3 w-3" />
-          </Button>
-        </div>
-      </div>
 
-      {/* Main Content Area - Frame.io Layout */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Full-Screen Video Player Area */}
-        <div className="flex-1 bg-black relative overflow-hidden">
+        {/* Full-Screen Video Player */}
+        <div className="flex-1 bg-black relative">
           {asset.file_type === 'video' ? (
-            <div className="absolute inset-0">
-              <SimpleVideoPlayer
-                ref={videoRef}
-                src={asset.file_url}
-                onTimeUpdate={setCurrentTime}
-                onError={(error) => console.error('❌ Video player error:', error)}
-                onLoad={() => console.log('✅ Video loaded successfully')}
-              />
-            </div>
+            <SimpleVideoPlayer
+              ref={videoRef}
+              src={asset.file_url}
+              onTimeUpdate={setCurrentTime}
+              onError={(error) => console.error('❌ Video player error:', error)}
+              onLoad={() => console.log('✅ Video loaded successfully')}
+            />
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -180,35 +176,35 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             </div>
           )}
         </div>
-
-        {/* Comments Sidebar - Frame.io Style */}
-        {asset.file_type === 'video' && (
-          <div className="w-80 flex-shrink-0 bg-gray-900 border-l border-gray-800/50 flex flex-col overflow-hidden">
-            <CommentPanel
-              comments={comments.map(comment => ({
-                id: comment.id,
-                text: comment.content,
-                author: comment.author,
-                timestamp: comment.timestamp,
-                createdAt: comment.createdAt,
-                isInternal: false,
-                parentId: undefined
-              }))}
-              currentTime={currentTime}
-              onCommentClick={handleCommentClick}
-              onDeleteComment={(commentId) => {
-                setComments(prev => prev.filter(comment => comment.id !== commentId));
-              }}
-              onReplyComment={(parentId, text) => {
-                console.log('Reply to:', parentId, text);
-              }}
-              onAddComment={(text) => handleAddComment(currentTime, text)}
-              onStartDrawing={() => setIsDrawingMode(!isDrawingMode)}
-              isDrawingMode={isDrawingMode}
-            />
-          </div>
-        )}
       </div>
+
+      {/* Narrow Comments Sidebar - Frame.io Style */}
+      {asset.file_type === 'video' && (
+        <div className="w-72 bg-gray-900 border-l border-gray-800/50 flex flex-col">
+          <CommentPanel
+            comments={comments.map(comment => ({
+              id: comment.id,
+              text: comment.content,
+              author: comment.author,
+              timestamp: comment.timestamp,
+              createdAt: comment.createdAt,
+              isInternal: false,
+              parentId: undefined
+            }))}
+            currentTime={currentTime}
+            onCommentClick={handleCommentClick}
+            onDeleteComment={(commentId) => {
+              setComments(prev => prev.filter(comment => comment.id !== commentId));
+            }}
+            onReplyComment={(parentId, text) => {
+              console.log('Reply to:', parentId, text);
+            }}
+            onAddComment={(text) => handleAddComment(currentTime, text)}
+            onStartDrawing={() => setIsDrawingMode(!isDrawingMode)}
+            isDrawingMode={isDrawingMode}
+          />
+        </div>
+      )}
     </div>
   );
 };
