@@ -93,6 +93,7 @@ export const VideoReviewInterface = ({
   const [internalVolume, setInternalVolume] = useState(volume);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isSpeedHoverOpen, setIsSpeedHoverOpen] = useState(false);
+  const [isSliderDragging, setIsSliderDragging] = useState(false);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
@@ -355,6 +356,29 @@ export const VideoReviewInterface = ({
     }
   };
 
+  const handleSliderMouseDown = () => {
+    setIsSliderDragging(true);
+  };
+
+  const handleSliderMouseUp = () => {
+    if (isSliderDragging) {
+      setIsSliderDragging(false);
+      // Close the hover card after a short delay to ensure the value change is complete
+      setTimeout(() => {
+        setIsSpeedHoverOpen(false);
+      }, 100);
+    }
+  };
+
+  const handleSpeedHoverChange = (open: boolean) => {
+    // Only allow closing if we're not currently dragging
+    if (!open && !isSliderDragging) {
+      setIsSpeedHoverOpen(false);
+    } else if (open) {
+      setIsSpeedHoverOpen(true);
+    }
+  };
+
   // Enable keyboard shortcuts - make sure this is called with the correct handleZoomChange
   useVideoKeyboardShortcuts({
     videoRef,
@@ -599,7 +623,7 @@ export const VideoReviewInterface = ({
                         </Button>
 
                         {/* Playback Speed Control */}
-                        <HoverCard open={isSpeedHoverOpen} onOpenChange={setIsSpeedHoverOpen}>
+                        <HoverCard open={isSpeedHoverOpen} onOpenChange={handleSpeedHoverChange}>
                           <HoverCardTrigger asChild>
                             <Button
                               variant="ghost"
@@ -620,6 +644,8 @@ export const VideoReviewInterface = ({
                                 <Slider
                                   value={[2.25 - playbackSpeed]} // Invert the value for reversed slider
                                   onValueChange={handlePlaybackSpeedChange}
+                                  onMouseDown={handleSliderMouseDown}
+                                  onMouseUp={handleSliderMouseUp}
                                   min={0.25}
                                   max={2}
                                   step={0.25}
