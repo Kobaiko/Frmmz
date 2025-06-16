@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Share2, Settings, Play, Pause, Volume2, VolumeX } from "lucide-react";
 import { useAssets } from "@/hooks/useAssets";
 import { CommentPanel } from "./CommentPanel";
-import { DrawingCanvas } from "./DrawingCanvas";
 
 interface AssetViewerProps {
   assetId: string;
@@ -189,40 +188,37 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="h-screen bg-black flex">
-      {/* Main Video Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Minimal Header */}
-        <div className="h-14 bg-black/95 border-b border-gray-800 flex items-center justify-between px-6">
-          <div className="flex items-center space-x-4">
+    <div className="h-screen w-full bg-black flex overflow-hidden">
+      {/* Main Video Content Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top Header */}
+        <div className="h-12 bg-black flex items-center justify-between px-4 border-b border-gray-800">
+          <div className="flex items-center space-x-3">
             <Button
               variant="ghost"
               size="sm"
               onClick={onBack}
-              className="text-gray-400 hover:text-white"
+              className="text-gray-400 hover:text-white p-1"
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h1 className="text-white font-medium">{asset.name}</h1>
+            <span className="text-white font-medium text-sm">{asset.name}</span>
           </div>
           
-          <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
+          <div className="flex items-center space-x-1">
+            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white p-2">
+              <Share2 className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-              <Download className="h-4 w-4 mr-2" />
-              Download
+            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white p-2">
+              <Download className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white p-2">
               <Settings className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        {/* Video Player Container */}
+        {/* Video Player Area */}
         <div className="flex-1 relative bg-black">
           {asset.file_type === 'video' ? (
             <>
@@ -234,49 +230,41 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                 controls={false}
               />
               
-              {/* Drawing Canvas Overlay */}
-              <DrawingCanvas
-                currentTime={currentTime}
-                videoRef={videoRef}
-                isDrawingMode={isDrawingMode}
-                annotations={true}
-              />
-
-              {/* Video Controls at Bottom */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-6">
+              {/* Video Controls Overlay */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
                 {/* Progress Bar */}
                 <div 
-                  className="w-full h-2 bg-gray-600 rounded-full mb-4 cursor-pointer"
+                  className="w-full h-1 bg-gray-600 rounded-full mb-3 cursor-pointer"
                   onClick={handleSeek}
                 >
                   <div 
-                    className="h-full bg-pink-500 rounded-full transition-all duration-100"
+                    className="h-full bg-pink-500 rounded-full"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
 
                 {/* Control Buttons */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-3">
                     <Button
                       variant="ghost"
-                      size="lg"
+                      size="sm"
                       onClick={togglePlayPause}
-                      className="text-white hover:bg-white/20 w-12 h-12"
+                      className="text-white hover:bg-white/20 p-2"
                     >
-                      {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
+                      {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
                     </Button>
                     
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={toggleMute}
-                      className="text-white hover:bg-white/20"
+                      className="text-white hover:bg-white/20 p-2"
                     >
-                      {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                      {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                     </Button>
                     
-                    <span className="text-white text-sm font-mono">
+                    <span className="text-white text-xs font-mono">
                       {formatTime(currentTime)} / {formatTime(duration)}
                     </span>
                   </div>
@@ -300,9 +288,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         </div>
       </div>
 
-      {/* Comments Sidebar */}
+      {/* Comments Sidebar - Fixed Width */}
       {asset.file_type === 'video' && (
-        <div className="w-80 bg-gray-900 border-l border-gray-800">
+        <div className="w-80 bg-gray-900 border-l border-gray-800 flex-shrink-0">
           <CommentPanel
             comments={comments.map(comment => ({
               id: comment.id,
