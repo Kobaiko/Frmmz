@@ -1,4 +1,5 @@
 
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -277,7 +278,7 @@ export const VideoReviewInterface = ({
 
       toast({
         title: "Success",
-        description: "Thumbnail updated successfully! The page will refresh to show the new thumbnail."
+        description: "Frame saved as thumbnail"
       });
 
       // Force a page refresh to show the new thumbnail
