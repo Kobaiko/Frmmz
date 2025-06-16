@@ -7,6 +7,7 @@ interface UseVideoKeyboardShortcutsProps {
   isPlaying: boolean;
   setVolume: (volume: number) => void;
   onZoomChange: (zoom: string) => void;
+  onPlaybackSpeedChange: (speeds: number[]) => void;
 }
 
 export const useVideoKeyboardShortcuts = ({
@@ -14,7 +15,8 @@ export const useVideoKeyboardShortcuts = ({
   volume,
   isPlaying,
   setVolume,
-  onZoomChange
+  onZoomChange,
+  onPlaybackSpeedChange
 }: UseVideoKeyboardShortcutsProps) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -83,5 +85,5 @@ export const useVideoKeyboardShortcuts = ({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [volume, isPlaying, videoRef, setVolume, onZoomChange]);
+  }, [volume, isPlaying, videoRef, setVolume, onZoomChange, onPlaybackSpeedChange]);
 };
