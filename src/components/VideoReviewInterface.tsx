@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Slider } from "@/components/ui/slider";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { VideoSettingsMenu } from "./VideoSettingsMenu";
 import { 
   MessageCircle, 
   Search,
@@ -18,7 +18,6 @@ import {
   ArrowLeft,
   Download,
   Share2,
-  Settings,
   Play,
   Pause,
   Volume2,
@@ -86,6 +85,15 @@ export const VideoReviewInterface = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isLooping, setIsLooping] = useState(false);
   const [timestampFormat, setTimestampFormat] = useState<TimestampFormat>('standard');
+  
+  // Video settings state
+  const [quality, setQuality] = useState('720p');
+  const [guides, setGuides] = useState({
+    enabled: false,
+    ratio: '16:9',
+    mask: false
+  });
+  const [zoom, setZoom] = useState('Fit');
 
   const handleAddComment = () => {
     if (newComment.trim()) {
@@ -150,6 +158,37 @@ export const VideoReviewInterface = ({
     }
   };
 
+  // Video settings handlers
+  const handleQualityChange = (newQuality: string) => {
+    setQuality(newQuality);
+    console.log('Quality changed to:', newQuality);
+  };
+
+  const handleGuidesToggle = () => {
+    setGuides(prev => ({ ...prev, enabled: !prev.enabled }));
+  };
+
+  const handleGuidesRatioChange = (ratio: string) => {
+    setGuides(prev => ({ ...prev, ratio, enabled: true }));
+  };
+
+  const handleGuidesMaskToggle = () => {
+    setGuides(prev => ({ ...prev, mask: !prev.mask }));
+  };
+
+  const handleZoomChange = (newZoom: string) => {
+    setZoom(newZoom);
+    console.log('Zoom changed to:', newZoom);
+  };
+
+  const handleSetFrameAsThumb = () => {
+    console.log('Set frame as thumbnail at:', currentTime);
+  };
+
+  const handleDownloadStill = () => {
+    console.log('Download still at:', currentTime);
+  };
+
   const filteredComments = comments.filter(comment =>
     comment.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
     comment.author.toLowerCase().includes(searchQuery.toLowerCase())
@@ -180,9 +219,6 @@ export const VideoReviewInterface = ({
               </Button>
               <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
                 <Download className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
-                <Settings className="h-5 w-5" />
               </Button>
             </div>
           </div>
@@ -305,8 +341,30 @@ export const VideoReviewInterface = ({
                       </DropdownMenu>
                     </div>
 
-                    <div className="text-white text-sm opacity-75">
-                      {Math.round(progress)}% complete
+                    {/* Right side controls */}
+                    <div className="flex items-center space-x-4">
+                      <div className="text-white text-sm opacity-75">
+                        {Math.round(progress)}% complete
+                      </div>
+                      <VideoSettingsMenu
+                        quality={quality}
+                        availableQualities={['2160p', '1080p', '720p', '540p', '360p']}
+                        onQualityChange={handleQualityChange}
+                        guides={guides}
+                        onGuidesToggle={handleGuidesToggle}
+                        onGuidesRatioChange={handleGuidesRatioChange}
+                        onGuidesMaskToggle={handleGuidesMaskToggle}
+                        zoom={zoom}
+                        onZoomChange={handleZoomChange}
+                        encodeComments={false}
+                        setEncodeComments={() => {}}
+                        annotations={true}
+                        setAnnotations={() => {}}
+                        onSetFrameAsThumb={handleSetFrameAsThumb}
+                        onDownloadStill={handleDownloadStill}
+                        currentTime={currentTime}
+                        formatTime={formatTime}
+                      />
                     </div>
                   </div>
                 </div>
