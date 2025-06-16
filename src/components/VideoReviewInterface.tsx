@@ -92,6 +92,7 @@ export const VideoReviewInterface = ({
   const [timestampFormat, setTimestampFormat] = useState<TimestampFormat>('standard');
   const [internalVolume, setInternalVolume] = useState(volume);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [isSpeedHoverOpen, setIsSpeedHoverOpen] = useState(false);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
@@ -598,11 +599,12 @@ export const VideoReviewInterface = ({
                         </Button>
 
                         {/* Playback Speed Control */}
-                        <HoverCard>
+                        <HoverCard open={isSpeedHoverOpen} onOpenChange={setIsSpeedHoverOpen}>
                           <HoverCardTrigger asChild>
                             <Button
                               variant="ghost"
                               size="sm"
+                              onClick={() => setIsSpeedHoverOpen(!isSpeedHoverOpen)}
                               className="text-white hover:bg-white/20 px-3 py-2 text-sm font-mono"
                             >
                               {playbackSpeed}x
@@ -638,6 +640,7 @@ export const VideoReviewInterface = ({
                           </HoverCardContent>
                         </HoverCard>
                         
+                        {/* Volume Control */}
                         <HoverCard>
                           <HoverCardTrigger asChild>
                             <Button
