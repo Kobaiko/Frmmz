@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Slider } from "@/components/ui/slider";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { VideoSettingsMenu } from "./VideoSettingsMenu";
@@ -93,7 +92,6 @@ export const VideoReviewInterface = ({
   const [internalVolume, setInternalVolume] = useState(volume);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isSpeedHoverOpen, setIsSpeedHoverOpen] = useState(false);
-  const [isSliderDragging, setIsSliderDragging] = useState(false);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
@@ -106,6 +104,9 @@ export const VideoReviewInterface = ({
   });
   const [zoom, setZoom] = useState('Fit');
   const [zoomLevel, setZoomLevel] = useState(1);
+
+  // Available playback speeds (slow to fast)
+  const playbackSpeeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
   const captureVideoFrame = () => {
     const video = videoRef.current;
@@ -345,10 +346,7 @@ export const VideoReviewInterface = ({
     }
   };
 
-  const handlePlaybackSpeedChange = (speeds: number[]) => {
-    // Reverse the slider direction: convert from inverted value
-    const invertedSpeed = speeds[0];
-    const speed = 2.25 - invertedSpeed; // Maps 0.25-2 to 2-0.25, then invert back
+  const handlePlaybackSpeedChange = (speed: number) => {
     setPlaybackSpeed(speed);
     const video = videoRef.current;
     if (video) {
@@ -356,25 +354,8 @@ export const VideoReviewInterface = ({
     }
   };
 
-  const handleSliderMouseDown = () => {
-    setIsSliderDragging(true);
-  };
-
-  const handleSliderMouseUp = () => {
-    setIsSliderDragging(false);
-    // Close the hover card after a short delay to ensure the interaction is complete
-    setTimeout(() => {
-      setIsSpeedHoverOpen(false);
-    }, 150);
-  };
-
   const handleSpeedHoverChange = (open: boolean) => {
-    // Prevent closing if we're currently dragging
-    if (!open && !isSliderDragging) {
-      setIsSpeedHoverOpen(false);
-    } else if (open) {
-      setIsSpeedHoverOpen(true);
-    }
+    setIsSpeedHoverOpen(open);
   };
 
   // Enable keyboard shortcuts - make sure this is called with the correct handleZoomChange
@@ -634,37 +615,26 @@ export const VideoReviewInterface = ({
                           </HoverCardTrigger>
                           <HoverCardContent 
                             side="top" 
-                            className="w-80 p-4 bg-gray-800 border-gray-700"
-                            onPointerDownOutside={(e) => {
-                              // Prevent closing when clicking on the slider
-                              if (isSliderDragging) {
-                                e.preventDefault();
-                              }
-                            }}
+                            className="w-auto p-4 bg-gray-800 border-gray-700"
                           >
                             <div className="space-y-3">
                               <div className="text-white text-sm font-medium">Playback speed</div>
-                              <div className="relative">
-                                <Slider
-                                  value={[2.25 - playbackSpeed]} // Invert the value for reversed slider
-                                  onValueChange={handlePlaybackSpeedChange}
-                                  onMouseDown={handleSliderMouseDown}
-                                  onMouseUp={handleSliderMouseUp}
-                                  min={0.25}
-                                  max={2}
-                                  step={0.25}
-                                  className="w-full"
-                                />
-                                <div className="flex justify-between mt-2 text-xs text-gray-300">
-                                  <span>2x</span>
-                                  <span>1.75x</span>
-                                  <span>1.5x</span>
-                                  <span>1.25x</span>
-                                  <span>1x</span>
-                                  <span>0.75x</span>
-                                  <span>0.5x</span>
-                                  <span>0.25x</span>
-                                </div>
+                              <div className="flex items-center space-x-2">
+                                {playbackSpeeds.map((speed) => (
+                                  <Button
+                                    key={speed}
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handlePlaybackSpeedChange(speed)}
+                                    className={`text-white text-sm font-mono px-3 py-1 rounded ${
+                                      playbackSpeed === speed 
+                                        ? 'bg-pink-500 hover:bg-pink-600' 
+                                        : 'hover:bg-gray-700'
+                                    }`}
+                                  >
+                                    {speed}x
+                                  </Button>
+                                ))}
                               </div>
                             </div>
                           </HoverCardContent>
