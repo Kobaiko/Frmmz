@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -274,10 +275,10 @@ export const VideoReviewInterface = ({
 
       console.log('Database updated successfully:', updateData);
 
-      // Force a page refresh to show the new thumbnail
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      toast({
+        title: "Success",
+        description: "Frame saved as thumbnail"
+      });
 
     } catch (error) {
       console.error('Error setting thumbnail:', error);
