@@ -26,20 +26,33 @@ export const useAssets = (projectId?: string) => {
   const { user } = useAuth();
 
   const fetchAssets = async () => {
-    if (!user || !projectId) return;
-    
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      setError(null);
+      
+      let query = supabase
         .from('assets')
         .select('*')
-        .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      // If projectId is provided, filter by it
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('❌ Error fetching assets:', error);
+        throw error;
+      }
+      
+      console.log('✅ Assets fetched:', data?.length || 0, 'assets');
       setAssets(data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      console.error('❌ Fetch assets error:', errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

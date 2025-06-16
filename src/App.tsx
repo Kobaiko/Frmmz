@@ -73,7 +73,7 @@ const AppContent = () => {
           <div className="w-8 h-8 bg-pink-600 rounded-lg flex items-center justify-center mx-auto mb-4">
             <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
           </div>
-          <p className="text-gray-400">Loading Frmmz...</p>
+          <p className="text-gray-400">Loading Frmzz...</p>
           <p className="text-gray-600 text-sm mt-1">Port: {window.location.port || '80'}</p>
         </div>
       </div>
@@ -84,27 +84,34 @@ const AppContent = () => {
     return <AuthPage onAuthSuccess={() => {}} />;
   }
 
+  // Force dashboard view if we don't have proper state
+  if (appState.view === 'asset' && !appState.selectedAssetId) {
+    console.log('⚠️ Asset view without asset ID, redirecting to dashboard');
+    setAppState({ view: 'dashboard' });
+    return null;
+  }
+
+  if (appState.view === 'project' && (!appState.selectedProjectId || !appState.selectedProjectName)) {
+    console.log('⚠️ Project view without project data, redirecting to dashboard');
+    setAppState({ view: 'dashboard' });
+    return null;
+  }
+
   // Render based on current view
   switch (appState.view) {
     case 'asset':
-      if (!appState.selectedAssetId) {
-        return <Navigate to="/" replace />;
-      }
       return (
         <AssetViewer
-          assetId={appState.selectedAssetId}
+          assetId={appState.selectedAssetId!}
           onBack={handleBackToProject}
         />
       );
 
     case 'project':
-      if (!appState.selectedProjectId || !appState.selectedProjectName) {
-        return <Navigate to="/" replace />;
-      }
       return (
         <ProjectAssetsView
-          projectId={appState.selectedProjectId}
-          projectName={appState.selectedProjectName}
+          projectId={appState.selectedProjectId!}
+          projectName={appState.selectedProjectName!}
           onBack={handleBackToDashboard}
           onAssetOpen={handleAssetOpen}
         />
