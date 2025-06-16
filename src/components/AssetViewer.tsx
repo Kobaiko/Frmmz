@@ -120,9 +120,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
   return (
     <div className="h-screen bg-black text-white flex flex-col">
-      {/* Top Header - Clean and minimal */}
-      <div className="bg-black border-b border-gray-800 px-6 py-4 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center space-x-4">
+      {/* Top Header */}
+      <div className="bg-black border-b border-gray-800 px-4 py-3 flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center space-x-3">
           <Button
             variant="ghost"
             size="icon"
@@ -132,8 +132,8 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-semibold">{asset.name}</h1>
-            <div className="flex items-center space-x-3 text-sm text-gray-400">
+            <h1 className="text-lg font-medium">{asset.name}</h1>
+            <div className="flex items-center space-x-2 text-xs text-gray-400">
               <span>{asset.file_type}</span>
               <span>•</span>
               <span>{Math.round(asset.file_size / 1024 / 1024)} MB</span>
@@ -141,7 +141,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           </div>
         </div>
         
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2">
           <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
             <Share2 className="h-4 w-4 mr-2" />
             Share
@@ -156,20 +156,18 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         </div>
       </div>
 
-      {/* Main Content Area - Frame.io style layout */}
+      {/* Main Content Area - Frame.io style */}
       <div className="flex-1 flex min-h-0">
-        {/* Video Player Area - Takes most of the space */}
-        <div className="flex-1 bg-black flex items-center justify-center p-6">
+        {/* Video Player Area */}
+        <div className="flex-1 bg-black relative">
           {asset.file_type === 'video' ? (
-            <div className="w-full h-full max-w-none max-h-none">
-              <SimpleVideoPlayer
-                ref={videoRef}
-                src={asset.file_url}
-                onTimeUpdate={setCurrentTime}
-                onError={(error) => console.error('❌ Video player error:', error)}
-                onLoad={() => console.log('✅ Video loaded successfully')}
-              />
-            </div>
+            <SimpleVideoPlayer
+              ref={videoRef}
+              src={asset.file_url}
+              onTimeUpdate={setCurrentTime}
+              onError={(error) => console.error('❌ Video player error:', error)}
+              onLoad={() => console.log('✅ Video loaded successfully')}
+            />
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -186,9 +184,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           )}
         </div>
 
-        {/* Comments Panel - Fixed width on the right, Frame.io style */}
+        {/* Comments Panel - Frame.io style narrow sidebar */}
         {asset.file_type === 'video' && (
-          <div className="w-96 flex-shrink-0 border-l border-gray-800">
+          <div className="w-80 flex-shrink-0 border-l border-gray-800 bg-gray-900">
             <CommentPanel
               comments={comments.map(comment => ({
                 id: comment.id,
