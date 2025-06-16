@@ -115,6 +115,11 @@ export const VideoReviewInterface = ({
       return null;
     }
 
+    if (video.readyState < 2) {
+      console.error('Video not ready for frame capture');
+      return null;
+    }
+
     try {
       const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth;
@@ -126,7 +131,6 @@ export const VideoReviewInterface = ({
         return null;
       }
       
-      // Ensure video is not CORS-blocked
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       console.log('Frame captured successfully:', canvas.width, 'x', canvas.height);
       return canvas;
@@ -143,7 +147,7 @@ export const VideoReviewInterface = ({
     if (!canvas) {
       toast({
         title: "Error",
-        description: "Failed to capture video frame. Video may not be loaded properly.",
+        description: "Failed to capture video frame. Please ensure the video is playing and try again.",
         variant: "destructive"
       });
       return;
@@ -228,7 +232,7 @@ export const VideoReviewInterface = ({
     if (!canvas) {
       toast({
         title: "Error",
-        description: "Failed to capture video frame. Video may not be loaded properly.",
+        description: "Failed to capture video frame. Please ensure the video is playing and try again.",
         variant: "destructive"
       });
       return;
@@ -252,13 +256,17 @@ export const VideoReviewInterface = ({
         throw new Error('Failed to create image blob');
       }
 
+      console.log('Blob created, size:', blob.size);
+
       // Upload thumbnail to Supabase storage
       const fileName = `thumbnails/${asset.id}_${Date.now()}.jpg`;
+      console.log('Uploading to path:', fileName);
+      
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('assets')
         .upload(fileName, blob, {
-          upsert: true,
-          contentType: 'image/jpeg'
+          contentType: 'image/jpeg',
+          upsert: true
         });
 
       if (uploadError) {
@@ -266,30 +274,42 @@ export const VideoReviewInterface = ({
         throw uploadError;
       }
 
+      console.log('Upload successful:', uploadData);
+
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('assets')
         .getPublicUrl(fileName);
 
-      console.log('Thumbnail uploaded, URL:', publicUrl);
+      console.log('Public URL generated:', publicUrl);
 
       // Update asset record with new thumbnail URL
-      const { error: updateError } = await supabase
+      const { data: updateData, error: updateError } = await supabase
         .from('assets')
-        .update({ thumbnail_url: publicUrl })
-        .eq('id', asset.id);
+        .update({ 
+          thumbnail_url: publicUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', asset.id)
+        .select();
 
       if (updateError) {
-        console.error('Update error:', updateError);
+        console.error('Database update error:', updateError);
         throw updateError;
       }
+
+      console.log('Database updated successfully:', updateData);
 
       toast({
         title: "Success",
         description: "Thumbnail updated successfully"
       });
 
-      console.log('Thumbnail set successfully:', publicUrl);
+      // Force a page refresh to show the new thumbnail
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+
     } catch (error) {
       console.error('Error setting thumbnail:', error);
       toast({
@@ -537,6 +557,9 @@ export const VideoReviewInterface = ({
                 }}
                 onError={(e) => {
                   console.error('Video error:', e);
+                }}
+                onCanPlay={() => {
+                  console.log('Video can start playing');
                 }}
               />
               
