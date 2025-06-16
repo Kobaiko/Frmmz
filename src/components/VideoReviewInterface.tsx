@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -827,7 +828,9 @@ export const VideoReviewInterface = ({
           </div>
         )}
       </div>
-      <Toaster />
+      <div className="fixed bottom-4 right-4 z-[60]">
+        <Toaster />
+      </div>
     </>
   );
 };
