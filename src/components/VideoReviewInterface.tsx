@@ -14,8 +14,14 @@ import {
   Reply, 
   MoreHorizontal,
   Pin,
-  Trash2
+  Trash2,
+  Pencil,
+  Eye,
+  EyeOff,
+  RotateCcw,
+  Settings
 } from "lucide-react";
+import { DrawingToolsMenu } from "./DrawingToolsMenu";
 
 interface VideoComment {
   id: string;
@@ -34,6 +40,12 @@ interface VideoReviewInterfaceProps {
   onResolveComment: (commentId: string) => void;
   onDeleteComment: (commentId: string) => void;
   currentTime: number;
+  isDrawingMode?: boolean;
+  onToggleDrawingMode?: () => void;
+  showDrawingTools?: boolean;
+  onToggleDrawingTools?: () => void;
+  showAnnotations?: boolean;
+  onToggleAnnotations?: () => void;
 }
 
 export const VideoReviewInterface = ({ 
@@ -41,7 +53,13 @@ export const VideoReviewInterface = ({
   onAddComment, 
   onResolveComment, 
   onDeleteComment,
-  currentTime 
+  currentTime,
+  isDrawingMode = false,
+  onToggleDrawingMode,
+  showDrawingTools = false,
+  onToggleDrawingTools,
+  showAnnotations = true,
+  onToggleAnnotations
 }: VideoReviewInterfaceProps) => {
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -208,71 +226,120 @@ export const VideoReviewInterface = ({
   );
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-700 bg-gray-900">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-white font-semibold flex items-center text-sm">
-            <MessageCircle className="h-4 w-4 mr-2" />
-            Comments ({comments.length})
-          </h3>
+    <div className="h-full flex">
+      {/* Comments Section - Left Side */}
+      <div className="flex-1 flex flex-col">
+        {/* Header with Video Controls */}
+        <div className="p-4 border-b border-gray-700 bg-gray-900">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-white font-semibold flex items-center text-sm">
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Comments ({comments.length})
+            </h3>
+            
+            {/* Video Controls */}
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white text-xs p-1 h-auto"
+              >
+                <RotateCcw className="h-3 w-3 mr-1" />
+                Loop
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white text-xs p-1 h-auto"
+              >
+                <Settings className="h-3 w-3 mr-1" />
+                Settings
+              </Button>
+              
+              {/* Drawing Controls */}
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onToggleDrawingMode}
+                  className={`text-xs p-1 h-auto ${isDrawingMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'text-gray-400 hover:text-white'}`}
+                >
+                  <Pencil className="h-3 w-3 mr-1" />
+                  Draw
+                </Button>
+                {showDrawingTools && (
+                  <DrawingToolsMenu onClose={() => onToggleDrawingTools?.()} />
+                )}
+              </div>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onToggleAnnotations}
+                className={`text-xs p-1 h-auto ${showAnnotations ? 'text-white' : 'text-gray-400'}`}
+              >
+                {showAnnotations ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+              </Button>
+            </div>
+          </div>
+          
+          {/* Filter Tabs */}
+          <div className="flex space-x-1 bg-gray-800 rounded-lg p-1">
+            {(['all', 'unresolved', 'resolved'] as const).map((filterType) => (
+              <button
+                key={filterType}
+                onClick={() => setFilter(filterType)}
+                className={`px-2 py-1 text-xs rounded-md transition-colors ${
+                  filter === filterType 
+                    ? 'bg-pink-600 text-white' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {filterType.charAt(0).toUpperCase() + filterType.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
-        
-        {/* Filter Tabs */}
-        <div className="flex space-x-1 bg-gray-800 rounded-lg p-1">
-          {(['all', 'unresolved', 'resolved'] as const).map((filterType) => (
-            <button
-              key={filterType}
-              onClick={() => setFilter(filterType)}
-              className={`px-2 py-1 text-xs rounded-md transition-colors ${
-                filter === filterType 
-                  ? 'bg-pink-600 text-white' 
-                  : 'text-gray-400 hover:text-white'
-              }`}
+
+        {/* Add Comment */}
+        <div className="p-4 border-b border-gray-700 bg-gray-900">
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2 text-sm text-gray-400">
+              <Clock className="h-4 w-4" />
+              <span>Current time: {formatTime(currentTime)}</span>
+            </div>
+            <Textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Add a comment at the current time..."
+              className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 min-h-[80px] text-sm"
+            />
+            <Button
+              onClick={handleAddComment}
+              disabled={!newComment.trim()}
+              className="w-full bg-pink-600 hover:bg-pink-700 text-sm"
             >
-              {filterType.charAt(0).toUpperCase() + filterType.slice(1)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Add Comment */}
-      <div className="p-4 border-b border-gray-700 bg-gray-900">
-        <div className="space-y-3">
-          <div className="flex items-center space-x-2 text-sm text-gray-400">
-            <Clock className="h-4 w-4" />
-            <span>Current time: {formatTime(currentTime)}</span>
+              Add Comment
+            </Button>
           </div>
-          <Textarea
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Add a comment at the current time..."
-            className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 min-h-[80px] text-sm"
-          />
-          <Button
-            onClick={handleAddComment}
-            disabled={!newComment.trim()}
-            className="w-full bg-pink-600 hover:bg-pink-700 text-sm"
-          >
-            Add Comment
-          </Button>
         </div>
-      </div>
 
-      {/* Comments List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-900">
-        {filteredComments.length === 0 ? (
-          <div className="text-center py-8">
-            <MessageCircle className="h-12 w-12 text-gray-600 mx-auto mb-3" />
-            <p className="text-gray-400 text-sm">
-              {filter === 'all' ? 'No comments yet' : `No ${filter} comments`}
-            </p>
-          </div>
-        ) : (
-          filteredComments.map((comment) => (
-            <CommentItem key={comment.id} comment={comment} />
-          ))
-        )}
+        {/* Comments List */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-900">
+          {filteredComments.length === 0 ? (
+            <div className="text-center py-8">
+              <MessageCircle className="h-12 w-12 text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-400 text-sm">
+                {filter === 'all' ? 'No comments yet' : `No ${filter} comments`}
+              </p>
+            </div>
+          ) : (
+            filteredComments.map((comment) => (
+              <CommentItem key={comment.id} comment={comment} />
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

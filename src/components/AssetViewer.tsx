@@ -143,7 +143,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black text-white flex flex-col">
       {/* Header */}
       <div className="border-b border-gray-800 p-4">
         <div className="flex items-center justify-between">
@@ -177,31 +177,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
               {showDebugger ? 'Hide' : 'Show'} Debug
             </Button>
             
-            {/* Drawing Toggle */}
-            {asset.file_type === 'video' && (
-              <div className="relative">
-                <Button
-                  variant="ghost"
-                  onClick={toggleDrawingMode}
-                  className={`text-sm ${isDrawingMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'text-gray-400 hover:text-white'}`}
-                >
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Draw
-                </Button>
-                {showDrawingTools && (
-                  <DrawingToolsMenu onClose={() => setShowDrawingTools(false)} />
-                )}
-              </div>
-            )}
-            
-            <Button 
-              variant="ghost" 
-              onClick={() => setShowComments(!showComments)}
-              className={`text-sm ${showComments ? 'bg-pink-600 hover:bg-pink-700 text-white' : 'text-gray-400 hover:text-white'}`}
-            >
-              <MessageCircle className="h-4 w-4 mr-2" />
-              Comments ({comments.length})
-            </Button>
             <Button variant="ghost" className="text-gray-400 hover:text-white text-sm">
               <Share2 className="h-4 w-4 mr-2" />
               Share
@@ -221,55 +196,58 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         </div>
       )}
 
-      {/* Main Content Area */}
-      <div className="flex h-[calc(100vh-120px)]">
-        {/* Video Player Area */}
-        <div className={`${showComments ? 'flex-1' : 'w-full'} flex items-center justify-center p-6 relative`}>
-          {asset.file_type === 'video' ? (
-            <div className="w-full h-full max-w-5xl bg-gray-900 rounded-lg overflow-hidden relative">
-              <SimpleVideoPlayer
-                ref={videoRef}
-                src={asset.file_url}
-                onTimeUpdate={setCurrentTime}
-                onError={(error) => console.error('❌ Video player error:', error)}
-                onLoad={() => console.log('✅ Video loaded successfully')}
-              />
-              
-              {/* Drawing Canvas Overlay */}
-              <DrawingCanvas
-                currentTime={currentTime}
-                videoRef={videoRef}
-                isDrawingMode={isDrawingMode}
-                annotations={showAnnotations}
-              />
-            </div>
-          ) : (
-            <div className="bg-gray-900 rounded-lg p-8 text-center">
-              <p className="text-gray-400">Preview not available for {asset.file_type} files</p>
-              <Button 
-                onClick={() => window.open(asset.file_url, '_blank')}
-                className="bg-blue-600 hover:bg-blue-700 mt-4"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Open File
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Comments Panel */}
-        {showComments && asset.file_type === 'video' && (
-          <div className="w-96 border-l border-gray-700 bg-gray-900">
-            <VideoReviewInterface
-              comments={comments}
-              onAddComment={handleAddComment}
-              onResolveComment={handleResolveComment}
-              onDeleteComment={handleDeleteComment}
-              currentTime={currentTime}
+      {/* Main Content - Video Player */}
+      <div className="flex-1 flex items-center justify-center p-6 relative">
+        {asset.file_type === 'video' ? (
+          <div className="w-full h-full max-w-5xl bg-gray-900 rounded-lg overflow-hidden relative">
+            <SimpleVideoPlayer
+              ref={videoRef}
+              src={asset.file_url}
+              onTimeUpdate={setCurrentTime}
+              onError={(error) => console.error('❌ Video player error:', error)}
+              onLoad={() => console.log('✅ Video loaded successfully')}
             />
+            
+            {/* Drawing Canvas Overlay */}
+            <DrawingCanvas
+              currentTime={currentTime}
+              videoRef={videoRef}
+              isDrawingMode={isDrawingMode}
+              annotations={showAnnotations}
+            />
+          </div>
+        ) : (
+          <div className="bg-gray-900 rounded-lg p-8 text-center">
+            <p className="text-gray-400">Preview not available for {asset.file_type} files</p>
+            <Button 
+              onClick={() => window.open(asset.file_url, '_blank')}
+              className="bg-blue-600 hover:bg-blue-700 mt-4"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Open File
+            </Button>
           </div>
         )}
       </div>
+
+      {/* Bottom Comments Panel */}
+      {asset.file_type === 'video' && (
+        <div className="h-80 border-t border-gray-700 bg-gray-900">
+          <VideoReviewInterface
+            comments={comments}
+            onAddComment={handleAddComment}
+            onResolveComment={handleResolveComment}
+            onDeleteComment={handleDeleteComment}
+            currentTime={currentTime}
+            isDrawingMode={isDrawingMode}
+            onToggleDrawingMode={toggleDrawingMode}
+            showDrawingTools={showDrawingTools}
+            onToggleDrawingTools={() => setShowDrawingTools(!showDrawingTools)}
+            showAnnotations={showAnnotations}
+            onToggleAnnotations={() => setShowAnnotations(!showAnnotations)}
+          />
+        </div>
+      )}
     </div>
   );
 };
