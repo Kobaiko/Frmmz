@@ -344,7 +344,9 @@ export const VideoReviewInterface = ({
   };
 
   const handlePlaybackSpeedChange = (speeds: number[]) => {
-    const speed = speeds[0];
+    // Reverse the slider direction: convert from inverted value
+    const invertedSpeed = speeds[0];
+    const speed = 2.25 - invertedSpeed; // Maps 0.25-2 to 2-0.25, then invert back
     setPlaybackSpeed(speed);
     const video = videoRef.current;
     if (video) {
@@ -614,7 +616,7 @@ export const VideoReviewInterface = ({
                               <div className="text-white text-sm font-medium">Playback speed</div>
                               <div className="relative">
                                 <Slider
-                                  value={[playbackSpeed]}
+                                  value={[2.25 - playbackSpeed]} // Invert the value for reversed slider
                                   onValueChange={handlePlaybackSpeedChange}
                                   min={0.25}
                                   max={2}
@@ -622,14 +624,14 @@ export const VideoReviewInterface = ({
                                   className="w-full"
                                 />
                                 <div className="flex justify-between mt-2 text-xs text-gray-300">
-                                  <span>0.25x</span>
-                                  <span>0.5x</span>
-                                  <span>0.75x</span>
-                                  <span>1x</span>
-                                  <span>1.25x</span>
-                                  <span>1.5x</span>
-                                  <span>1.75x</span>
                                   <span>2x</span>
+                                  <span>1.75x</span>
+                                  <span>1.5x</span>
+                                  <span>1.25x</span>
+                                  <span>1x</span>
+                                  <span>0.75x</span>
+                                  <span>0.5x</span>
+                                  <span>0.25x</span>
                                 </div>
                               </div>
                             </div>
