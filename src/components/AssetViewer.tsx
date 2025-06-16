@@ -193,12 +193,12 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         </div>
       )}
 
-      {/* Main Content - Full Screen Layout */}
+      {/* Main Content */}
       <div className="flex-1 flex min-h-0">
-        {/* Video Player Area - Takes most of the screen */}
-        <div className="flex-1 flex flex-col relative">
+        {/* Video Player Section - Takes most of the width */}
+        <div className="flex-1 relative bg-black">
           {asset.file_type === 'video' ? (
-            <div className="flex-1 bg-black relative">
+            <>
               <SimpleVideoPlayer
                 ref={videoRef}
                 src={asset.file_url}
@@ -214,9 +214,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
                 isDrawingMode={isDrawingMode}
                 annotations={true}
               />
-            </div>
+            </>
           ) : (
-            <div className="flex-1 flex items-center justify-center bg-gray-900">
+            <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <p className="text-gray-400 mb-4">Preview not available for {asset.file_type} files</p>
                 <Button 
@@ -231,9 +231,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           )}
         </div>
 
-        {/* Comments Panel - Right Side */}
+        {/* Comments Panel - Fixed width on the right */}
         {asset.file_type === 'video' && (
-          <div className="w-80 flex-shrink-0">
+          <div className="w-80 border-l border-gray-800 flex-shrink-0">
             <CommentPanel
               comments={comments.map(comment => ({
                 id: comment.id,
@@ -248,7 +248,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
               onCommentClick={handleCommentClick}
               onDeleteComment={handleDeleteComment}
               onReplyComment={(parentId, text) => {
-                // Handle reply logic
                 console.log('Reply to:', parentId, text);
               }}
               onAddComment={(text) => handleAddComment(currentTime, text)}
