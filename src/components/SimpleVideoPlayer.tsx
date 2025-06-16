@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,9 +14,10 @@ interface SimpleVideoPlayerProps {
   src: string;
   onError?: (error: string) => void;
   onLoad?: () => void;
+  onTimeUpdate?: (currentTime: number) => void;
 }
 
-export const SimpleVideoPlayer = ({ src, onError, onLoad }: SimpleVideoPlayerProps) => {
+export const SimpleVideoPlayer = ({ src, onError, onLoad, onTimeUpdate }: SimpleVideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -53,7 +53,9 @@ export const SimpleVideoPlayer = ({ src, onError, onLoad }: SimpleVideoPlayerPro
     };
 
     const handleTimeUpdate = () => {
-      setCurrentTime(video.currentTime);
+      const newTime = video.currentTime;
+      setCurrentTime(newTime);
+      onTimeUpdate?.(newTime);
     };
 
     const handlePlay = () => {
@@ -99,7 +101,7 @@ export const SimpleVideoPlayer = ({ src, onError, onLoad }: SimpleVideoPlayerPro
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('error', handleError);
     };
-  }, [src, onError, onLoad]);
+  }, [src, onError, onLoad, onTimeUpdate]);
 
   const togglePlayPause = () => {
     const video = videoRef.current;
