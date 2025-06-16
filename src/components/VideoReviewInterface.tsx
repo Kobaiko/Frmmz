@@ -135,11 +135,7 @@ export const VideoReviewInterface = ({
       case 'frames':
         const fps = getVideoFrameRate();
         const totalFrames = Math.floor(seconds * fps);
-        const frameHours = Math.floor(totalFrames / (fps * 60 * 60));
-        const frameMinutes = Math.floor((totalFrames % (fps * 60 * 60)) / (fps * 60));
-        const frameSecs = Math.floor((totalFrames % (fps * 60)) / fps);
-        const frames = totalFrames % fps;
-        return `${frameHours.toString().padStart(2, '0')}:${frameMinutes.toString().padStart(2, '0')}:${frameSecs.toString().padStart(2, '0')}:${frames.toString().padStart(2, '0')}`;
+        return totalFrames.toString();
       
       case 'timecode':
         const tcHours = Math.floor(seconds / 3600);
@@ -303,7 +299,7 @@ export const VideoReviewInterface = ({
                             onClick={() => setTimestampFormat('frames')}
                             className="text-white hover:bg-gray-700"
                           >
-                            Frames (HH:MM:SS:FF @30fps)
+                            Frames
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
