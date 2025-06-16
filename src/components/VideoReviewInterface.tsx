@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Slider } from "@/components/ui/slider";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { 
   MessageCircle, 
   Search,
@@ -101,6 +103,15 @@ export const VideoReviewInterface = ({
     }
   };
 
+  const handleVolumeChange = (newVolume: number[]) => {
+    const video = videoRef.current;
+    if (video) {
+      const volumeValue = newVolume[0] / 100;
+      video.volume = volumeValue;
+      video.muted = volumeValue === 0;
+    }
+  };
+
   const filteredComments = comments.filter(comment =>
     comment.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
     comment.author.toLowerCase().includes(searchQuery.toLowerCase())
@@ -191,14 +202,34 @@ export const VideoReviewInterface = ({
                         <Repeat className="h-5 w-5" />
                       </Button>
                       
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={onToggleMute}
-                        className="text-white hover:bg-white/20"
-                      >
-                        {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-                      </Button>
+                      <HoverCard>
+                        <HoverCardTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={onToggleMute}
+                            className="text-white hover:bg-white/20"
+                          >
+                            {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                          </Button>
+                        </HoverCardTrigger>
+                        <HoverCardContent 
+                          side="top" 
+                          className="w-auto p-3 bg-gray-800 border-gray-700"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <VolumeX className="h-4 w-4 text-gray-400" />
+                            <Slider
+                              value={[isMuted ? 0 : Math.round(volume * 100)]}
+                              onValueChange={handleVolumeChange}
+                              max={100}
+                              step={1}
+                              className="w-20"
+                            />
+                            <Volume2 className="h-4 w-4 text-gray-400" />
+                          </div>
+                        </HoverCardContent>
+                      </HoverCard>
                       
                       <div className="text-white text-lg font-mono">
                         {formatTime(currentTime)} / {formatTime(duration)}
