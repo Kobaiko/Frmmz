@@ -361,17 +361,15 @@ export const VideoReviewInterface = ({
   };
 
   const handleSliderMouseUp = () => {
-    if (isSliderDragging) {
-      setIsSliderDragging(false);
-      // Close the hover card after a short delay to ensure the value change is complete
-      setTimeout(() => {
-        setIsSpeedHoverOpen(false);
-      }, 100);
-    }
+    setIsSliderDragging(false);
+    // Close the hover card after a short delay to ensure the interaction is complete
+    setTimeout(() => {
+      setIsSpeedHoverOpen(false);
+    }, 150);
   };
 
   const handleSpeedHoverChange = (open: boolean) => {
-    // Only allow closing if we're not currently dragging
+    // Prevent closing if we're currently dragging
     if (!open && !isSliderDragging) {
       setIsSpeedHoverOpen(false);
     } else if (open) {
@@ -637,6 +635,12 @@ export const VideoReviewInterface = ({
                           <HoverCardContent 
                             side="top" 
                             className="w-80 p-4 bg-gray-800 border-gray-700"
+                            onPointerDownOutside={(e) => {
+                              // Prevent closing when clicking on the slider
+                              if (isSliderDragging) {
+                                e.preventDefault();
+                              }
+                            }}
                           >
                             <div className="space-y-3">
                               <div className="text-white text-sm font-medium">Playback speed</div>
