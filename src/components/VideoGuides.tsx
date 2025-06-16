@@ -1,5 +1,5 @@
 
-import { useRef } from "react";
+import { useEffect, useState } from "react";
 
 interface VideoGuidesProps {
   videoRef: React.RefObject<HTMLVideoElement>;
@@ -12,17 +12,25 @@ interface VideoGuidesProps {
 }
 
 export const VideoGuides = ({ videoRef, containerRef, guides }: VideoGuidesProps) => {
-  if (!guides.enabled || !videoRef.current) return null;
+  const [videoRect, setVideoRect] = useState<DOMRect | null>(null);
+  const [containerRect, setContainerRect] = useState<DOMRect | null>(null);
 
-  const video = videoRef.current;
-  const videoRect = video.getBoundingClientRect();
-  const containerRect = containerRef.current?.getBoundingClientRect();
-  
-  if (!containerRect) return null;
+  useEffect(() => {
+    const updateRects = () => {
+      if (videoRef.current && containerRef.current) {
+        setVideoRect(videoRef.current.getBoundingClientRect());
+        setContainerRect(containerRef.current.getBoundingClientRect());
+      }
+    };
 
-  const videoWidth = videoRect.width;
-  const videoHeight = videoRect.height;
-  
+    updateRects();
+    window.addEventListener('resize', updateRects);
+    
+    return () => window.removeEventListener('resize', updateRects);
+  }, [videoRef, containerRef, guides.enabled]);
+
+  if (!guides.enabled || !videoRef.current || !videoRect || !containerRect) return null;
+
   let aspectRatio = 1;
   switch (guides.ratio) {
     case '2.35':
@@ -45,23 +53,31 @@ export const VideoGuides = ({ videoRef, containerRef, guides }: VideoGuidesProps
       break;
   }
 
-  const guideWidth = aspectRatio > 1 ? videoWidth : videoHeight * aspectRatio;
-  const guideHeight = aspectRatio > 1 ? videoWidth / aspectRatio : videoHeight;
+  // Calculate guide dimensions based on the video's actual display size
+  const videoDisplayWidth = videoRect.width;
+  const videoDisplayHeight = videoRect.height;
   
-  const left = (videoWidth - guideWidth) / 2;
-  const top = (videoHeight - guideHeight) / 2;
+  const guideWidth = aspectRatio > 1 ? videoDisplayWidth : videoDisplayHeight * aspectRatio;
+  const guideHeight = aspectRatio > 1 ? videoDisplayWidth / aspectRatio : videoDisplayHeight;
+  
+  // Center the guides within the video
+  const left = (videoDisplayWidth - guideWidth) / 2;
+  const top = (videoDisplayHeight - guideHeight) / 2;
+
+  // Position relative to the container
+  const videoLeft = videoRect.left - containerRect.left;
+  const videoTop = videoRect.top - containerRect.top;
 
   return (
     <>
       {/* Guide lines */}
       <div
-        className="absolute border-2 border-yellow-400 border-dashed pointer-events-none"
+        className="absolute border-2 border-yellow-400 border-dashed pointer-events-none z-10"
         style={{
-          left: `${left}px`,
-          top: `${top}px`,
+          left: `${videoLeft + left}px`,
+          top: `${videoTop + top}px`,
           width: `${guideWidth}px`,
           height: `${guideHeight}px`,
-          zIndex: 5
         }}
       />
       
@@ -71,27 +87,25 @@ export const VideoGuides = ({ videoRef, containerRef, guides }: VideoGuidesProps
           {/* Top mask */}
           {top > 0 && (
             <div
-              className="absolute bg-black pointer-events-none"
+              className="absolute bg-black/60 pointer-events-none z-5"
               style={{
-                left: 0,
-                top: 0,
-                width: `${videoWidth}px`,
+                left: `${videoLeft}px`,
+                top: `${videoTop}px`,
+                width: `${videoDisplayWidth}px`,
                 height: `${top}px`,
-                zIndex: 4
               }}
             />
           )}
           
           {/* Bottom mask */}
-          {top + guideHeight < videoHeight && (
+          {top + guideHeight < videoDisplayHeight && (
             <div
-              className="absolute bg-black pointer-events-none"
+              className="absolute bg-black/60 pointer-events-none z-5"
               style={{
-                left: 0,
-                top: `${top + guideHeight}px`,
-                width: `${videoWidth}px`,
-                height: `${videoHeight - (top + guideHeight)}px`,
-                zIndex: 4
+                left: `${videoLeft}px`,
+                top: `${videoTop + top + guideHeight}px`,
+                width: `${videoDisplayWidth}px`,
+                height: `${videoDisplayHeight - (top + guideHeight)}px`,
               }}
             />
           )}
@@ -99,27 +113,25 @@ export const VideoGuides = ({ videoRef, containerRef, guides }: VideoGuidesProps
           {/* Left mask */}
           {left > 0 && (
             <div
-              className="absolute bg-black pointer-events-none"
+              className="absolute bg-black/60 pointer-events-none z-5"
               style={{
-                left: 0,
-                top: `${top}px`,
+                left: `${videoLeft}px`,
+                top: `${videoTop + top}px`,
                 width: `${left}px`,
                 height: `${guideHeight}px`,
-                zIndex: 4
               }}
             />
           )}
           
           {/* Right mask */}
-          {left + guideWidth < videoWidth && (
+          {left + guideWidth < videoDisplayWidth && (
             <div
-              className="absolute bg-black pointer-events-none"
+              className="absolute bg-black/60 pointer-events-none z-5"
               style={{
-                left: `${left + guideWidth}px`,
-                top: `${top}px`,
-                width: `${videoWidth - (left + guideWidth)}px`,
+                left: `${videoLeft + left + guideWidth}px`,
+                top: `${videoTop + top}px`,
+                width: `${videoDisplayWidth - (left + guideWidth)}px`,
                 height: `${guideHeight}px`,
-                zIndex: 4
               }}
             />
           )}
