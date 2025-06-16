@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Slider } from "@/components/ui/slider";
 import { VideoSettingsMenu } from "./VideoSettingsMenu";
@@ -512,7 +513,7 @@ export const VideoReviewInterface = ({
   ).sort((a, b) => a.timestamp - b.timestamp);
 
   return (
-    <>
+    <TooltipProvider>
       <div className="h-screen w-screen bg-black flex fixed inset-0 z-50">
         {/* Main Video Area */}
         <div className="flex-1 flex flex-col relative">
@@ -658,46 +659,42 @@ export const VideoReviewInterface = ({
                           </HoverCardContent>
                         </HoverCard>
                         
-                        {/* Volume Control with Tooltip */}
-                        <HoverCard>
-                          <HoverCardTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleMuteToggle}
-                              className="text-white hover:bg-white/20"
+                        {/* Volume Control with Tooltip and Slider */}
+                        <div className="flex items-center space-x-2">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleMuteToggle}
+                                className="text-white hover:bg-white/20"
+                              >
+                                {isMuted || internalVolume === 0 ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent 
+                              side="top" 
+                              className="bg-gray-800 border-gray-700 text-white"
                             >
-                              {isMuted || internalVolume === 0 ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-                            </Button>
-                          </HoverCardTrigger>
-                          <HoverCardContent 
-                            side="top" 
-                            className="w-auto p-3 bg-gray-800 border-gray-700"
-                          >
-                            <div className="flex items-center space-x-3">
-                              <div className="flex flex-col items-center space-y-2">
-                                <div className="text-white text-xs">
+                              <div className="flex flex-col items-center space-y-1">
+                                <div className="text-xs">
                                   {isMuted || internalVolume === 0 ? 'Unmute' : 'Mute'}
                                 </div>
-                                <div className="bg-gray-700 px-2 py-1 rounded text-xs font-mono text-white">
+                                <div className="bg-gray-700 px-2 py-1 rounded text-xs font-mono">
                                   M
                                 </div>
                               </div>
-                              <div className="w-px h-8 bg-gray-600"></div>
-                              <div className="flex items-center space-x-2">
-                                <VolumeX className="h-4 w-4 text-gray-400" />
-                                <Slider
-                                  value={[isMuted ? 0 : Math.round(internalVolume * 100)]}
-                                  onValueChange={handleVolumeChange}
-                                  max={100}
-                                  step={1}
-                                  className="w-20"
-                                />
-                                <Volume2 className="h-4 w-4 text-gray-400" />
-                              </div>
-                            </div>
-                          </HoverCardContent>
-                        </HoverCard>
+                            </TooltipContent>
+                          </Tooltip>
+                          
+                          <Slider
+                            value={[isMuted ? 0 : Math.round(internalVolume * 100)]}
+                            onValueChange={handleVolumeChange}
+                            max={100}
+                            step={1}
+                            className="w-20"
+                          />
+                        </div>
                       </div>
 
                       {/* Centered Timestamp with Format Dropdown */}
@@ -916,6 +913,6 @@ export const VideoReviewInterface = ({
       <div className="fixed bottom-4 right-4 z-[60]">
         <Toaster />
       </div>
-    </>
+    </TooltipProvider>
   );
 };
