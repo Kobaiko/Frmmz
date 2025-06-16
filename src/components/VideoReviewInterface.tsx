@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Slider } from "@/components/ui/slider";
 import { VideoSettingsMenu } from "./VideoSettingsMenu";
 import { VideoGuides } from "./VideoGuides";
 import { useVideoKeyboardShortcuts } from "@/hooks/useVideoKeyboardShortcuts";
@@ -358,7 +359,7 @@ export const VideoReviewInterface = ({
     setIsSpeedHoverOpen(open);
   };
 
-  // Enable keyboard shortcuts - make sure this is called with the correct handleZoomChange
+  // Enable keyboard shortcuts - fix the function signature
   useVideoKeyboardShortcuts({
     videoRef,
     volume: internalVolume,

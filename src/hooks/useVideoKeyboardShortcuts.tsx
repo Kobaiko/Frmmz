@@ -7,7 +7,7 @@ interface UseVideoKeyboardShortcutsProps {
   isPlaying: boolean;
   setVolume: (volume: number) => void;
   onZoomChange: (zoom: string) => void;
-  onPlaybackSpeedChange: (speeds: number[]) => void;
+  onPlaybackSpeedChange: (speed: number) => void;
 }
 
 export const useVideoKeyboardShortcuts = ({
