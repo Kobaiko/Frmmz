@@ -119,55 +119,52 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   }
 
   return (
-    <div className="h-screen bg-black text-white flex flex-col">
-      {/* Top Header */}
-      <div className="bg-black border-b border-gray-800 px-4 py-3 flex items-center justify-between flex-shrink-0">
+    <div className="h-screen bg-black text-white flex flex-col overflow-hidden">
+      {/* Minimal Top Header */}
+      <div className="bg-black border-b border-gray-800/50 px-4 py-2 flex items-center justify-between flex-shrink-0 z-10">
         <div className="flex items-center space-x-3">
           <Button
             variant="ghost"
             size="icon"
             onClick={onBack}
-            className="text-gray-400 hover:text-white hover:bg-gray-800"
+            className="text-gray-400 hover:text-white hover:bg-gray-800/50 h-8 w-8"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-lg font-medium">{asset.name}</h1>
-            <div className="flex items-center space-x-2 text-xs text-gray-400">
-              <span>{asset.file_type}</span>
-              <span>•</span>
-              <span>{Math.round(asset.file_size / 1024 / 1024)} MB</span>
-            </div>
+            <h1 className="text-sm font-medium text-white">{asset.name}</h1>
           </div>
         </div>
         
-        <div className="flex items-center space-x-2">
-          <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-            <Share2 className="h-4 w-4 mr-2" />
+        <div className="flex items-center space-x-1">
+          <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white text-xs h-7 px-2">
+            <Share2 className="h-3 w-3 mr-1" />
             Share
           </Button>
-          <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-            <Download className="h-4 w-4 mr-2" />
+          <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white text-xs h-7 px-2">
+            <Download className="h-3 w-3 mr-1" />
             Download
           </Button>
-          <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-            <Settings className="h-4 w-4" />
+          <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white h-7 w-7 px-0">
+            <Settings className="h-3 w-3" />
           </Button>
         </div>
       </div>
 
-      {/* Main Content Area - Frame.io style */}
-      <div className="flex-1 flex min-h-0">
-        {/* Video Player Area */}
-        <div className="flex-1 bg-black relative">
+      {/* Main Content Area - Frame.io Layout */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Full-Screen Video Player Area */}
+        <div className="flex-1 bg-black relative overflow-hidden">
           {asset.file_type === 'video' ? (
-            <SimpleVideoPlayer
-              ref={videoRef}
-              src={asset.file_url}
-              onTimeUpdate={setCurrentTime}
-              onError={(error) => console.error('❌ Video player error:', error)}
-              onLoad={() => console.log('✅ Video loaded successfully')}
-            />
+            <div className="absolute inset-0">
+              <SimpleVideoPlayer
+                ref={videoRef}
+                src={asset.file_url}
+                onTimeUpdate={setCurrentTime}
+                onError={(error) => console.error('❌ Video player error:', error)}
+                onLoad={() => console.log('✅ Video loaded successfully')}
+              />
+            </div>
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -184,9 +181,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           )}
         </div>
 
-        {/* Comments Panel - Frame.io style narrow sidebar */}
+        {/* Comments Sidebar - Frame.io Style */}
         {asset.file_type === 'video' && (
-          <div className="w-80 flex-shrink-0 border-l border-gray-800 bg-gray-900">
+          <div className="w-80 flex-shrink-0 bg-gray-900 border-l border-gray-800/50 flex flex-col overflow-hidden">
             <CommentPanel
               comments={comments.map(comment => ({
                 id: comment.id,
