@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Share2, Settings, Play, Pause, Volume2, VolumeX } from "lucide-react";
@@ -30,10 +29,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
-  const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [showControls, setShowControls] = useState(true);
-  const [showDrawingTools, setShowDrawingTools] = useState(false);
-  const [showAnnotations, setShowAnnotations] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
 
@@ -129,16 +125,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
       resolved: false
     };
     setComments(prev => [...prev, newComment]);
-  };
-
-  const handleResolveComment = (commentId: string) => {
-    setComments(prev => 
-      prev.map(comment => 
-        comment.id === commentId 
-          ? { ...comment, resolved: true }
-          : comment
-      )
-    );
   };
 
   const handleDeleteComment = (commentId: string) => {
@@ -331,21 +317,15 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         </div>
       </div>
 
-      {/* Comments Panel - Fixed 400px width for better usability */}
+      {/* Comments Panel - Clean professional design */}
       {asset.file_type === 'video' && (
-        <div className="w-96 bg-gray-900 border-l border-gray-800 flex-shrink-0">
+        <div className="w-80 border-l border-gray-700 flex-shrink-0">
           <VideoReviewInterface
             comments={comments}
             onAddComment={handleAddComment}
-            onResolveComment={handleResolveComment}
             onDeleteComment={handleDeleteComment}
             currentTime={currentTime}
-            isDrawingMode={isDrawingMode}
-            onToggleDrawingMode={() => setIsDrawingMode(!isDrawingMode)}
-            showDrawingTools={showDrawingTools}
-            onToggleDrawingTools={() => setShowDrawingTools(!showDrawingTools)}
-            showAnnotations={showAnnotations}
-            onToggleAnnotations={() => setShowAnnotations(!showAnnotations)}
+            onCommentClick={handleCommentClick}
           />
         </div>
       )}
