@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { VideoSettingsMenu } from "./VideoSettingsMenu";
+import { VideoGuides } from "./VideoGuides";
 import { 
   MessageCircle, 
   Search,
@@ -85,6 +87,7 @@ export const VideoReviewInterface = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isLooping, setIsLooping] = useState(false);
   const [timestampFormat, setTimestampFormat] = useState<TimestampFormat>('standard');
+  const videoContainerRef = useRef<HTMLDivElement>(null);
   
   // Video settings state
   const [quality, setQuality] = useState('720p');
@@ -226,6 +229,7 @@ export const VideoReviewInterface = ({
 
         {/* Video Container */}
         <div 
+          ref={videoContainerRef}
           className="flex-1 relative bg-black flex items-center justify-center"
           onMouseMove={onMouseMove}
         >
@@ -237,6 +241,13 @@ export const VideoReviewInterface = ({
                 className="max-w-full max-h-full object-contain"
                 playsInline
                 controls={false}
+              />
+              
+              {/* Video Guides Overlay */}
+              <VideoGuides
+                videoRef={videoRef}
+                containerRef={videoContainerRef}
+                guides={guides}
               />
               
               {/* Video Controls Overlay */}
