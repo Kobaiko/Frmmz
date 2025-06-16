@@ -84,12 +84,12 @@ export const VideoReviewInterface = ({
     .sort((a, b) => a.timestamp - b.timestamp);
 
   const CommentItem = ({ comment, isReply = false }: { comment: VideoComment; isReply?: boolean }) => (
-    <div className={`${isReply ? 'ml-8 border-l-2 border-gray-600 pl-4' : ''}`}>
+    <div className={`${isReply ? 'ml-6 border-l-2 border-gray-600 pl-3' : ''}`}>
       <Card className={`bg-gray-800 border-gray-700 ${comment.resolved ? 'opacity-75' : ''}`}>
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-8 w-8">
+        <CardContent className="p-3">
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex items-center space-x-2">
+              <Avatar className="h-6 w-6">
                 <AvatarFallback 
                   className="text-white text-xs"
                   style={{ backgroundColor: comment.authorColor }}
@@ -99,7 +99,7 @@ export const VideoReviewInterface = ({
               </Avatar>
               <div>
                 <div className="flex items-center space-x-2">
-                  <span className="text-white font-medium text-sm">{comment.author}</span>
+                  <span className="text-white font-medium text-xs">{comment.author}</span>
                   <Badge 
                     variant="outline" 
                     className="border-gray-600 text-gray-400 text-xs cursor-pointer hover:bg-gray-700"
@@ -119,20 +119,17 @@ export const VideoReviewInterface = ({
                   Resolved
                 </Badge>
               )}
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-400">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
             </div>
           </div>
 
-          <p className="text-gray-300 text-sm mb-3">{comment.content}</p>
+          <p className="text-gray-300 text-sm mb-2">{comment.content}</p>
 
           <div className="flex items-center space-x-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setReplyingTo(comment.id)}
-              className="text-gray-400 hover:text-white text-xs"
+              className="text-gray-400 hover:text-white text-xs p-1 h-auto"
             >
               <Reply className="h-3 w-3 mr-1" />
               Reply
@@ -143,7 +140,7 @@ export const VideoReviewInterface = ({
                 variant="ghost"
                 size="sm"
                 onClick={() => onResolveComment(comment.id)}
-                className="text-green-400 hover:text-green-300 text-xs"
+                className="text-green-400 hover:text-green-300 text-xs p-1 h-auto"
               >
                 <Check className="h-3 w-3 mr-1" />
                 Resolve
@@ -153,17 +150,8 @@ export const VideoReviewInterface = ({
             <Button
               variant="ghost"
               size="sm"
-              className="text-gray-400 hover:text-white text-xs"
-            >
-              <Pin className="h-3 w-3 mr-1" />
-              Pin
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="sm"
               onClick={() => onDeleteComment(comment.id)}
-              className="text-red-400 hover:text-red-300 text-xs"
+              className="text-red-400 hover:text-red-300 text-xs p-1 h-auto"
             >
               <Trash2 className="h-3 w-3 mr-1" />
               Delete
@@ -220,12 +208,12 @@ export const VideoReviewInterface = ({
   );
 
   return (
-    <div className="bg-gray-900 border-l border-gray-700 w-80 h-full flex flex-col">
+    <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-gray-700">
+      <div className="p-4 border-b border-gray-700 bg-gray-900">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-white font-semibold flex items-center">
-            <MessageCircle className="h-5 w-5 mr-2" />
+          <h3 className="text-white font-semibold flex items-center text-sm">
+            <MessageCircle className="h-4 w-4 mr-2" />
             Comments ({comments.length})
           </h3>
         </div>
@@ -236,7 +224,7 @@ export const VideoReviewInterface = ({
             <button
               key={filterType}
               onClick={() => setFilter(filterType)}
-              className={`px-3 py-1 text-xs rounded-md transition-colors ${
+              className={`px-2 py-1 text-xs rounded-md transition-colors ${
                 filter === filterType 
                   ? 'bg-pink-600 text-white' 
                   : 'text-gray-400 hover:text-white'
@@ -249,7 +237,7 @@ export const VideoReviewInterface = ({
       </div>
 
       {/* Add Comment */}
-      <div className="p-4 border-b border-gray-700">
+      <div className="p-4 border-b border-gray-700 bg-gray-900">
         <div className="space-y-3">
           <div className="flex items-center space-x-2 text-sm text-gray-400">
             <Clock className="h-4 w-4" />
@@ -259,12 +247,12 @@ export const VideoReviewInterface = ({
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Add a comment at the current time..."
-            className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 min-h-[80px]"
+            className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 min-h-[80px] text-sm"
           />
           <Button
             onClick={handleAddComment}
             disabled={!newComment.trim()}
-            className="w-full bg-pink-600 hover:bg-pink-700"
+            className="w-full bg-pink-600 hover:bg-pink-700 text-sm"
           >
             Add Comment
           </Button>
@@ -272,7 +260,7 @@ export const VideoReviewInterface = ({
       </div>
 
       {/* Comments List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-900">
         {filteredComments.length === 0 ? (
           <div className="text-center py-8">
             <MessageCircle className="h-12 w-12 text-gray-600 mx-auto mb-3" />
