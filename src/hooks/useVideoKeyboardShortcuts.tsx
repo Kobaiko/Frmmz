@@ -54,11 +54,13 @@ export const useVideoKeyboardShortcuts = ({
           break;
         case 'm':
           if (video.muted || volume === 0) {
+            // Unmute
             video.muted = false;
             const newVolume = volume === 0 ? 0.5 : volume;
             video.volume = newVolume;
             setVolume(newVolume);
           } else {
+            // Mute
             video.muted = true;
             setVolume(0);
           }

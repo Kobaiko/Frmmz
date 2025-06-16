@@ -400,6 +400,23 @@ export const VideoReviewInterface = ({
     }
   };
 
+  const handleMuteToggle = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (video.muted || internalVolume === 0) {
+      // Unmute
+      video.muted = false;
+      const newVolume = internalVolume === 0 ? 0.5 : internalVolume;
+      video.volume = newVolume;
+      setInternalVolume(newVolume);
+    } else {
+      // Mute
+      video.muted = true;
+      setInternalVolume(0);
+    }
+  };
+
   const getVideoFrameRate = () => {
     // Try to get frame rate from video metadata, fallback to 30fps
     const video = videoRef.current;
@@ -641,16 +658,16 @@ export const VideoReviewInterface = ({
                           </HoverCardContent>
                         </HoverCard>
                         
-                        {/* Volume Control */}
+                        {/* Volume Control with Tooltip */}
                         <HoverCard>
                           <HoverCardTrigger asChild>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={onToggleMute}
+                              onClick={handleMuteToggle}
                               className="text-white hover:bg-white/20"
                             >
-                              {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                              {isMuted || internalVolume === 0 ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
                             </Button>
                           </HoverCardTrigger>
                           <HoverCardContent 
@@ -658,15 +675,26 @@ export const VideoReviewInterface = ({
                             className="w-auto p-3 bg-gray-800 border-gray-700"
                           >
                             <div className="flex items-center space-x-3">
-                              <VolumeX className="h-4 w-4 text-gray-400" />
-                              <Slider
-                                value={[isMuted ? 0 : Math.round(internalVolume * 100)]}
-                                onValueChange={handleVolumeChange}
-                                max={100}
-                                step={1}
-                                className="w-20"
-                              />
-                              <Volume2 className="h-4 w-4 text-gray-400" />
+                              <div className="flex flex-col items-center space-y-2">
+                                <div className="text-white text-xs">
+                                  {isMuted || internalVolume === 0 ? 'Unmute' : 'Mute'}
+                                </div>
+                                <div className="bg-gray-700 px-2 py-1 rounded text-xs font-mono text-white">
+                                  M
+                                </div>
+                              </div>
+                              <div className="w-px h-8 bg-gray-600"></div>
+                              <div className="flex items-center space-x-2">
+                                <VolumeX className="h-4 w-4 text-gray-400" />
+                                <Slider
+                                  value={[isMuted ? 0 : Math.round(internalVolume * 100)]}
+                                  onValueChange={handleVolumeChange}
+                                  max={100}
+                                  step={1}
+                                  className="w-20"
+                                />
+                                <Volume2 className="h-4 w-4 text-gray-400" />
+                              </div>
                             </div>
                           </HoverCardContent>
                         </HoverCard>
