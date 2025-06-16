@@ -134,7 +134,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('volumechange', handleVolumeChange);
     };
-  }, [asset]); // Depends on asset loading, which loads the video src
+  }, [asset?.file_url, videoRef]); // MODIFIED DEPENDENCY ARRAY
 
   const handleAddComment = (timestamp: number, content: string) => {
     const newComment: VideoComment = {
