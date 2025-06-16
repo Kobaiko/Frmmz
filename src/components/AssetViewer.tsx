@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Share2, Settings } from "lucide-react";
 import { useAssets } from "@/hooks/useAssets";
+import { AdvancedVideoPlayer } from "./AdvancedVideoPlayer";
 import { SimpleVideoPlayer } from "./SimpleVideoPlayer";
 import { CommentPanel } from "./CommentPanel";
 
@@ -28,7 +29,8 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const [comments, setComments] = useState<VideoComment[]>([]);
   const [currentTime, setCurrentTime] = useState(0);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [annotations, setAnnotations] = useState(true); // Default to true
+  const playerControlsRef = useRef<{ seek: (time: number) => void; togglePlayPause: () => void; } | null>(null);
 
   // Mock comments for demonstration
   useEffect(() => {
@@ -85,9 +87,8 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   };
 
   const handleCommentClick = (timestamp: number) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = timestamp;
-      setCurrentTime(timestamp);
+    if (playerControlsRef.current) {
+      playerControlsRef.current.seek(timestamp);
     }
   };
 
@@ -154,12 +155,16 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         {/* Full-Screen Video Player */}
         <div className="flex-1 bg-black relative">
           {asset.file_type === 'video' ? (
-            <SimpleVideoPlayer
-              ref={videoRef}
+            <AdvancedVideoPlayer
               src={asset.file_url}
+              comments={comments}
+              isDrawingMode={isDrawingMode}
+              onDrawingModeChange={setIsDrawingMode}
+              annotations={annotations}
+              setAnnotations={setAnnotations}
+              assetId={asset.id}
+              onReady={(controls) => playerControlsRef.current = controls}
               onTimeUpdate={setCurrentTime}
-              onError={(error) => console.error('❌ Video player error:', error)}
-              onLoad={() => console.log('✅ Video loaded successfully')}
             />
           ) : (
             <div className="flex items-center justify-center h-full">

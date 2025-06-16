@@ -1,88 +1,81 @@
-
-import { useState, useEffect } from "react";
+import React, { useEffect, useRef } from 'react';
 
 interface VideoPreviewProps {
-  assetId: string;
   previewVideoRef: React.RefObject<HTMLVideoElement>;
   isHovering: boolean;
   hoverTime: number;
-  timeFormat: 'timecode' | 'frames' | 'seconds';
+  timeFormat: 'timecode' | 'frames' | 'seconds'; // Or other relevant types
   duration: number;
+  assetId?: string; // Added assetId as it's in VideoTimeline's props for VideoPreview
 }
 
-export const VideoPreview = ({ 
-  assetId, 
-  previewVideoRef, 
-  isHovering, 
-  hoverTime, 
-  timeFormat, 
-  duration 
-}: VideoPreviewProps) => {
-  const [previewImageUrl, setPreviewImageUrl] = useState<string>('');
+const formatTime = (seconds: number) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    
-    switch (timeFormat) {
-      case 'timecode':
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-      case 'frames':
-        // Assuming 30fps for frame calculation
-        const totalFrames = Math.floor(seconds * 30);
-        return `${totalFrames}f`;
-      case 'seconds':
-        return `${seconds.toFixed(1)}s`;
-      default:
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    }
-  };
+export const VideoPreview: React.FC<VideoPreviewProps> = ({
+  previewVideoRef,
+  isHovering,
+  hoverTime,
+  timeFormat, // Currently unused, but available for future enhancement
+  duration,
+  assetId, // Currently unused
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isHovering && previewVideoRef.current && hoverTime >= 0 && hoverTime <= duration) {
-      // Generate preview thumbnail at hover time
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const video = previewVideoRef.current;
-      
-      if (ctx && video.videoWidth && video.videoHeight) {
-        canvas.width = 160;
-        canvas.height = 90;
-        
-        try {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          setPreviewImageUrl(canvas.toDataURL());
-        } catch (error) {
-          console.warn('Could not generate preview thumbnail:', error);
-        }
+    if (isHovering && previewVideoRef.current && containerRef.current) {
+      // Ensure the preview video's time is updated
+      if (hoverTime >= 0 && hoverTime <= duration) {
+        previewVideoRef.current.currentTime = hoverTime;
       }
     }
   }, [isHovering, hoverTime, duration, previewVideoRef]);
 
-  if (!isHovering || hoverTime < 0) {
+  if (!isHovering) {
     return null;
   }
 
+  // Calculate position: This is a rough estimate.
+  // In a real scenario, this would need to be calculated based on mouse position
+  // and timeline dimensions, passed as props or derived.
+  const previewWidth = 160; // Example width
+  const positionStyle: React.CSSProperties = {
+    position: 'absolute',
+    bottom: '100%', // Position above the timeline
+    left: `calc(${(hoverTime / duration) * 100}% - ${previewWidth / 2}px)`,
+    width: `${previewWidth}px`,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    padding: '4px',
+    borderRadius: '4px',
+    color: 'white',
+    textAlign: 'center',
+    zIndex: 100, // Ensure it's above other elements
+    pointerEvents: 'none', // So it doesn't interfere with mouse events on the timeline
+    transform: 'translateY(-10px)', // Small offset from the timeline
+  };
+
   return (
-    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-50">
-      <div className="bg-gray-900 border border-gray-600 rounded-lg p-2 shadow-xl">
-        <div className="w-40 h-24 bg-gray-800 rounded mb-2 overflow-hidden">
-          {previewImageUrl ? (
-            <img 
-              src={previewImageUrl} 
-              alt="Video preview" 
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
-              Preview
-            </div>
-          )}
-        </div>
-        <div className="text-center text-xs text-white">
-          {formatTime(hoverTime)}
-        </div>
+    <div ref={containerRef} style={positionStyle}>
+      {previewVideoRef.current && (
+        <video
+          ref={previewVideoRef} // Note: This might cause issues if the same ref is used directly by VideoTimeline for its own video element.
+                               // It's better if VideoTimeline owns the <video> element and passes the ref,
+                               // and this component just uses the passed ref to *control* it or read from it.
+                               // For now, we assume VideoTimeline passes a dedicated previewVideoRef.
+          style={{ width: '100%', height: 'auto', display: 'block' }}
+          muted
+          // src will be set by the parent component managing the previewVideoRef
+        />
+      )}
+      <div style={{ fontSize: '12px', marginTop: '4px' }}>
+        {formatTime(hoverTime)}
       </div>
     </div>
   );
 };
+
+// Export as default if that was the original convention, or keep as named.
+// Based on `import { VideoPreview } from "./VideoPreview";` in VideoTimeline.tsx, named export is correct.
