@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Slider } from "@/components/ui/slider";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { 
   MessageCircle, 
   Search,
@@ -22,7 +23,8 @@ import {
   Pause,
   Volume2,
   VolumeX,
-  Repeat
+  Repeat,
+  ChevronDown
 } from "lucide-react";
 
 interface VideoComment {
@@ -57,6 +59,8 @@ interface VideoReviewInterfaceProps {
   progress: number;
 }
 
+type TimestampFormat = 'standard' | 'timecode' | 'frames';
+
 export const VideoReviewInterface = ({ 
   asset,
   comments, 
@@ -81,6 +85,7 @@ export const VideoReviewInterface = ({
   const [newComment, setNewComment] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLooping, setIsLooping] = useState(false);
+  const [timestampFormat, setTimestampFormat] = useState<TimestampFormat>('standard');
 
   const handleAddComment = () => {
     if (newComment.trim()) {
@@ -109,6 +114,31 @@ export const VideoReviewInterface = ({
       const volumeValue = newVolume[0] / 100;
       video.volume = volumeValue;
       video.muted = volumeValue === 0;
+    }
+  };
+
+  const formatTimestamp = (seconds: number, format: TimestampFormat) => {
+    if (!isFinite(seconds)) return '00:00:00:00';
+    
+    switch (format) {
+      case 'frames':
+        const totalFrames = Math.floor(seconds * 24); // Assuming 24fps
+        const frameHours = Math.floor(totalFrames / (24 * 60 * 60));
+        const frameMinutes = Math.floor((totalFrames % (24 * 60 * 60)) / (24 * 60));
+        const frameSecs = Math.floor((totalFrames % (24 * 60)) / 24);
+        const frames = totalFrames % 24;
+        return `${frameHours.toString().padStart(2, '0')}:${frameMinutes.toString().padStart(2, '0')}:${frameSecs.toString().padStart(2, '0')}:${frames.toString().padStart(2, '0')}`;
+      
+      case 'timecode':
+        const tcHours = Math.floor(seconds / 3600);
+        const tcMinutes = Math.floor((seconds % 3600) / 60);
+        const tcSecs = Math.floor(seconds % 60);
+        const tcFrames = Math.floor((seconds % 1) * 24);
+        return `${tcHours.toString().padStart(2, '0')}:${tcMinutes.toString().padStart(2, '0')}:${tcSecs.toString().padStart(2, '0')}:${tcFrames.toString().padStart(2, '0')}`;
+      
+      case 'standard':
+      default:
+        return formatTime(seconds);
     }
   };
 
@@ -230,10 +260,41 @@ export const VideoReviewInterface = ({
                           </div>
                         </HoverCardContent>
                       </HoverCard>
-                      
-                      <div className="text-white text-lg font-mono">
-                        {formatTime(currentTime)} / {formatTime(duration)}
-                      </div>
+                    </div>
+
+                    {/* Centered Timestamp with Format Dropdown */}
+                    <div className="absolute left-1/2 transform -translate-x-1/2">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            className="text-white text-lg font-mono hover:bg-white/20 flex items-center space-x-2"
+                          >
+                            <span>{formatTimestamp(currentTime, timestampFormat)} / {formatTimestamp(duration, timestampFormat)}</span>
+                            <ChevronDown className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="bg-gray-800 border-gray-700">
+                          <DropdownMenuItem 
+                            onClick={() => setTimestampFormat('frames')}
+                            className="text-white hover:bg-gray-700"
+                          >
+                            Frames
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => setTimestampFormat('standard')}
+                            className="text-white hover:bg-gray-700"
+                          >
+                            Standard
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => setTimestampFormat('timecode')}
+                            className="text-white hover:bg-gray-700"
+                          >
+                            Timecode
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
 
                     <div className="text-white text-sm opacity-75">
@@ -328,7 +389,7 @@ export const VideoReviewInterface = ({
                           className="text-gray-400 hover:text-white text-xs px-2 py-1 h-auto"
                         >
                           <Clock className="h-3 w-3 mr-1" />
-                          {formatTime(comment.timestamp)}
+                          {formatTimestamp(comment.timestamp, timestampFormat)}
                         </Button>
                       </div>
                       
@@ -361,7 +422,7 @@ export const VideoReviewInterface = ({
             <div className="flex items-center space-x-2 mb-3">
               <Clock className="h-4 w-4 text-yellow-500" />
               <span className="text-yellow-500 text-sm font-medium">
-                {formatTime(currentTime)}
+                {formatTimestamp(currentTime, timestampFormat)}
               </span>
             </div>
             
