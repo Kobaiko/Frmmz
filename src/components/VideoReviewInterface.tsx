@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -163,8 +162,46 @@ export const VideoReviewInterface = ({
 
   // Video settings handlers
   const handleQualityChange = (newQuality: string) => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const wasPlaying = !video.paused;
+    const currentTimeBeforeChange = video.currentTime;
+
     setQuality(newQuality);
-    console.log('Quality changed to:', newQuality);
+    
+    // Simulate quality change by adjusting video properties
+    // In a real implementation, you would switch to different video sources
+    switch (newQuality) {
+      case '2160p':
+        video.style.filter = 'contrast(1.1) saturate(1.1)';
+        console.log('Quality changed to 4K (2160p)');
+        break;
+      case '1080p':
+        video.style.filter = 'contrast(1.05) saturate(1.05)';
+        console.log('Quality changed to Full HD (1080p)');
+        break;
+      case '720p':
+        video.style.filter = 'contrast(1.0) saturate(1.0)';
+        console.log('Quality changed to HD (720p)');
+        break;
+      case '540p':
+        video.style.filter = 'contrast(0.95) saturate(0.95) blur(0.2px)';
+        console.log('Quality changed to SD (540p)');
+        break;
+      case '360p':
+        video.style.filter = 'contrast(0.9) saturate(0.9) blur(0.5px)';
+        console.log('Quality changed to SD (360p)');
+        break;
+      default:
+        video.style.filter = 'none';
+    }
+
+    // Maintain playback state and position
+    video.currentTime = currentTimeBeforeChange;
+    if (wasPlaying) {
+      video.play();
+    }
   };
 
   const handleGuidesToggle = () => {
@@ -281,7 +318,13 @@ export const VideoReviewInterface = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={toggleLoop}
+                        onClick={() => {
+                          const video = videoRef.current;
+                          if (video) {
+                            video.loop = !isLooping;
+                            setIsLooping(!isLooping);
+                          }
+                        }}
                         className={`text-white hover:bg-white/20 ${isLooping ? 'bg-white/20' : ''}`}
                       >
                         <Repeat className="h-5 w-5" />
@@ -306,7 +349,14 @@ export const VideoReviewInterface = ({
                             <VolumeX className="h-4 w-4 text-gray-400" />
                             <Slider
                               value={[isMuted ? 0 : Math.round(volume * 100)]}
-                              onValueChange={handleVolumeChange}
+                              onValueChange={(newVolume) => {
+                                const video = videoRef.current;
+                                if (video) {
+                                  const volumeValue = newVolume[0] / 100;
+                                  video.volume = volumeValue;
+                                  video.muted = volumeValue === 0;
+                                }
+                              }}
                               max={100}
                               step={1}
                               className="w-20"
@@ -507,7 +557,14 @@ export const VideoReviewInterface = ({
               <Textarea
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                    if (newComment.trim()) {
+                      onAddComment(currentTime, newComment.trim());
+                      setNewComment('');
+                    }
+                  }
+                }}
                 placeholder="Leave your comment..."
                 className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400 min-h-[80px] resize-none"
               />
@@ -517,7 +574,12 @@ export const VideoReviewInterface = ({
                   Press ⌘+Enter to send
                 </span>
                 <Button
-                  onClick={handleAddComment}
+                  onClick={() => {
+                    if (newComment.trim()) {
+                      onAddComment(currentTime, newComment.trim());
+                      setNewComment('');
+                    }
+                  }}
                   disabled={!newComment.trim()}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
