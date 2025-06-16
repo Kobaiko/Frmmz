@@ -105,37 +105,66 @@ export const VideoReviewInterface = ({
 
   const captureVideoFrame = () => {
     const video = videoRef.current;
-    if (!video) return null;
+    if (!video) {
+      console.error('Video element not found');
+      return null;
+    }
 
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-    
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    return canvas;
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      console.error('Video dimensions are not available');
+      return null;
+    }
+
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        console.error('Could not get 2D context');
+        return null;
+      }
+      
+      // Ensure video is not CORS-blocked
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      console.log('Frame captured successfully:', canvas.width, 'x', canvas.height);
+      return canvas;
+    } catch (error) {
+      console.error('Error capturing frame:', error);
+      return null;
+    }
   };
 
   const handleDownloadStill = async () => {
+    console.log('Starting download still process...');
+    
     const canvas = captureVideoFrame();
     if (!canvas) {
       toast({
         title: "Error",
-        description: "Failed to capture video frame",
+        description: "Failed to capture video frame. Video may not be loaded properly.",
         variant: "destructive"
       });
       return;
     }
 
-    canvas.toBlob((blob) => {
-      if (!blob) return;
+    try {
+      // Create blob from canvas
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((blob) => {
+          resolve(blob);
+        }, 'image/png', 1.0);
+      });
+
+      if (!blob) {
+        throw new Error('Failed to create image blob');
+      }
       
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${asset.name}_frame_${Math.floor(currentTime)}s.png`;
+      a.download = `${asset.name || 'video'}_frame_${Math.floor(currentTime)}s.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -145,44 +174,104 @@ export const VideoReviewInterface = ({
         title: "Success",
         description: "Frame downloaded successfully"
       });
-    }, 'image/png');
+      
+      console.log('Frame downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading frame:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download frame",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const ensureStorageBucket = async () => {
+    try {
+      // Check if bucket exists
+      const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+      
+      if (listError) {
+        console.error('Error listing buckets:', listError);
+        return false;
+      }
+
+      const bucketExists = buckets?.some(bucket => bucket.name === 'assets');
+      
+      if (!bucketExists) {
+        // Create bucket if it doesn't exist
+        const { error: createError } = await supabase.storage.createBucket('assets', {
+          public: true,
+          allowedMimeTypes: ['image/*', 'video/*'],
+          fileSizeLimit: 1024 * 1024 * 100 // 100MB limit
+        });
+
+        if (createError) {
+          console.error('Error creating bucket:', createError);
+          return false;
+        }
+        
+        console.log('Assets bucket created successfully');
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error ensuring storage bucket:', error);
+      return false;
+    }
   };
 
   const handleSetFrameAsThumb = async () => {
+    console.log('Starting set frame as thumbnail process...');
+    
     const canvas = captureVideoFrame();
     if (!canvas) {
       toast({
         title: "Error",
-        description: "Failed to capture video frame",
+        description: "Failed to capture video frame. Video may not be loaded properly.",
         variant: "destructive"
       });
       return;
     }
 
     try {
+      // Ensure storage bucket exists
+      const bucketReady = await ensureStorageBucket();
+      if (!bucketReady) {
+        throw new Error('Storage bucket not available');
+      }
+
       // Convert canvas to blob
-      const blob = await new Promise<Blob>((resolve) => {
+      const blob = await new Promise<Blob | null>((resolve) => {
         canvas.toBlob((blob) => {
-          if (blob) resolve(blob);
+          resolve(blob);
         }, 'image/jpeg', 0.8);
       });
 
-      if (!blob) throw new Error('Failed to create image blob');
+      if (!blob) {
+        throw new Error('Failed to create image blob');
+      }
 
       // Upload thumbnail to Supabase storage
       const fileName = `thumbnails/${asset.id}_${Date.now()}.jpg`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('assets')
         .upload(fileName, blob, {
-          upsert: true
+          upsert: true,
+          contentType: 'image/jpeg'
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('assets')
         .getPublicUrl(fileName);
+
+      console.log('Thumbnail uploaded, URL:', publicUrl);
 
       // Update asset record with new thumbnail URL
       const { error: updateError } = await supabase
@@ -190,7 +279,10 @@ export const VideoReviewInterface = ({
         .update({ thumbnail_url: publicUrl })
         .eq('id', asset.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Update error:', updateError);
+        throw updateError;
+      }
 
       toast({
         title: "Success",
@@ -202,7 +294,7 @@ export const VideoReviewInterface = ({
       console.error('Error setting thumbnail:', error);
       toast({
         title: "Error",
-        description: "Failed to set frame as thumbnail",
+        description: error instanceof Error ? error.message : "Failed to set frame as thumbnail",
         variant: "destructive"
       });
     }
