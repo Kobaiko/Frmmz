@@ -160,7 +160,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen bg-black text-white flex items-center justify-center">
+      <div className="fixed inset-0 bg-black text-white flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 bg-pink-600 rounded-lg flex items-center justify-center mx-auto mb-4">
             <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -173,7 +173,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
   if (!asset) {
     return (
-      <div className="h-screen w-screen bg-black text-white flex items-center justify-center">
+      <div className="fixed inset-0 bg-black text-white flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Asset not found</h2>
           <Button onClick={onBack} className="bg-pink-600 hover:bg-pink-700">
@@ -188,84 +188,90 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="h-screen w-screen bg-black overflow-hidden flex">
+    <div className="fixed inset-0 bg-black flex">
       {/* Main Content Area - Video Player */}
-      <div className="flex-1 flex flex-col">
-        {/* Minimal Header */}
-        <div className="h-12 bg-black flex items-center justify-between px-4">
-          <div className="flex items-center space-x-3">
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <div className="h-16 bg-black flex items-center justify-between px-6 border-b border-gray-800">
+          <div className="flex items-center space-x-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={onBack}
-              className="text-gray-400 hover:text-white p-1"
+              className="text-gray-400 hover:text-white hover:bg-gray-800"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-5 w-5" />
             </Button>
-            <span className="text-white font-medium">{asset.name}</span>
+            <span className="text-white font-medium text-lg">{asset.name}</span>
           </div>
           
-          <div className="flex items-center space-x-1">
-            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white p-2">
-              <Share2 className="h-4 w-4" />
+          <div className="flex items-center space-x-2">
+            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white hover:bg-gray-800">
+              <Share2 className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white p-2">
-              <Download className="h-4 w-4" />
+            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white hover:bg-gray-800">
+              <Download className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white p-2">
-              <Settings className="h-4 w-4" />
+            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white hover:bg-gray-800">
+              <Settings className="h-5 w-5" />
             </Button>
           </div>
         </div>
 
         {/* Video Player Container */}
-        <div className="flex-1 relative bg-black">
+        <div className="flex-1 relative bg-black flex items-center justify-center">
           {asset.file_type === 'video' ? (
             <>
               <video
                 ref={videoRef}
                 src={asset.file_url}
-                className="w-full h-full object-contain"
+                className="max-w-full max-h-full object-contain"
                 playsInline
                 controls={false}
               />
               
-              {/* Video Controls at Bottom */}
-              <div className="absolute bottom-0 left-0 right-0 bg-black p-4">
+              {/* Video Controls Overlay */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-6">
                 {/* Progress Bar */}
                 <div 
-                  className="w-full h-1 bg-gray-600 rounded-full mb-3 cursor-pointer"
+                  className="w-full h-2 bg-gray-700 rounded-full mb-4 cursor-pointer group"
                   onClick={handleSeek}
                 >
                   <div 
-                    className="h-full bg-white rounded-full"
+                    className="h-full bg-pink-500 rounded-full transition-all duration-100"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
 
                 {/* Control Buttons */}
-                <div className="flex items-center space-x-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={togglePlayPause}
-                    className="text-white hover:bg-white/20 p-2"
-                  >
-                    {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-                  </Button>
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={toggleMute}
-                    className="text-white hover:bg-white/20 p-2"
-                  >
-                    {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                  </Button>
-                  
-                  <span className="text-white text-sm font-mono">
-                    {formatTime(currentTime)} / {formatTime(duration)}
-                  </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <Button
+                      variant="ghost"
+                      size="lg"
+                      onClick={togglePlayPause}
+                      className="text-white hover:bg-white/20 w-12 h-12 rounded-full"
+                    >
+                      {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
+                    </Button>
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={toggleMute}
+                      className="text-white hover:bg-white/20"
+                    >
+                      {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                    </Button>
+                    
+                    <div className="text-white text-lg font-mono">
+                      {formatTime(currentTime)} / {formatTime(duration)}
+                    </div>
+                  </div>
+
+                  <div className="text-white text-sm opacity-75">
+                    {Math.round(progress)}% complete
+                  </div>
                 </div>
               </div>
             </>
@@ -288,7 +294,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
 
       {/* Comments Panel - Fixed Width on Right */}
       {asset.file_type === 'video' && (
-        <div className="w-80 bg-gray-900 flex-shrink-0">
+        <div className="w-80 bg-gray-900 border-l border-gray-800 flex-shrink-0">
           <CommentPanel
             comments={comments.map(comment => ({
               id: comment.id,
