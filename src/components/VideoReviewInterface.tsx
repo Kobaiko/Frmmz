@@ -117,23 +117,35 @@ export const VideoReviewInterface = ({
     }
   };
 
+  const getVideoFrameRate = () => {
+    // Try to get frame rate from video metadata, fallback to 30fps
+    const video = videoRef.current;
+    if (video) {
+      // Check if the video has frame rate information
+      // Most videos default to 30fps, but we can try to detect common rates
+      return 30; // Default to 30fps for now
+    }
+    return 30;
+  };
+
   const formatTimestamp = (seconds: number, format: TimestampFormat) => {
-    if (!isFinite(seconds)) return '00:00:00:00';
+    if (!isFinite(seconds) || seconds < 0) return '00:00:00:00';
     
     switch (format) {
       case 'frames':
-        const totalFrames = Math.floor(seconds * 24); // Assuming 24fps
-        const frameHours = Math.floor(totalFrames / (24 * 60 * 60));
-        const frameMinutes = Math.floor((totalFrames % (24 * 60 * 60)) / (24 * 60));
-        const frameSecs = Math.floor((totalFrames % (24 * 60)) / 24);
-        const frames = totalFrames % 24;
+        const fps = getVideoFrameRate();
+        const totalFrames = Math.floor(seconds * fps);
+        const frameHours = Math.floor(totalFrames / (fps * 60 * 60));
+        const frameMinutes = Math.floor((totalFrames % (fps * 60 * 60)) / (fps * 60));
+        const frameSecs = Math.floor((totalFrames % (fps * 60)) / fps);
+        const frames = totalFrames % fps;
         return `${frameHours.toString().padStart(2, '0')}:${frameMinutes.toString().padStart(2, '0')}:${frameSecs.toString().padStart(2, '0')}:${frames.toString().padStart(2, '0')}`;
       
       case 'timecode':
         const tcHours = Math.floor(seconds / 3600);
         const tcMinutes = Math.floor((seconds % 3600) / 60);
         const tcSecs = Math.floor(seconds % 60);
-        const tcFrames = Math.floor((seconds % 1) * 24);
+        const tcFrames = Math.floor((seconds % 1) * 30); // Using 30fps for timecode
         return `${tcHours.toString().padStart(2, '0')}:${tcMinutes.toString().padStart(2, '0')}:${tcSecs.toString().padStart(2, '0')}:${tcFrames.toString().padStart(2, '0')}`;
       
       case 'standard':
@@ -276,22 +288,22 @@ export const VideoReviewInterface = ({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className="bg-gray-800 border-gray-700">
                           <DropdownMenuItem 
-                            onClick={() => setTimestampFormat('frames')}
-                            className="text-white hover:bg-gray-700"
-                          >
-                            Frames
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
                             onClick={() => setTimestampFormat('standard')}
                             className="text-white hover:bg-gray-700"
                           >
-                            Standard
+                            Standard (MM:SS)
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => setTimestampFormat('timecode')}
                             className="text-white hover:bg-gray-700"
                           >
-                            Timecode
+                            Timecode (HH:MM:SS:FF)
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => setTimestampFormat('frames')}
+                            className="text-white hover:bg-gray-700"
+                          >
+                            Frames (HH:MM:SS:FF @30fps)
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
