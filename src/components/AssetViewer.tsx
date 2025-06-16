@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Share2, Settings } from "lucide-react";
@@ -6,7 +5,6 @@ import { useAssets } from "@/hooks/useAssets";
 import { SimpleVideoPlayer } from "./SimpleVideoPlayer";
 import { CommentPanel } from "./CommentPanel";
 import { DrawingCanvas } from "./DrawingCanvas";
-import { StorageDebugger } from "./StorageDebugger";
 
 interface AssetViewerProps {
   assetId: string;
@@ -27,7 +25,6 @@ interface VideoComment {
 export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const { assets, loading } = useAssets();
   const [asset, setAsset] = useState<any>(null);
-  const [showDebugger, setShowDebugger] = useState(false);
   const [comments, setComments] = useState<VideoComment[]>([]);
   const [currentTime, setCurrentTime] = useState(0);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
@@ -163,14 +160,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           </div>
           
           <div className="flex items-center space-x-3">
-            <Button
-              variant="ghost"
-              onClick={() => setShowDebugger(!showDebugger)}
-              className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm"
-            >
-              {showDebugger ? 'Hide' : 'Show'} Debug
-            </Button>
-            
             <Button variant="ghost" className="text-gray-400 hover:text-white text-sm">
               <Share2 className="h-4 w-4 mr-2" />
               Share
@@ -185,13 +174,6 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
           </div>
         </div>
       </div>
-
-      {/* Debug Panel */}
-      {showDebugger && (
-        <div className="border-b border-gray-800 flex-shrink-0">
-          <StorageDebugger />
-        </div>
-      )}
 
       {/* Main Content */}
       <div className="flex-1 flex min-h-0">
