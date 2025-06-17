@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Share2, Settings, Play, Pause, Volume2, VolumeX } from "lucide-react";
@@ -19,6 +18,9 @@ interface VideoComment {
   createdAt: Date;
   resolved?: boolean;
   replies?: VideoComment[];
+  attachments?: any[];
+  hasDrawing?: boolean;
+  hasTimestamp?: boolean;
 }
 
 export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
@@ -34,7 +36,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Mock comments for demonstration
+  // Mock comments for demonstration with enhanced properties
   useEffect(() => {
     const mockComments: VideoComment[] = [
       {
@@ -44,7 +46,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         author: "Sarah Chen",
         authorColor: "#FF6B6B",
         createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        resolved: false
+        resolved: false,
+        hasTimestamp: true,
+        attachments: []
       },
       {
         id: "2",
@@ -53,16 +57,22 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
         author: "Mike Johnson",
         authorColor: "#4ECDC4",
         createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
-        resolved: false
+        resolved: false,
+        hasTimestamp: true,
+        attachments: [
+          { name: "audio_reference.mp3", type: "audio/mp3", size: 1024000 }
+        ]
       },
       {
         id: "3",
-        timestamp: 45.8,
-        content: "This transition looks smooth. Approved!",
+        timestamp: 0,
+        content: "Overall feedback on the entire video - looks great!",
         author: "Emma Wilson",
         authorColor: "#45B7D1",
         createdAt: new Date(Date.now() - 30 * 60 * 1000),
-        resolved: true
+        resolved: true,
+        hasTimestamp: false,
+        hasDrawing: true
       }
     ];
     setComments(mockComments);
@@ -123,7 +133,9 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
       author: "Current User",
       authorColor: "#8B5CF6",
       createdAt: new Date(),
-      resolved: false
+      resolved: false,
+      hasTimestamp: timestamp > 0,
+      attachments: []
     };
     setComments(prev => [...prev, newComment]);
   };

@@ -11,6 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import { VideoSettingsMenu } from "./VideoSettingsMenu";
 import { VideoGuides } from "./VideoGuides";
 import { CommentInput } from "./CommentInput";
+import { DrawingCanvas } from "./DrawingCanvas";
 import { useVideoKeyboardShortcuts } from "@/hooks/useVideoKeyboardShortcuts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -30,7 +31,14 @@ import {
   Volume2,
   VolumeX,
   Repeat,
-  ChevronDown
+  ChevronDown,
+  PenTool,
+  Paperclip,
+  FileText,
+  Image as ImageIcon,
+  Video,
+  File,
+  Eye
 } from "lucide-react";
 
 interface VideoComment {
@@ -41,12 +49,15 @@ interface VideoComment {
   authorColor: string;
   createdAt: Date;
   resolved?: boolean;
+  attachments?: any[];
+  hasDrawing?: boolean;
+  hasTimestamp?: boolean;
 }
 
 interface VideoReviewInterfaceProps {
   asset: any;
   comments: VideoComment[];
-  onAddComment: (timestamp: number, content: string) => void;
+  onAddComment: (timestamp: number, content: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
   onDeleteComment: (commentId: string) => void;
   currentTime: number;
   onCommentClick: (timestamp: number) => void;
@@ -95,6 +106,7 @@ export const VideoReviewInterface = ({
   const [internalVolume, setInternalVolume] = useState(volume);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isSpeedHoverOpen, setIsSpeedHoverOpen] = useState(false);
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
@@ -372,14 +384,39 @@ export const VideoReviewInterface = ({
   });
 
   const handleAddComment = (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
-    if (text.trim() || attachments?.length) {
-      onAddComment(attachTime ? currentTime : 0, text.trim());
+    if (text.trim() || attachments?.length || hasDrawing) {
+      // Enhanced comment object with new properties
+      const enhancedComment = {
+        timestamp: attachTime ? currentTime : 0,
+        content: text.trim(),
+        attachments: attachments || [],
+        hasDrawing: hasDrawing || false,
+        hasTimestamp: attachTime || false
+      };
+      
+      onAddComment(enhancedComment.timestamp, enhancedComment.content);
+      
+      // Reset drawing mode after comment
+      if (isDrawingMode) {
+        setIsDrawingMode(false);
+      }
     }
   };
 
   const handleStartDrawing = () => {
     console.log('Drawing mode activated');
-    // TODO: Implement drawing functionality
+    setIsDrawingMode(true);
+    
+    // Pause video when entering drawing mode
+    if (isPlaying && videoRef.current) {
+      videoRef.current.pause();
+    }
+  };
+
+  const handlePauseVideo = () => {
+    if (isPlaying && videoRef.current) {
+      videoRef.current.pause();
+    }
   };
 
   const toggleLoop = () => {
@@ -506,6 +543,13 @@ export const VideoReviewInterface = ({
     setGuides(prev => ({ ...prev, mask: !prev.mask }));
   };
 
+  const getFileIcon = (file: any) => {
+    if (file.type?.startsWith('image/')) return <ImageIcon className="h-3 w-3" />;
+    if (file.type?.startsWith('video/')) return <Video className="h-3 w-3" />;
+    if (file.type === 'application/pdf') return <FileText className="h-3 w-3" />;
+    return <File className="h-3 w-3" />;
+  };
+
   const filteredComments = comments.filter(comment =>
     comment.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
     comment.author.toLowerCase().includes(searchQuery.toLowerCase())
@@ -567,6 +611,14 @@ export const VideoReviewInterface = ({
                   onCanPlay={() => {
                     console.log('Video can start playing');
                   }}
+                />
+                
+                {/* Drawing Canvas Overlay */}
+                <DrawingCanvas
+                  currentTime={currentTime}
+                  videoRef={videoRef}
+                  isDrawingMode={isDrawingMode}
+                  annotations={true}
                 />
                 
                 {/* Video Guides Overlay */}
@@ -688,7 +740,7 @@ export const VideoReviewInterface = ({
                                         onValueChange={handleVolumeChange}
                                         max={100}
                                         step={1}
-                                        className="w-16"
+                                        className="w-12"
                                       />
                                     </div>
                                   </HoverCardContent>
@@ -854,20 +906,52 @@ export const VideoReviewInterface = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
                           <span className="text-white font-medium text-sm">{comment.author}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onCommentClick(comment.timestamp)}
-                            className="text-gray-400 hover:text-white text-xs px-2 py-1 h-auto"
-                          >
-                            <Clock className="h-3 w-3 mr-1" />
-                            {formatTimestamp(comment.timestamp, timestampFormat)}
-                          </Button>
+                          {comment.hasTimestamp !== false && comment.timestamp > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onCommentClick(comment.timestamp)}
+                              className="text-gray-400 hover:text-white text-xs px-2 py-1 h-auto"
+                            >
+                              <Clock className="h-3 w-3 mr-1" />
+                              {formatTimestamp(comment.timestamp, timestampFormat)}
+                            </Button>
+                          )}
                         </div>
                         
                         <p className="text-gray-300 text-sm leading-relaxed mb-2">
                           {comment.content}
                         </p>
+
+                        {/* Comment Attachments */}
+                        {comment.attachments && comment.attachments.length > 0 && (
+                          <div className="mb-2 space-y-1">
+                            {comment.attachments.map((file, index) => (
+                              <div key={index} className="flex items-center space-x-2 bg-gray-700 rounded p-2 text-xs">
+                                {getFileIcon(file)}
+                                <span className="text-gray-300 truncate flex-1">{file.name}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => window.open(file.url || URL.createObjectURL(file), '_blank')}
+                                  className="text-blue-400 hover:text-blue-300 p-1 h-auto"
+                                >
+                                  <Eye className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Drawing indicator */}
+                        {comment.hasDrawing && (
+                          <div className="mb-2">
+                            <Badge className="bg-pink-500 text-white text-xs px-2 py-1">
+                              <PenTool className="w-3 h-3 mr-1" />
+                              Has drawing
+                            </Badge>
+                          </div>
+                        )}
                         
                         <div className="flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
                           <span className="text-gray-500 text-xs">
@@ -896,7 +980,8 @@ export const VideoReviewInterface = ({
                 placeholder="Leave your comment..."
                 currentTime={currentTime}
                 onStartDrawing={handleStartDrawing}
-                isDrawingMode={false}
+                isDrawingMode={isDrawingMode}
+                onPauseVideo={handlePauseVideo}
               />
             </div>
           </div>

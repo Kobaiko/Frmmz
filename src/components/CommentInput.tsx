@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { EmojiPicker } from "./EmojiPicker";
+import { DrawingToolsMenu } from "./DrawingToolsMenu";
 import { 
   Clock, 
   Smile, 
@@ -25,6 +26,7 @@ interface CommentInputProps {
   currentTime: number;
   onStartDrawing: () => void;
   isDrawingMode: boolean;
+  onPauseVideo?: () => void;
 }
 
 export const CommentInput = ({
@@ -33,13 +35,16 @@ export const CommentInput = ({
   placeholder = "Leave your comment...",
   currentTime,
   onStartDrawing,
-  isDrawingMode
+  isDrawingMode,
+  onPauseVideo
 }: CommentInputProps) => {
   const [comment, setComment] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [attachTime, setAttachTime] = useState(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [showDrawingTools, setShowDrawingTools] = useState(false);
+  const [hasDrawing, setHasDrawing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const formatTime = (seconds: number) => {
@@ -49,10 +54,16 @@ export const CommentInput = ({
   };
 
   const handleSubmit = () => {
-    if (comment.trim() || attachments.length > 0) {
-      onAddComment(comment.trim(), attachments, !isPublic, attachTime, false);
+    if (comment.trim() || attachments.length > 0 || hasDrawing) {
+      onAddComment(comment.trim(), attachments, !isPublic, attachTime, hasDrawing);
       setComment("");
       setAttachments([]);
+      setHasDrawing(false);
+      
+      // Reset drawing mode after submitting
+      if (isDrawingMode) {
+        setShowDrawingTools(false);
+      }
     }
   };
 
@@ -80,6 +91,26 @@ export const CommentInput = ({
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleDrawingClick = () => {
+    // Always pause video when entering drawing mode
+    if (onPauseVideo) {
+      onPauseVideo();
+    }
+    
+    if (isDrawingMode) {
+      setShowDrawingTools(!showDrawingTools);
+    } else {
+      onStartDrawing();
+      setShowDrawingTools(true);
+    }
+    
+    // Check if there are any drawings for current frame
+    if ((window as any).drawingCanvas) {
+      const hasDrawingsForFrame = (window as any).drawingCanvas.hasDrawingsForCurrentFrame();
+      setHasDrawing(hasDrawingsForFrame);
+    }
+  };
+
   const getFileIcon = (file: File) => {
     if (file.type.startsWith('image/')) return <ImageIcon className="h-4 w-4" />;
     if (file.type.startsWith('video/')) return <Video className="h-4 w-4" />;
@@ -103,6 +134,16 @@ export const CommentInput = ({
           <Badge className="bg-yellow-500 text-black text-sm font-medium px-2 py-1">
             <Clock className="w-3 h-3 mr-1" />
             {formatTime(currentTime)}
+          </Badge>
+        </div>
+      )}
+
+      {/* Drawing indicator */}
+      {hasDrawing && (
+        <div className="flex items-center space-x-2">
+          <Badge className="bg-pink-500 text-white text-sm font-medium px-2 py-1">
+            <PenTool className="w-3 h-3 mr-1" />
+            Drawing attached
           </Badge>
         </div>
       )}
@@ -178,18 +219,24 @@ export const CommentInput = ({
             accept="*/*"
           />
 
-          {/* Drawing Tool */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onStartDrawing}
-            className={`text-gray-400 hover:text-white hover:bg-gray-700 w-10 h-10 p-0 ${
-              isDrawingMode ? "bg-blue-600 text-white" : ""
-            }`}
-            title="Drawing tool"
-          >
-            <PenTool className="h-4 w-4" />
-          </Button>
+          {/* Drawing Tool with Menu */}
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDrawingClick}
+              className={`text-gray-400 hover:text-white hover:bg-gray-700 w-10 h-10 p-0 ${
+                isDrawingMode ? "bg-pink-600 text-white" : ""
+              }`}
+              title="Drawing tool"
+            >
+              <PenTool className="h-4 w-4" />
+            </Button>
+            
+            {showDrawingTools && (
+              <DrawingToolsMenu onClose={() => setShowDrawingTools(false)} />
+            )}
+          </div>
 
           {/* Emoji Picker */}
           <div className="relative">
@@ -228,7 +275,7 @@ export const CommentInput = ({
         {/* Submit Button */}
         <Button
           onClick={handleSubmit}
-          disabled={!comment.trim() && attachments.length === 0}
+          disabled={!comment.trim() && attachments.length === 0 && !hasDrawing}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 h-8"
         >
           <Send className="h-4 w-4" />
