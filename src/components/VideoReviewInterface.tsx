@@ -659,35 +659,39 @@ export const VideoReviewInterface = ({
                           </HoverCardContent>
                         </HoverCard>
                         
-                        {/* Volume Control with both tooltip and slider */}
+                        {/* Volume Control with separate tooltip and slider */}
                         <div className="flex items-center space-x-2">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleMuteToggle}
+                                className="text-white hover:bg-white/20"
+                              >
+                                {isMuted || internalVolume === 0 ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent 
+                              side="top" 
+                              className="bg-gray-800 border-gray-700 text-white px-3 py-2"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm">
+                                  {isMuted || internalVolume === 0 ? 'Unmute' : 'Mute'}
+                                </span>
+                                <div className="bg-gray-700 px-2 py-1 rounded text-xs font-mono">
+                                  M
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                          
                           <HoverCard>
                             <HoverCardTrigger asChild>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={handleMuteToggle}
-                                    className="text-white hover:bg-white/20"
-                                  >
-                                    {isMuted || internalVolume === 0 ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent 
-                                  side="top" 
-                                  className="bg-gray-800 border-gray-700 text-white px-3 py-2"
-                                >
-                                  <div className="flex items-center space-x-2">
-                                    <span className="text-sm">
-                                      {isMuted || internalVolume === 0 ? 'Unmute' : 'Mute'}
-                                    </span>
-                                    <div className="bg-gray-700 px-2 py-1 rounded text-xs font-mono">
-                                      M
-                                    </div>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
+                              <div className="w-4 h-8 cursor-pointer flex items-center justify-center hover:bg-white/10 rounded">
+                                <div className="w-1 h-4 bg-gray-600 rounded"></div>
+                              </div>
                             </HoverCardTrigger>
                             <HoverCardContent 
                               side="top" 
