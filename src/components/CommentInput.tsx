@@ -1,15 +1,21 @@
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { EmojiPicker } from "./EmojiPicker";
 import { 
   Clock, 
   Smile, 
   Paperclip, 
   PenTool,
   Send,
-  Globe
+  Globe,
+  X,
+  FileText,
+  Image as ImageIcon,
+  Video,
+  File
 } from "lucide-react";
 
 interface CommentInputProps {
@@ -31,6 +37,10 @@ export const CommentInput = ({
 }: CommentInputProps) => {
   const [comment, setComment] = useState("");
   const [isPublic, setIsPublic] = useState(true);
+  const [attachTime, setAttachTime] = useState(true);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -39,9 +49,10 @@ export const CommentInput = ({
   };
 
   const handleSubmit = () => {
-    if (comment.trim()) {
-      onAddComment(comment.trim(), [], !isPublic, true, false);
+    if (comment.trim() || attachments.length > 0) {
+      onAddComment(comment.trim(), attachments, !isPublic, attachTime, false);
       setComment("");
+      setAttachments([]);
     }
   };
 
@@ -51,15 +62,75 @@ export const CommentInput = ({
     }
   };
 
+  const handleEmojiSelect = (emoji: string) => {
+    setComment(prev => prev + emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const handleFileAttach = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setAttachments(prev => [...prev, ...files]);
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const getFileIcon = (file: File) => {
+    if (file.type.startsWith('image/')) return <ImageIcon className="h-4 w-4" />;
+    if (file.type.startsWith('video/')) return <Video className="h-4 w-4" />;
+    if (file.type === 'application/pdf') return <FileText className="h-4 w-4" />;
+    return <File className="h-4 w-4" />;
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   return (
     <div className="bg-gray-800 border border-gray-600 rounded-lg p-4 space-y-3">
       {/* Timestamp Badge */}
-      <div className="flex items-center space-x-2">
-        <Badge className="bg-yellow-500 text-black text-sm font-medium px-2 py-1">
-          <Clock className="w-3 h-3 mr-1" />
-          {formatTime(currentTime)}
-        </Badge>
-      </div>
+      {attachTime && (
+        <div className="flex items-center space-x-2">
+          <Badge className="bg-yellow-500 text-black text-sm font-medium px-2 py-1">
+            <Clock className="w-3 h-3 mr-1" />
+            {formatTime(currentTime)}
+          </Badge>
+        </div>
+      )}
+
+      {/* Attachments Display */}
+      {attachments.length > 0 && (
+        <div className="space-y-2">
+          {attachments.map((file, index) => (
+            <div key={index} className="flex items-center justify-between bg-gray-700 rounded p-2">
+              <div className="flex items-center space-x-2">
+                {getFileIcon(file)}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-white truncate">{file.name}</p>
+                  <p className="text-xs text-gray-400">{formatFileSize(file.size)}</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => removeAttachment(index)}
+                className="text-gray-400 hover:text-white w-8 h-8 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Comment Input */}
       <div className="relative">
@@ -75,6 +146,38 @@ export const CommentInput = ({
       {/* Action Buttons Row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
+          {/* Clock/Time Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setAttachTime(!attachTime)}
+            className={`text-gray-400 hover:text-white hover:bg-gray-700 w-10 h-10 p-0 ${
+              attachTime ? "bg-yellow-600 text-white" : ""
+            }`}
+            title={attachTime ? "Remove timestamp" : "Add timestamp"}
+          >
+            <Clock className="h-4 w-4" />
+          </Button>
+
+          {/* Attachment */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleFileAttach}
+            className="text-gray-400 hover:text-white hover:bg-gray-700 w-10 h-10 p-0"
+            title="Attach file"
+          >
+            <Paperclip className="h-4 w-4" />
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            onChange={handleFileChange}
+            className="hidden"
+            accept="*/*"
+          />
+
           {/* Drawing Tool */}
           <Button
             variant="ghost"
@@ -88,25 +191,24 @@ export const CommentInput = ({
             <PenTool className="h-4 w-4" />
           </Button>
 
-          {/* Attachment */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-gray-400 hover:text-white hover:bg-gray-700 w-10 h-10 p-0"
-            title="Attach file"
-          >
-            <Paperclip className="h-4 w-4" />
-          </Button>
-
-          {/* Emoji */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-gray-400 hover:text-white hover:bg-gray-700 w-10 h-10 p-0"
-            title="Add emoji"
-          >
-            <Smile className="h-4 w-4" />
-          </Button>
+          {/* Emoji Picker */}
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="text-gray-400 hover:text-white hover:bg-gray-700 w-10 h-10 p-0"
+              title="Add emoji"
+            >
+              <Smile className="h-4 w-4" />
+            </Button>
+            {showEmojiPicker && (
+              <EmojiPicker
+                onEmojiSelect={handleEmojiSelect}
+                onClose={() => setShowEmojiPicker(false)}
+              />
+            )}
+          </div>
 
           {/* Public/Private Toggle */}
           <Button
@@ -126,7 +228,7 @@ export const CommentInput = ({
         {/* Submit Button */}
         <Button
           onClick={handleSubmit}
-          disabled={!comment.trim()}
+          disabled={!comment.trim() && attachments.length === 0}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 h-8"
         >
           <Send className="h-4 w-4" />
