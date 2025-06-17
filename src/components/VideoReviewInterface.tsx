@@ -659,41 +659,58 @@ export const VideoReviewInterface = ({
                           </HoverCardContent>
                         </HoverCard>
                         
-                        {/* Volume Control with Tooltip and Slider */}
+                        {/* Volume Control with Tooltip and Hover Slider */}
                         <div className="flex items-center space-x-2">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleMuteToggle}
-                                className="text-white hover:bg-white/20"
+                          <div className="relative">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HoverCard>
+                                  <HoverCardTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={handleMuteToggle}
+                                      className="text-white hover:bg-white/20"
+                                    >
+                                      {isMuted || internalVolume === 0 ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                                    </Button>
+                                  </HoverCardTrigger>
+                                  <HoverCardContent 
+                                    side="right" 
+                                    align="center"
+                                    className="w-auto p-3 bg-gray-800 border-gray-700"
+                                  >
+                                    <div className="flex items-center space-x-3">
+                                      <Slider
+                                        value={[isMuted ? 0 : Math.round(internalVolume * 100)]}
+                                        onValueChange={handleVolumeChange}
+                                        max={100}
+                                        step={1}
+                                        className="w-20"
+                                        style={{
+                                          '--slider-track': 'rgb(55 65 81)', // gray-700
+                                          '--slider-range': 'rgb(236 72 153)', // pink-500
+                                        } as React.CSSProperties}
+                                      />
+                                    </div>
+                                  </HoverCardContent>
+                                </HoverCard>
+                              </TooltipTrigger>
+                              <TooltipContent 
+                                side="top" 
+                                className="bg-gray-800 border-gray-700 text-white"
                               >
-                                {isMuted || internalVolume === 0 ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent 
-                              side="top" 
-                              className="bg-gray-800 border-gray-700 text-white"
-                            >
-                              <div className="flex flex-col items-center space-y-1">
-                                <div className="text-xs">
-                                  {isMuted || internalVolume === 0 ? 'Unmute' : 'Mute'}
+                                <div className="flex flex-col items-center space-y-1">
+                                  <div className="text-xs">
+                                    {isMuted || internalVolume === 0 ? 'Unmute' : 'Mute'}
+                                  </div>
+                                  <div className="bg-gray-700 px-2 py-1 rounded text-xs font-mono">
+                                    M
+                                  </div>
                                 </div>
-                                <div className="bg-gray-700 px-2 py-1 rounded text-xs font-mono">
-                                  M
-                                </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                          
-                          <Slider
-                            value={[isMuted ? 0 : Math.round(internalVolume * 100)]}
-                            onValueChange={handleVolumeChange}
-                            max={100}
-                            step={1}
-                            className="w-20"
-                          />
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
                         </div>
                       </div>
 
