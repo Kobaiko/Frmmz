@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState, useCallback } from "react";
 
 interface DrawingCanvasProps {
@@ -32,6 +33,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
   const lastFrameRef = useRef<number>(-1);
   const pendingPathRef = useRef<DrawingPath | null>(null);
   const isInitializedRef = useRef(false);
+  const redrawTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Get current frame number (30fps)
   const getCurrentFrame = useCallback(() => Math.floor(currentTime * 30), [currentTime]);
@@ -179,7 +181,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     context.restore();
   }, []);
 
-  // Redraw all paths for current frame
+  // Redraw all paths for current frame - IMPROVED with debouncing
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const context = contextRef.current;
@@ -188,28 +190,36 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
       return;
     }
 
-    // Clear canvas
-    context.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Only draw if annotations are enabled
-    if (!annotations) {
-      return;
+    // Clear any pending redraw
+    if (redrawTimeoutRef.current) {
+      clearTimeout(redrawTimeoutRef.current);
     }
 
-    const currentFrame = getCurrentFrame();
-    const frameData = frameDrawings.find(f => f.frame === currentFrame);
-    
-    if (frameData && frameData.paths.length > 0) {
-      console.log(`🎨 Drawing ${frameData.paths.length} paths for frame ${currentFrame}`);
-      frameData.paths.forEach(path => {
-        drawPath(path, context);
-      });
-    }
+    // Debounce redraws to prevent flickering
+    redrawTimeoutRef.current = setTimeout(() => {
+      // Clear canvas
+      context.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw pending path if exists (for preview during drawing)
-    if (pendingPathRef.current && isDrawingMode) {
-      drawPath(pendingPathRef.current, context, true);
-    }
+      // Only draw if annotations are enabled
+      if (!annotations) {
+        return;
+      }
+
+      const currentFrame = getCurrentFrame();
+      const frameData = frameDrawings.find(f => f.frame === currentFrame);
+      
+      if (frameData && frameData.paths.length > 0) {
+        console.log(`🎨 Drawing ${frameData.paths.length} paths for frame ${currentFrame}`);
+        frameData.paths.forEach(path => {
+          drawPath(path, context);
+        });
+      }
+
+      // Draw pending path if exists (for preview during drawing)
+      if (pendingPathRef.current && isDrawingMode) {
+        drawPath(pendingPathRef.current, context, true);
+      }
+    }, 16); // ~60fps debounce
   }, [getCurrentFrame, frameDrawings, drawPath, annotations, isDrawingMode]);
 
   // Add path to current frame
@@ -242,52 +252,25 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     });
   }, [getCurrentFrame]);
 
-  // 🔥 FIXED: Synchronized drawing display with video seeking
+  // FIXED: Better frame change detection and drawing persistence
   useEffect(() => {
-    const video = videoRef?.current;
-    if (!video) return;
-
     const currentFrame = getCurrentFrame();
     
     if (currentFrame !== lastFrameRef.current) {
       console.log(`🎬 Frame change: ${lastFrameRef.current} → ${currentFrame}`);
       lastFrameRef.current = currentFrame;
       
-      // Clear any pending preview path
-      pendingPathRef.current = null;
+      // Clear any pending preview path when changing frames
+      if (!isDrawing) {
+        pendingPathRef.current = null;
+      }
       
-      // 🎯 KEY FIX: Wait for video to actually seek before redrawing
-      const handleSeeked = () => {
-        if (isInitializedRef.current) {
-          console.log(`🎯 Video seeked to ${video.currentTime.toFixed(3)}s - redrawing frame ${currentFrame}`);
-          redrawCanvas();
-        }
-        video.removeEventListener('seeked', handleSeeked);
-      };
-
-      // If video is currently seeking, wait for 'seeked' event
-      if (Math.abs(video.currentTime - currentTime) > 0.016) {
-        console.log(`📹 Waiting for video to seek to ${currentTime.toFixed(3)}s (currently at ${video.currentTime.toFixed(3)}s)`);
-        video.addEventListener('seeked', handleSeeked);
-        
-        // Fallback timeout in case seeked event doesn't fire
-        setTimeout(() => {
-          video.removeEventListener('seeked', handleSeeked);
-          if (isInitializedRef.current) {
-            console.log(`⏰ Fallback redraw for frame ${currentFrame}`);
-            redrawCanvas();
-          }
-        }, 200);
-      } else {
-        // Video is already at the right time, redraw immediately
-        if (isInitializedRef.current) {
-          setTimeout(() => {
-            redrawCanvas();
-          }, 0);
-        }
+      // Immediate redraw for better responsiveness
+      if (isInitializedRef.current) {
+        redrawCanvas();
       }
     }
-  }, [currentTime, getCurrentFrame, redrawCanvas, videoRef]);
+  }, [currentTime, getCurrentFrame, redrawCanvas, isDrawing]);
 
   // Redraw when frameDrawings change OR annotations toggle
   useEffect(() => {
@@ -457,6 +440,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
         const currentFrame = getCurrentFrame();
         setFrameDrawings(prev => prev.filter(f => f.frame !== currentFrame));
         pendingPathRef.current = null;
+        redrawCanvas();
       },
       undo: () => {
         const currentFrame = getCurrentFrame();
@@ -501,8 +485,11 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
 
     return () => {
       delete (window as any).drawingCanvas;
+      if (redrawTimeoutRef.current) {
+        clearTimeout(redrawTimeoutRef.current);
+      }
     };
-  }, [currentTool, currentColor, getCurrentFrame, frameDrawings, addPathToFrame]);
+  }, [currentTool, currentColor, getCurrentFrame, frameDrawings, addPathToFrame, redrawCanvas]);
 
   // Don't render if video isn't ready
   if (!videoRef?.current) {
