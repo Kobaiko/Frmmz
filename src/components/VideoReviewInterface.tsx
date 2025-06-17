@@ -1,5 +1,3 @@
-
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Slider } from "@/components/ui/slider";
 import { VideoSettingsMenu } from "./VideoSettingsMenu";
 import { VideoGuides } from "./VideoGuides";
+import { CommentInput } from "./CommentInput";
 import { useVideoKeyboardShortcuts } from "@/hooks/useVideoKeyboardShortcuts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -372,17 +371,15 @@ export const VideoReviewInterface = ({
     onPlaybackSpeedChange: handlePlaybackSpeedChange
   });
 
-  const handleAddComment = () => {
-    if (newComment.trim()) {
-      onAddComment(currentTime, newComment.trim());
-      setNewComment('');
+  const handleAddComment = (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
+    if (text.trim() || attachments?.length) {
+      onAddComment(attachTime ? currentTime : 0, text.trim());
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      handleAddComment();
-    }
+  const handleStartDrawing = () => {
+    console.log('Drawing mode activated');
+    // TODO: Implement drawing functionality
   };
 
   const toggleLoop = () => {
@@ -892,38 +889,15 @@ export const VideoReviewInterface = ({
               )}
             </div>
 
-            {/* Add Comment */}
+            {/* Add Comment - Using CommentInput component */}
             <div className="p-4 border-t border-gray-700">
-              <div className="flex items-center space-x-2 mb-3">
-                <Clock className="h-4 w-4 text-yellow-500" />
-                <span className="text-yellow-500 text-sm font-medium">
-                  {formatTimestamp(currentTime, timestampFormat)}
-                </span>
-              </div>
-              
-              <div className="space-y-3">
-                <Textarea
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Leave your comment..."
-                  className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400 min-h-[80px] resize-none"
-                />
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500 text-xs">
-                    Press ⌘+Enter to send
-                  </span>
-                  <Button
-                    onClick={handleAddComment}
-                    disabled={!newComment.trim()}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <Send className="h-4 w-4 mr-2" />
-                    Comment
-                  </Button>
-                </div>
-              </div>
+              <CommentInput
+                onAddComment={handleAddComment}
+                placeholder="Leave your comment..."
+                currentTime={currentTime}
+                onStartDrawing={handleStartDrawing}
+                isDrawingMode={false}
+              />
             </div>
           </div>
         )}
@@ -934,4 +908,3 @@ export const VideoReviewInterface = ({
     </TooltipProvider>
   );
 };
-
