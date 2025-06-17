@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -661,16 +662,40 @@ export const VideoReviewInterface = ({
                         
                         {/* Volume Control with separate tooltips */}
                         <div className="relative">
+                          {/* Keyboard shortcut tooltip on top */}
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleMuteToggle}
-                                className="text-white hover:bg-white/20"
-                              >
-                                {isMuted || internalVolume === 0 ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-                              </Button>
+                              <div>
+                                {/* Volume slider on hover to the right */}
+                                <HoverCard>
+                                  <HoverCardTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={handleMuteToggle}
+                                      className="text-white hover:bg-white/20"
+                                    >
+                                      {isMuted || internalVolume === 0 ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                                    </Button>
+                                  </HoverCardTrigger>
+                                  <HoverCardContent 
+                                    side="right" 
+                                    align="center"
+                                    className="w-auto p-3 bg-gray-800 border-gray-700"
+                                  >
+                                    <div className="space-y-2">
+                                      <div className="text-white text-sm">Volume</div>
+                                      <Slider
+                                        value={[isMuted ? 0 : Math.round(internalVolume * 100)]}
+                                        onValueChange={handleVolumeChange}
+                                        max={100}
+                                        step={1}
+                                        className="w-20"
+                                      />
+                                    </div>
+                                  </HoverCardContent>
+                                </HoverCard>
+                              </div>
                             </TooltipTrigger>
                             <TooltipContent 
                               side="top" 
@@ -686,30 +711,6 @@ export const VideoReviewInterface = ({
                               </div>
                             </TooltipContent>
                           </Tooltip>
-                          
-                          <HoverCard>
-                            <HoverCardTrigger asChild>
-                              <div className="absolute left-full top-0 ml-2 h-full w-4 flex items-center cursor-pointer">
-                                <div className="w-1 h-4 bg-gray-600 rounded opacity-0 hover:opacity-100 transition-opacity"></div>
-                              </div>
-                            </HoverCardTrigger>
-                            <HoverCardContent 
-                              side="right" 
-                              align="center"
-                              className="w-auto p-3 bg-gray-800 border-gray-700"
-                            >
-                              <div className="space-y-2">
-                                <div className="text-white text-sm">Volume</div>
-                                <Slider
-                                  value={[isMuted ? 0 : Math.round(internalVolume * 100)]}
-                                  onValueChange={handleVolumeChange}
-                                  max={100}
-                                  step={1}
-                                  className="w-20"
-                                />
-                              </div>
-                            </HoverCardContent>
-                          </HoverCard>
                         </div>
                       </div>
 
