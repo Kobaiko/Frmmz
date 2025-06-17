@@ -663,16 +663,31 @@ export const VideoReviewInterface = ({
                         <div className="flex items-center space-x-2">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="relative">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={handleMuteToggle}
-                                  className="text-white hover:bg-white/20"
+                              <HoverCard>
+                                <HoverCardTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleMuteToggle}
+                                    className="text-white hover:bg-white/20"
+                                  >
+                                    {isMuted || internalVolume === 0 ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                                  </Button>
+                                </HoverCardTrigger>
+                                <HoverCardContent 
+                                  side="top" 
+                                  align="center"
+                                  className="w-auto p-3 bg-gray-800 border-gray-700"
                                 >
-                                  {isMuted || internalVolume === 0 ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-                                </Button>
-                              </div>
+                                  <Slider
+                                    value={[isMuted ? 0 : Math.round(internalVolume * 100)]}
+                                    onValueChange={handleVolumeChange}
+                                    max={100}
+                                    step={1}
+                                    className="w-20"
+                                  />
+                                </HoverCardContent>
+                              </HoverCard>
                             </TooltipTrigger>
                             <TooltipContent 
                               side="top" 
@@ -688,26 +703,6 @@ export const VideoReviewInterface = ({
                               </div>
                             </TooltipContent>
                           </Tooltip>
-
-                          {/* Volume Slider on Hover */}
-                          <HoverCard>
-                            <HoverCardTrigger asChild>
-                              <div className="w-2 h-5 cursor-pointer" />
-                            </HoverCardTrigger>
-                            <HoverCardContent 
-                              side="top" 
-                              align="start"
-                              className="w-auto p-3 bg-gray-800 border-gray-700"
-                            >
-                              <Slider
-                                value={[isMuted ? 0 : Math.round(internalVolume * 100)]}
-                                onValueChange={handleVolumeChange}
-                                max={100}
-                                step={1}
-                                className="w-20"
-                              />
-                            </HoverCardContent>
-                          </HoverCard>
                         </div>
                       </div>
 
