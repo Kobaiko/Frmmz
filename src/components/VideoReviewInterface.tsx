@@ -1,4 +1,5 @@
 
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -681,16 +682,16 @@ export const VideoReviewInterface = ({
                                   <HoverCardContent 
                                     side="right" 
                                     align="center"
-                                    className="w-auto p-3 bg-gray-800 border-gray-700"
+                                    className="w-auto p-2 bg-gray-800 border-gray-700"
                                   >
-                                    <div className="space-y-2">
-                                      <div className="text-white text-sm">Volume</div>
+                                    <div className="space-y-1">
+                                      <div className="text-white text-xs">Volume</div>
                                       <Slider
                                         value={[isMuted ? 0 : Math.round(internalVolume * 100)]}
                                         onValueChange={handleVolumeChange}
                                         max={100}
                                         step={1}
-                                        className="w-20"
+                                        className="w-16"
                                       />
                                     </div>
                                   </HoverCardContent>
@@ -933,3 +934,4 @@ export const VideoReviewInterface = ({
     </TooltipProvider>
   );
 };
+
