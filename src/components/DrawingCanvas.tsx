@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState, useCallback } from "react";
 
 interface DrawingCanvasProps {
@@ -35,6 +34,8 @@ export const DrawingCanvas = ({
   const [frameDrawings, setFrameDrawings] = useState<FrameDrawing[]>([]);
   const [currentPath, setCurrentPath] = useState<number[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [undoHistory, setUndoHistory] = useState<FrameDrawing[][]>([]);
+  const [redoHistory, setRedoHistory] = useState<FrameDrawing[][]>([]);
 
   const getCurrentFrame = useCallback(() => Math.floor(currentTime * 30), [currentTime]);
 
@@ -45,26 +46,20 @@ export const DrawingCanvas = ({
     
     if (!canvas || !video) return false;
 
-    // Wait for video to have dimensions
     if (video.videoWidth === 0 || video.videoHeight === 0) return false;
 
-    // Get the video's parent container to ensure we position relative to it
     const videoContainer = video.parentElement;
     if (!videoContainer) return false;
 
-    // Get the actual rendered size and position of the video element
     const videoRect = video.getBoundingClientRect();
     const containerRect = videoContainer.getBoundingClientRect();
     
-    // Calculate position relative to the container
     const relativeTop = videoRect.top - containerRect.top;
     const relativeLeft = videoRect.left - containerRect.left;
     
-    // Set canvas size to match the video display size exactly
     canvas.width = videoRect.width;
     canvas.height = videoRect.height;
     
-    // Position canvas to overlay the video exactly within its container
     canvas.style.position = 'absolute';
     canvas.style.top = relativeTop + 'px';
     canvas.style.left = relativeLeft + 'px';
@@ -80,13 +75,6 @@ export const DrawingCanvas = ({
     context.lineJoin = 'round';
     context.imageSmoothingEnabled = true;
     contextRef.current = context;
-    
-    console.log('Canvas initialized:', {
-      canvasSize: `${canvas.width}x${canvas.height}`,
-      canvasPosition: `${relativeLeft}px, ${relativeTop}px`,
-      videoSize: `${videoRect.width}x${videoRect.height}`,
-      videoPosition: `${videoRect.left}px, ${videoRect.top}px`
-    });
     
     return true;
   }, [videoRef, isDrawingMode]);
@@ -105,7 +93,6 @@ export const DrawingCanvas = ({
       }
     };
 
-    // Check if video is already loaded
     if (video.readyState >= 2) {
       handleVideoReady();
     }
@@ -126,7 +113,6 @@ export const DrawingCanvas = ({
     const handleResize = () => {
       if (isInitialized) {
         setIsInitialized(false);
-        // Re-initialize after a brief delay to let layout settle
         setTimeout(() => {
           const success = initializeCanvas();
           if (success) {
@@ -173,13 +159,11 @@ export const DrawingCanvas = ({
     } else if (path.type === 'arrow' && path.points.length >= 4) {
       const [x1, y1, x2, y2] = path.points;
       
-      // Draw line
       context.beginPath();
       context.moveTo(x1, y1);
       context.lineTo(x2, y2);
       context.stroke();
       
-      // Draw arrowhead
       const angle = Math.atan2(y2 - y1, x2 - x1);
       const headLength = 15;
       const headAngle = Math.PI / 6;
@@ -208,12 +192,10 @@ export const DrawingCanvas = ({
     
     if (!canvas || !context || !isInitialized) return;
 
-    // Clear canvas
     context.clearRect(0, 0, canvas.width, canvas.height);
 
     if (!annotations) return;
 
-    // Get current frame data
     const currentFrame = getCurrentFrame();
     const frameData = frameDrawings.find(f => f.frame === currentFrame);
     
@@ -221,6 +203,12 @@ export const DrawingCanvas = ({
       frameData.paths.forEach(path => drawPath(path, context));
     }
   }, [isInitialized, annotations, getCurrentFrame, frameDrawings, drawPath]);
+
+  // Save state to history before making changes
+  const saveToHistory = useCallback(() => {
+    setUndoHistory(prev => [...prev, frameDrawings]);
+    setRedoHistory([]); // Clear redo history when new action is performed
+  }, [frameDrawings]);
 
   // Redraw when time changes or annotations toggle
   useEffect(() => {
@@ -232,6 +220,8 @@ export const DrawingCanvas = ({
   // Add path to current frame
   const addPathToFrame = useCallback((path: DrawingPath) => {
     const currentFrame = getCurrentFrame();
+    
+    saveToHistory(); // Save current state before adding new path
     
     setFrameDrawings(prev => {
       const existingIndex = prev.findIndex(f => f.frame === currentFrame);
@@ -247,7 +237,7 @@ export const DrawingCanvas = ({
         return [...prev, { frame: currentFrame, paths: [path] }];
       }
     });
-  }, [getCurrentFrame]);
+  }, [getCurrentFrame, saveToHistory]);
 
   // Get canvas coordinates from mouse event
   const getCanvasCoordinates = useCallback((e: React.MouseEvent) => {
@@ -257,16 +247,6 @@ export const DrawingCanvas = ({
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
-    console.log('Mouse coordinates:', { 
-      clientX: e.clientX, 
-      clientY: e.clientY, 
-      rectLeft: rect.left, 
-      rectTop: rect.top, 
-      canvasX: x, 
-      canvasY: y,
-      canvasRect: rect
-    });
     
     return { x, y };
   }, []);
@@ -298,7 +278,6 @@ export const DrawingCanvas = ({
       const newPath = [...currentPath, x, y];
       setCurrentPath(newPath);
       
-      // Draw preview for pen tool
       const previewPath: DrawingPath = {
         type: 'pen',
         points: newPath,
@@ -309,7 +288,6 @@ export const DrawingCanvas = ({
       redrawCanvas();
       drawPath(previewPath, context);
     } else {
-      // Draw preview for other tools
       redrawCanvas();
       
       let previewPath: DrawingPath | null = null;
@@ -388,50 +366,42 @@ export const DrawingCanvas = ({
 
     if (finalPath) {
       addPathToFrame(finalPath);
-      console.log(`Completed ${finalPath.type} drawing`);
     }
 
-    // Reset state
     setIsDrawing(false);
     setCurrentPath([]);
     setStartPoint(null);
   };
 
-  // Global API for drawing tools
+  // Global API for drawing tools with redo functionality
   useEffect(() => {
     const api = {
       setTool: (tool: string) => {
-        console.log(`Setting tool to ${tool}`);
         setCurrentTool(tool);
       },
       setColor: (color: string) => {
-        console.log(`Setting color to ${color}`);
         setCurrentColor(color);
       },
       clear: () => {
+        saveToHistory();
         const currentFrame = getCurrentFrame();
         setFrameDrawings(prev => prev.filter(f => f.frame !== currentFrame));
-        console.log(`Cleared frame ${currentFrame}`);
       },
       undo: () => {
-        const currentFrame = getCurrentFrame();
-        setFrameDrawings(prev => {
-          const frameData = prev.find(f => f.frame === currentFrame);
-          if (frameData && frameData.paths.length > 0) {
-            const newPaths = frameData.paths.slice(0, -1);
-            if (newPaths.length > 0) {
-              return prev.map(f => 
-                f.frame === currentFrame 
-                  ? { ...f, paths: newPaths }
-                  : f
-              );
-            } else {
-              return prev.filter(f => f.frame !== currentFrame);
-            }
-          }
-          return prev;
-        });
-        console.log(`Undo for frame ${currentFrame}`);
+        if (undoHistory.length > 0) {
+          const previousState = undoHistory[undoHistory.length - 1];
+          setRedoHistory(prev => [frameDrawings, ...prev]);
+          setFrameDrawings(previousState);
+          setUndoHistory(prev => prev.slice(0, -1));
+        }
+      },
+      redo: () => {
+        if (redoHistory.length > 0) {
+          const nextState = redoHistory[0];
+          setUndoHistory(prev => [...prev, frameDrawings]);
+          setFrameDrawings(nextState);
+          setRedoHistory(prev => prev.slice(1));
+        }
       },
       hasDrawingsForCurrentFrame: () => {
         const currentFrame = getCurrentFrame();
@@ -445,7 +415,7 @@ export const DrawingCanvas = ({
     return () => {
       delete (window as any).drawingCanvas;
     };
-  }, [getCurrentFrame, frameDrawings]);
+  }, [getCurrentFrame, frameDrawings, undoHistory, redoHistory, saveToHistory]);
 
   if (!videoRef?.current) return null;
 
