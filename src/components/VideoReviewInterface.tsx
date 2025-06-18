@@ -109,6 +109,7 @@ export const VideoReviewInterface = ({
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isSpeedHoverOpen, setIsSpeedHoverOpen] = useState(false);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
+  const [highlightedCommentId, setHighlightedCommentId] = useState<string | null>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
@@ -421,6 +422,17 @@ export const VideoReviewInterface = ({
     }
   };
 
+  const handleCommentClickFromTimeline = (timestamp: number, commentId?: string) => {
+    onCommentClick(timestamp);
+    if (commentId) {
+      setHighlightedCommentId(commentId);
+      // Clear highlight after 3 seconds
+      setTimeout(() => {
+        setHighlightedCommentId(null);
+      }, 3000);
+    }
+  };
+
   const toggleLoop = () => {
     const video = videoRef.current;
     if (video) {
@@ -669,7 +681,7 @@ export const VideoReviewInterface = ({
                       currentTime={currentTime}
                       duration={duration}
                       comments={comments}
-                      onTimeClick={onCommentClick}
+                      onTimeClick={handleCommentClickFromTimeline}
                       previewVideoRef={previewVideoRef}
                       timeFormat={timestampFormat}
                       assetId={asset.id}
@@ -949,7 +961,12 @@ export const VideoReviewInterface = ({
                 </div>
               ) : (
                 sortedComments.map((comment, index) => (
-                  <div key={comment.id} className="bg-gray-700 rounded-lg p-3 group hover:bg-gray-650 transition-colors">
+                  <div 
+                    key={comment.id} 
+                    className={`bg-gray-700 rounded-lg p-3 group hover:bg-gray-650 transition-colors ${
+                      highlightedCommentId === comment.id ? 'ring-2 ring-pink-500 bg-gray-650' : ''
+                    }`}
+                  >
                     {/* Comment Header */}
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center space-x-2 flex-wrap">
@@ -973,12 +990,11 @@ export const VideoReviewInterface = ({
                           </Button>
                         )}
                         
-                        {/* Show drawing badge if comment has drawing */}
+                        {/* Show drawing icon if comment has drawing */}
                         {comment.hasDrawing && (
-                          <Badge className="bg-pink-500 text-white text-xs px-2 py-1 rounded flex items-center space-x-1">
+                          <div className="flex items-center text-pink-400">
                             <PenTool className="w-3 h-3" />
-                            <span>Drawing</span>
-                          </Badge>
+                          </div>
                         )}
                       </div>
                       <Button
