@@ -12,6 +12,7 @@ import { VideoSettingsMenu } from "./VideoSettingsMenu";
 import { VideoGuides } from "./VideoGuides";
 import { CommentInput } from "./CommentInput";
 import { DrawingCanvas } from "./DrawingCanvas";
+import { VideoTimeline } from "./VideoTimeline";
 import { useVideoKeyboardShortcuts } from "@/hooks/useVideoKeyboardShortcuts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -109,6 +110,7 @@ export const VideoReviewInterface = ({
   const [isSpeedHoverOpen, setIsSpeedHoverOpen] = useState(false);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const videoContainerRef = useRef<HTMLDivElement>(null);
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
   
   // Video settings state
@@ -620,6 +622,16 @@ export const VideoReviewInterface = ({
                     console.log('Video can start playing');
                   }}
                 />
+
+                {/* Hidden preview video for timeline hover */}
+                <video
+                  ref={previewVideoRef}
+                  src={asset.file_url}
+                  className="hidden"
+                  playsInline
+                  muted
+                  crossOrigin="anonymous"
+                />
                 
                 {/* Drawing Canvas Overlay */}
                 <DrawingCanvas
@@ -641,16 +653,16 @@ export const VideoReviewInterface = ({
                   showControls ? 'opacity-100' : 'opacity-0'
                 }`}>
                   <div className="p-6">
-                    {/* Progress Bar */}
-                    <div 
-                      className="w-full h-2 bg-gray-700 rounded-full mb-4 cursor-pointer group"
-                      onClick={onSeek}
-                    >
-                      <div 
-                        className="h-full bg-pink-500 rounded-full transition-all duration-100"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
+                    {/* Video Timeline with comment markers and hover preview */}
+                    <VideoTimeline 
+                      currentTime={currentTime}
+                      duration={duration}
+                      comments={comments}
+                      onTimeClick={onCommentClick}
+                      previewVideoRef={previewVideoRef}
+                      timeFormat={timestampFormat}
+                      assetId={asset.id}
+                    />
 
                     {/* Control Buttons */}
                     <div className="flex items-center justify-between">
@@ -934,26 +946,30 @@ export const VideoReviewInterface = ({
                           #{sortedComments.length - index}
                         </span>
                         
-                        {/* Force timestamp display for debugging */}
+                        {/* Only show timestamp and drawing badge if they actually exist */}
                         <div className="flex items-center space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              console.log('Timestamp clicked:', comment.timestamp);
-                              onCommentClick(comment.timestamp);
-                            }}
-                            className="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 h-auto bg-blue-400/10 hover:bg-blue-400/20 rounded flex items-center space-x-1"
-                          >
-                            <Clock className="h-3 w-3" />
-                            <span>{formatTimestamp(comment.timestamp || 0, timestampFormat)}</span>
-                          </Button>
+                          {comment.hasTimestamp && comment.timestamp > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                console.log('Timestamp clicked:', comment.timestamp);
+                                onCommentClick(comment.timestamp);
+                              }}
+                              className="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 h-auto bg-blue-400/10 hover:bg-blue-400/20 rounded flex items-center space-x-1"
+                            >
+                              <Clock className="h-3 w-3" />
+                              <span>{formatTimestamp(comment.timestamp, timestampFormat)}</span>
+                            </Button>
+                          )}
                           
-                          {/* Force drawing indicator display for testing */}
-                          <Badge className="bg-pink-500 text-white text-xs px-2 py-1 rounded flex items-center space-x-1">
-                            <PenTool className="w-3 h-3" />
-                            <span>Drawing</span>
-                          </Badge>
+                          {/* Only show drawing badge if comment actually has drawing */}
+                          {comment.hasDrawing && (
+                            <Badge className="bg-pink-500 text-white text-xs px-2 py-1 rounded flex items-center space-x-1">
+                              <PenTool className="w-3 h-3" />
+                              <span>Drawing</span>
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       <Button
