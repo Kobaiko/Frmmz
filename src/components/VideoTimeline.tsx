@@ -27,6 +27,14 @@ export const VideoTimeline = ({
 }: VideoTimelineProps) => {
   const [isHovering, setIsHovering] = useState(false);
   const [hoverTime, setHoverTime] = useState(0);
+  const [hoverPosition, setHoverPosition] = useState(0);
+
+  console.log('VideoTimeline rendered with:', { 
+    commentsCount: comments.length, 
+    duration, 
+    currentTime,
+    comments: comments.map(c => ({ id: c.id, timestamp: c.timestamp, text: c.text }))
+  });
 
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -42,13 +50,23 @@ export const VideoTimeline = ({
     const percentage = hoverX / rect.width;
     const time = percentage * duration;
     setHoverTime(time);
+    setHoverPosition(hoverX);
+    
     if (previewVideoRef.current && time >= 0 && time <= duration) {
       previewVideoRef.current.currentTime = time;
     }
   };
 
   const getCommentMarkers = () => {
-    return comments.filter(comment => !comment.parentId && comment.timestamp >= 0).map((comment, index) => ({
+    const validComments = comments.filter(comment => 
+      !comment.parentId && 
+      comment.timestamp >= 0 && 
+      comment.timestamp <= duration
+    );
+    
+    console.log('Valid comments for markers:', validComments);
+    
+    return validComments.map((comment, index) => ({
       ...comment,
       position: duration > 0 ? (comment.timestamp / duration) * 100 : 0,
       commentNumber: index + 1
@@ -75,23 +93,33 @@ export const VideoTimeline = ({
     return `${diffInDays}d`;
   };
 
+  const commentMarkers = getCommentMarkers();
+
   return (
     <TooltipProvider>
       <div className="mb-4 relative">
-        <VideoPreview
-          assetId={assetId}
-          previewVideoRef={previewVideoRef}
-          isHovering={isHovering}
-          hoverTime={hoverTime}
-          timeFormat={timeFormat}
-          duration={duration}
-        />
+        {/* Timeline hover preview - positioned absolutely to follow mouse */}
+        {isHovering && (
+          <div 
+            className="absolute bottom-full mb-2 z-50 pointer-events-none"
+            style={{ left: `${hoverPosition}px`, transform: 'translateX(-50%)' }}
+          >
+            <VideoPreview
+              assetId={assetId}
+              previewVideoRef={previewVideoRef}
+              isHovering={isHovering}
+              hoverTime={hoverTime}
+              timeFormat={timeFormat}
+              duration={duration}
+            />
+          </div>
+        )}
         
-        {/* Timeline container with extra bottom padding for avatars */}
-        <div className="relative pb-8">
+        {/* Timeline container with extra bottom padding for comment avatars */}
+        <div className="relative pb-10">
           {/* Main timeline bar */}
           <div
-            className="relative h-1 bg-gray-600 rounded cursor-pointer"
+            className="relative h-2 bg-gray-600 rounded cursor-pointer"
             onClick={handleTimelineClick}
             onMouseMove={handleTimelineMouseMove}
             onMouseEnter={() => setIsHovering(true)}
@@ -105,25 +133,35 @@ export const VideoTimeline = ({
           </div>
           
           {/* Comment markers positioned below the timeline */}
-          {getCommentMarkers().map((comment) => (
+          {commentMarkers.map((comment) => (
             <Tooltip key={comment.id}>
               <TooltipTrigger asChild>
                 <div
-                  className="absolute transform -translate-x-1/2 mt-2 cursor-pointer"
-                  style={{ left: `${comment.position}%` }}
-                  onClick={() => onTimeClick(comment.timestamp)}
+                  className="absolute transform -translate-x-1/2 cursor-pointer z-10"
+                  style={{ 
+                    left: `${comment.position}%`,
+                    top: '12px' // Position below the timeline bar
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTimeClick(comment.timestamp);
+                  }}
                 >
-                  <Avatar className="w-6 h-6 border-2 border-white shadow-lg hover:scale-110 transition-transform">
+                  <Avatar className="w-8 h-8 border-2 border-white shadow-lg hover:scale-110 transition-transform bg-blue-600">
                     <AvatarImage src="" />
                     <AvatarFallback className="bg-blue-600 text-white text-xs font-medium">
                       {comment.author.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
+                  {/* Comment number badge */}
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                    {comment.commentNumber}
+                  </div>
                 </div>
               </TooltipTrigger>
               <TooltipContent 
                 side="top" 
-                className="min-w-80 max-w-md bg-gray-900 text-white border border-gray-700 p-4 shadow-xl"
+                className="min-w-80 max-w-md bg-gray-900 text-white border border-gray-700 p-4 shadow-xl z-50"
               >
                 <div className="space-y-3">
                   {/* Header with profile and metadata */}

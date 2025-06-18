@@ -40,22 +40,29 @@ export const VideoPreview = ({
 
   useEffect(() => {
     if (isHovering && previewVideoRef.current && hoverTime >= 0 && hoverTime <= duration) {
-      // Generate preview thumbnail at hover time
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const video = previewVideoRef.current;
-      
-      if (ctx && video.videoWidth && video.videoHeight) {
-        canvas.width = 160;
-        canvas.height = 90;
+      // Small delay to ensure video has seeked to the correct time
+      const generatePreview = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const video = previewVideoRef.current;
         
-        try {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          setPreviewImageUrl(canvas.toDataURL());
-        } catch (error) {
-          console.warn('Could not generate preview thumbnail:', error);
+        if (ctx && video && video.videoWidth && video.videoHeight) {
+          canvas.width = 160;
+          canvas.height = 90;
+          
+          try {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            setPreviewImageUrl(canvas.toDataURL());
+          } catch (error) {
+            console.warn('Could not generate preview thumbnail:', error);
+            setPreviewImageUrl('');
+          }
         }
-      }
+      };
+
+      // Wait a bit for the video to seek
+      const timeoutId = setTimeout(generatePreview, 100);
+      return () => clearTimeout(timeoutId);
     }
   }, [isHovering, hoverTime, duration, previewVideoRef]);
 
@@ -64,24 +71,22 @@ export const VideoPreview = ({
   }
 
   return (
-    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-50">
-      <div className="bg-gray-900 border border-gray-600 rounded-lg p-2 shadow-xl">
-        <div className="w-40 h-24 bg-gray-800 rounded mb-2 overflow-hidden">
-          {previewImageUrl ? (
-            <img 
-              src={previewImageUrl} 
-              alt="Video preview" 
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
-              Preview
-            </div>
-          )}
-        </div>
-        <div className="text-center text-xs text-white">
-          {formatTime(hoverTime)}
-        </div>
+    <div className="bg-gray-900 border border-gray-600 rounded-lg p-3 shadow-xl pointer-events-none">
+      <div className="w-40 h-24 bg-gray-800 rounded mb-2 overflow-hidden">
+        {previewImageUrl ? (
+          <img 
+            src={previewImageUrl} 
+            alt="Video preview" 
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
+            Preview
+          </div>
+        )}
+      </div>
+      <div className="text-center text-xs text-white font-medium">
+        {formatTime(hoverTime)}
       </div>
     </div>
   );
