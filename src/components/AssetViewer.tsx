@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Share2, Settings, Play, Pause, Volume2, VolumeX } from "lucide-react";
@@ -90,9 +89,11 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   };
 
   const handleAddComment = (timestamp: number, content: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
+    console.log('Adding comment with timestamp:', timestamp, 'attachTime:', attachTime);
+    
     const newComment: VideoComment = {
       id: Date.now().toString(),
-      timestamp: attachTime ? timestamp : 0,
+      timestamp: timestamp, // Use the timestamp parameter directly
       content,
       author: "Current User",
       authorColor: "#8B5CF6",
@@ -102,7 +103,13 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
       attachments: attachments || [],
       hasDrawing: hasDrawing || false
     };
-    setComments(prev => [...prev, newComment]);
+    
+    console.log('Created comment:', newComment);
+    setComments(prev => {
+      const updated = [...prev, newComment];
+      console.log('Updated comments:', updated);
+      return updated;
+    });
   };
 
   const handleDeleteComment = (commentId: string) => {
