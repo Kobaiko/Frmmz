@@ -388,16 +388,15 @@ export const VideoReviewInterface = ({
 
   const handleAddComment = (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
     if (text.trim() || attachments?.length || hasDrawing) {
-      // Enhanced comment object with new properties
-      const enhancedComment = {
-        timestamp: attachTime ? currentTime : 0,
-        content: text.trim(),
-        attachments: attachments || [],
-        hasDrawing: hasDrawing || false,
-        hasTimestamp: attachTime || false
-      };
-      
-      onAddComment(enhancedComment.timestamp, enhancedComment.content);
+      console.log('Adding comment with attachTime:', attachTime, 'hasDrawing:', hasDrawing);
+      onAddComment(
+        attachTime ? currentTime : -1,
+        text.trim(),
+        attachments,
+        isInternal,
+        attachTime,
+        hasDrawing
+      );
       
       // Reset drawing mode after comment
       if (isDrawingMode) {
@@ -490,7 +489,6 @@ export const VideoReviewInterface = ({
     }
   };
 
-  // Video settings handlers
   const handleQualityChange = (newQuality: string) => {
     const video = videoRef.current;
     if (!video) return;
@@ -561,9 +559,22 @@ export const VideoReviewInterface = ({
       comment.author.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-  // Debug log to check comment data
-  console.log('Comments data:', comments);
-  console.log('Sorted comments:', sortedComments);
+  const formatTimeAgo = (date: Date) => {
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}h`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays}d`;
+  };
+
+  console.log('Comments passed to VideoReviewInterface:', comments);
+  console.log('Comments with timestamps:', comments.filter(c => c.hasTimestamp && c.timestamp > 0));
 
   return (
     <TooltipProvider>
@@ -946,31 +957,29 @@ export const VideoReviewInterface = ({
                           #{sortedComments.length - index}
                         </span>
                         
-                        {/* Only show timestamp and drawing badge if they actually exist */}
-                        <div className="flex items-center space-x-2">
-                          {comment.hasTimestamp && comment.timestamp > 0 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                console.log('Timestamp clicked:', comment.timestamp);
-                                onCommentClick(comment.timestamp);
-                              }}
-                              className="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 h-auto bg-blue-400/10 hover:bg-blue-400/20 rounded flex items-center space-x-1"
-                            >
-                              <Clock className="h-3 w-3" />
-                              <span>{formatTimestamp(comment.timestamp, timestampFormat)}</span>
-                            </Button>
-                          )}
-                          
-                          {/* Only show drawing badge if comment actually has drawing */}
-                          {comment.hasDrawing && (
-                            <Badge className="bg-pink-500 text-white text-xs px-2 py-1 rounded flex items-center space-x-1">
-                              <PenTool className="w-3 h-3" />
-                              <span>Drawing</span>
-                            </Badge>
-                          )}
-                        </div>
+                        {/* Show timestamp badge if comment has timestamp */}
+                        {comment.hasTimestamp && comment.timestamp >= 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              console.log('Timestamp clicked:', comment.timestamp);
+                              onCommentClick(comment.timestamp);
+                            }}
+                            className="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 h-auto bg-blue-400/10 hover:bg-blue-400/20 rounded flex items-center space-x-1"
+                          >
+                            <Clock className="h-3 w-3" />
+                            <span>{formatTimestamp(comment.timestamp, timestampFormat)}</span>
+                          </Button>
+                        )}
+                        
+                        {/* Show drawing badge if comment has drawing */}
+                        {comment.hasDrawing && (
+                          <Badge className="bg-pink-500 text-white text-xs px-2 py-1 rounded flex items-center space-x-1">
+                            <PenTool className="w-3 h-3" />
+                            <span>Drawing</span>
+                          </Badge>
+                        )}
                       </div>
                       <Button
                         variant="ghost"
@@ -1021,6 +1030,7 @@ export const VideoReviewInterface = ({
                           </AvatarFallback>
                         </Avatar>
                         <span className="text-gray-300 text-sm font-medium">{comment.author}</span>
+                        <span className="text-gray-500 text-xs">{formatTimeAgo(comment.createdAt)}</span>
                       </div>
                       <Button
                         variant="ghost"

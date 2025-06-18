@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Share2, Settings, Play, Pause, Volume2, VolumeX } from "lucide-react";
@@ -89,25 +90,25 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   };
 
   const handleAddComment = (timestamp: number, content: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
-    console.log('Adding comment with timestamp:', timestamp, 'attachTime:', attachTime);
+    console.log('Adding comment with:', { timestamp, content, attachTime, hasDrawing });
     
     const newComment: VideoComment = {
       id: Date.now().toString(),
-      timestamp: attachTime ? timestamp : -1, // Use -1 for general comments
+      timestamp: timestamp,
       content,
       author: "Current User",
       authorColor: "#8B5CF6",
       createdAt: new Date(),
       resolved: false,
-      hasTimestamp: attachTime || false,
+      hasTimestamp: attachTime === true,
       attachments: attachments || [],
-      hasDrawing: hasDrawing || false
+      hasDrawing: hasDrawing === true
     };
     
     console.log('Created comment:', newComment);
     setComments(prev => {
       const updated = [...prev, newComment];
-      console.log('Updated comments:', updated);
+      console.log('Updated comments array:', updated);
       return updated;
     });
   };
