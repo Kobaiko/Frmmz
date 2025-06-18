@@ -78,7 +78,7 @@ interface VideoReviewInterfaceProps {
   progress: number;
 }
 
-type TimestampFormat = 'standard' | 'timecode' | 'frames';
+type TimestampFormat = 'seconds' | 'timecode' | 'frames';
 
 export const VideoReviewInterface = ({ 
   asset,
@@ -104,7 +104,7 @@ export const VideoReviewInterface = ({
   const [newComment, setNewComment] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLooping, setIsLooping] = useState(false);
-  const [timestampFormat, setTimestampFormat] = useState<TimestampFormat>('standard');
+  const [timestampFormat, setTimestampFormat] = useState<TimestampFormat>('seconds');
   const [internalVolume, setInternalVolume] = useState(volume);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isSpeedHoverOpen, setIsSpeedHoverOpen] = useState(false);
@@ -484,7 +484,7 @@ export const VideoReviewInterface = ({
         const tcFrames = Math.floor((seconds % 1) * 30); // Using 30fps for timecode
         return `${tcHours.toString().padStart(2, '0')}:${tcMinutes.toString().padStart(2, '0')}:${tcSecs.toString().padStart(2, '0')}:${tcFrames.toString().padStart(2, '0')}`;
       
-      case 'standard':
+      case 'seconds':
       default:
         return formatTime(seconds);
     }
@@ -798,7 +798,7 @@ export const VideoReviewInterface = ({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent className="bg-gray-800 border-gray-700">
                             <DropdownMenuItem 
-                              onClick={() => setTimestampFormat('standard')}
+                              onClick={() => setTimestampFormat('seconds')}
                               className="text-white hover:bg-gray-700"
                             >
                               Standard (MM:SS)
