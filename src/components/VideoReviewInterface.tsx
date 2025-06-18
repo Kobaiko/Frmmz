@@ -929,21 +929,21 @@ export const VideoReviewInterface = ({
                         <span className="text-gray-400 text-sm font-medium">
                           #{sortedComments.length - index}
                         </span>
-                        {comment.hasTimestamp !== false && comment.timestamp > 0 && (
+                        {comment.timestamp > 0 && (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => onCommentClick(comment.timestamp)}
-                            className="text-orange-400 hover:text-orange-300 text-xs px-2 py-1 h-auto bg-orange-400/10 hover:bg-orange-400/20 rounded"
+                            className="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 h-auto bg-blue-400/10 hover:bg-blue-400/20 rounded flex items-center space-x-1"
                           >
-                            <Clock className="h-3 w-3 mr-1" />
-                            {formatTimestamp(comment.timestamp, timestampFormat)}
+                            <Clock className="h-3 w-3" />
+                            <span>{formatTimestamp(comment.timestamp, timestampFormat)}</span>
                           </Button>
                         )}
                         {comment.hasDrawing && (
-                          <Badge className="bg-blue-500 text-white text-xs px-2 py-1 rounded">
-                            <PenTool className="w-3 h-3 mr-1" />
-                            Drawing
+                          <Badge className="bg-pink-500 text-white text-xs px-2 py-1 rounded flex items-center space-x-1">
+                            <PenTool className="w-3 h-3" />
+                            <span>Drawing</span>
                           </Badge>
                         )}
                       </div>
