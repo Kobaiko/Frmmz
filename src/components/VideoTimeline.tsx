@@ -5,8 +5,8 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { VideoPreview } from "./VideoPreview";
 import { Clock, Edit } from "lucide-react";
 
-// Define the comment interface to match what we receive
-interface TimelineComment {
+// Update the interface to match what we actually receive
+interface VideoComment {
   id: string;
   timestamp: number;
   content: string;
@@ -14,7 +14,7 @@ interface TimelineComment {
   authorColor?: string;
   createdAt: Date;
   resolved?: boolean;
-  replies?: TimelineComment[];
+  replies?: VideoComment[];
   attachments?: any[];
   hasDrawing?: boolean;
   hasTimestamp?: boolean;
@@ -24,7 +24,7 @@ interface TimelineComment {
 interface VideoTimelineProps {
   currentTime: number;
   duration: number;
-  comments: TimelineComment[];
+  comments: VideoComment[];
   onTimeClick: (time: number) => void;
   previewVideoRef: React.RefObject<HTMLVideoElement>;
   timeFormat: 'timecode' | 'frames' | 'seconds';
@@ -66,10 +66,6 @@ export const VideoTimeline = ({
     const time = percentage * duration;
     setHoverTime(time);
     setHoverPosition(hoverX);
-    
-    if (previewVideoRef.current && time >= 0 && time <= duration) {
-      previewVideoRef.current.currentTime = time;
-    }
   };
 
   const getCommentMarkers = () => {
@@ -120,7 +116,7 @@ export const VideoTimeline = ({
             style={{ 
               left: `${hoverPosition}px`, 
               transform: 'translateX(-50%)',
-              bottom: '60px' // Position above the timeline and comment markers
+              bottom: '60px'
             }}
           >
             <VideoPreview
@@ -138,7 +134,7 @@ export const VideoTimeline = ({
         <div className="relative pb-12">
           {/* Main timeline bar */}
           <div
-            className="relative h-2 bg-gray-600 rounded cursor-pointer"
+            className="relative h-3 bg-gray-600 rounded cursor-pointer"
             onClick={handleTimelineClick}
             onMouseMove={handleTimelineMouseMove}
             onMouseEnter={() => setIsHovering(true)}
@@ -146,7 +142,7 @@ export const VideoTimeline = ({
           >
             {/* Progress bar */}
             <div
-              className="absolute top-0 left-0 h-full bg-blue-500 rounded"
+              className="absolute top-0 left-0 h-full bg-pink-500 rounded"
               style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
             />
           </div>
@@ -156,10 +152,10 @@ export const VideoTimeline = ({
             <Tooltip key={comment.id}>
               <TooltipTrigger asChild>
                 <div
-                  className="absolute transform -translate-x-1/2 cursor-pointer z-20"
+                  className="absolute transform -translate-x-1/2 cursor-pointer z-30"
                   style={{ 
                     left: `${comment.position}%`,
-                    top: '16px' // Position below the timeline bar with some spacing
+                    top: '20px'
                   }}
                   onClick={(e) => {
                     e.stopPropagation();

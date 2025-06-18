@@ -93,7 +93,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     
     const newComment: VideoComment = {
       id: Date.now().toString(),
-      timestamp: timestamp, // Use the timestamp parameter directly
+      timestamp: attachTime ? timestamp : -1, // Use -1 for general comments
       content,
       author: "Current User",
       authorColor: "#8B5CF6",

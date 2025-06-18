@@ -19,6 +19,7 @@ export const VideoPreview = ({
   duration 
 }: VideoPreviewProps) => {
   const [previewImageUrl, setPreviewImageUrl] = useState<string>('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -39,40 +40,46 @@ export const VideoPreview = ({
   };
 
   useEffect(() => {
-    if (isHovering && previewVideoRef.current && hoverTime >= 0 && hoverTime <= duration) {
+    if (isHovering && previewVideoRef.current && hoverTime >= 0 && hoverTime <= duration && !isGenerating) {
       const video = previewVideoRef.current;
+      setIsGenerating(true);
       
-      // Wait for the video to seek to the correct time
-      const handleSeeked = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        if (ctx && video.videoWidth && video.videoHeight) {
-          canvas.width = 160;
-          canvas.height = 90;
+      // Create a timeout to generate the preview
+      const generatePreview = () => {
+        try {
+          // Set the video time
+          video.currentTime = hoverTime;
           
-          try {
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-            setPreviewImageUrl(dataUrl);
-            console.log('Generated preview thumbnail for time:', hoverTime);
-          } catch (error) {
-            console.warn('Could not generate preview thumbnail:', error);
-            setPreviewImageUrl('');
-          }
+          // Wait a bit for the video to seek, then capture
+          setTimeout(() => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            if (ctx && video.videoWidth && video.videoHeight) {
+              canvas.width = 160;
+              canvas.height = 90;
+              
+              try {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                setPreviewImageUrl(dataUrl);
+                console.log('Generated preview thumbnail for time:', hoverTime);
+              } catch (error) {
+                console.warn('Could not generate preview thumbnail:', error);
+                setPreviewImageUrl('');
+              }
+            }
+            setIsGenerating(false);
+          }, 100);
+        } catch (error) {
+          console.warn('Error setting video time:', error);
+          setIsGenerating(false);
         }
       };
 
-      // Set the time and wait for seek completion
-      video.currentTime = hoverTime;
-      video.addEventListener('seeked', handleSeeked, { once: true });
-      
-      // Cleanup function
-      return () => {
-        video.removeEventListener('seeked', handleSeeked);
-      };
+      generatePreview();
     }
-  }, [isHovering, hoverTime, duration, previewVideoRef]);
+  }, [isHovering, hoverTime, duration, previewVideoRef, isGenerating]);
 
   if (!isHovering || hoverTime < 0) {
     return null;
@@ -89,7 +96,7 @@ export const VideoPreview = ({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
-            Loading...
+            {isGenerating ? 'Loading...' : 'Preview'}
           </div>
         )}
       </div>
