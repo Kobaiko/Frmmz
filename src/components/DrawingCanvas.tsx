@@ -33,7 +33,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
   const lastFrameRef = useRef<number>(-1);
   const pendingPathRef = useRef<DrawingPath | null>(null);
   const isInitializedRef = useRef(false);
-  const animationFrameRef = useRef<number>();
+  const redrawTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Get current frame number (30fps)
   const getCurrentFrame = useCallback(() => Math.floor(currentTime * 30), [currentTime]);
@@ -156,22 +156,21 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     context.restore();
   }, []);
 
-  // Redraw all paths for current frame - FIXED to prevent flickering
+  // Redraw all paths for current frame - DEBOUNCED to prevent flickering
   const redrawCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    const context = contextRef.current;
-    
-    if (!canvas || !context || !isInitializedRef.current) {
-      return;
+    // Clear any pending redraw
+    if (redrawTimeoutRef.current) {
+      clearTimeout(redrawTimeoutRef.current);
     }
 
-    // Cancel any pending animation frame
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
+    redrawTimeoutRef.current = setTimeout(() => {
+      const canvas = canvasRef.current;
+      const context = contextRef.current;
+      
+      if (!canvas || !context || !isInitializedRef.current) {
+        return;
+      }
 
-    // Use requestAnimationFrame for smooth rendering
-    animationFrameRef.current = requestAnimationFrame(() => {
       // Clear canvas
       context.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -194,7 +193,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
       if (pendingPathRef.current && isDrawingMode) {
         drawPath(pendingPathRef.current, context, true);
       }
-    });
+    }, 16); // Debounce by one frame at 60fps
   }, [getCurrentFrame, frameDrawings, drawPath, annotations, isDrawingMode]);
 
   // Add path to current frame
@@ -255,10 +254,11 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     };
   }, [videoRef, initializeCanvas, redrawCanvas]);
 
-  // Handle frame changes - IMPROVED logic
+  // Handle frame changes - IMPROVED to prevent unnecessary redraws
   useEffect(() => {
     const currentFrame = getCurrentFrame();
     
+    // Only update if frame actually changed AND canvas is initialized
     if (currentFrame !== lastFrameRef.current && isInitializedRef.current) {
       console.log(`🎬 Frame change: ${lastFrameRef.current} → ${currentFrame}`);
       lastFrameRef.current = currentFrame;
@@ -273,12 +273,12 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     }
   }, [currentTime, getCurrentFrame, redrawCanvas, isDrawing]);
 
-  // Redraw when frameDrawings change OR annotations toggle
+  // Redraw when frameDrawings change OR annotations toggle - STABLE VERSION
   useEffect(() => {
     if (isInitializedRef.current) {
       redrawCanvas();
     }
-  }, [frameDrawings, redrawCanvas, annotations]);
+  }, [frameDrawings.length, annotations]); // Only depend on length to avoid excessive redraws
 
   // Mouse event handlers
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -487,8 +487,8 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
 
     return () => {
       delete (window as any).drawingCanvas;
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+      if (redrawTimeoutRef.current) {
+        clearTimeout(redrawTimeoutRef.current);
       }
     };
   }, [currentTool, currentColor, getCurrentFrame, frameDrawings, addPathToFrame, redrawCanvas]);
