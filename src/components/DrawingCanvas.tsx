@@ -33,82 +33,58 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
   const lastFrameRef = useRef<number>(-1);
   const pendingPathRef = useRef<DrawingPath | null>(null);
   const isInitializedRef = useRef(false);
-  const initializationPromiseRef = useRef<Promise<boolean> | null>(null);
+  const redrawTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Get current frame number (30fps)
+  // Get current frame number (30fps) - STABLE
   const getCurrentFrame = useCallback(() => Math.floor(currentTime * 30), [currentTime]);
 
-  // Initialize canvas ONCE with proper sizing
-  const initializeCanvas = useCallback(async (): Promise<boolean> => {
-    // Prevent multiple simultaneous initializations
-    if (initializationPromiseRef.current) {
-      return initializationPromiseRef.current;
+  // Initialize canvas ONCE - STABLE
+  const initializeCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    const video = videoRef?.current;
+    
+    if (!canvas || !video || isInitializedRef.current) {
+      return false;
     }
 
-    initializationPromiseRef.current = new Promise((resolve) => {
-      const canvas = canvasRef.current;
-      const video = videoRef?.current;
-      
-      if (!canvas || !video) {
-        console.log('❌ Canvas or video not available for initialization');
-        resolve(false);
-        return;
-      }
+    // Wait for video to have dimensions
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      return false;
+    }
 
-      // Don't reinitialize if already done and video hasn't changed
-      if (isInitializedRef.current && video.videoWidth > 0 && video.videoHeight > 0) {
-        console.log('✅ Canvas already initialized, skipping');
-        resolve(true);
-        return;
-      }
+    // Get video element's rendered size
+    const videoRect = video.getBoundingClientRect();
+    
+    // Set canvas to match video size exactly
+    canvas.width = videoRect.width;
+    canvas.height = videoRect.height;
+    
+    // Position canvas to overlay video perfectly
+    canvas.style.position = 'absolute';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = `${videoRect.width}px`;
+    canvas.style.height = `${videoRect.height}px`;
 
-      // Wait for video to have dimensions
-      if (video.videoWidth === 0 || video.videoHeight === 0) {
-        console.log('❌ Video dimensions not ready');
-        resolve(false);
-        return;
-      }
+    const context = canvas.getContext('2d');
+    if (!context) {
+      return false;
+    }
 
-      // Get video element's rendered size
-      const videoRect = video.getBoundingClientRect();
-      
-      // Set canvas to match video size exactly
-      canvas.width = videoRect.width;
-      canvas.height = videoRect.height;
-      
-      // Position canvas to overlay video perfectly
-      canvas.style.position = 'absolute';
-      canvas.style.top = '0';
-      canvas.style.left = '0';
-      canvas.style.width = `${videoRect.width}px`;
-      canvas.style.height = `${videoRect.height}px`;
+    // Configure context for smooth drawing
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.strokeStyle = currentColor;
+    context.lineWidth = 3;
 
-      const context = canvas.getContext('2d');
-      if (!context) {
-        console.log('❌ Could not get canvas context');
-        resolve(false);
-        return;
-      }
+    contextRef.current = context;
+    isInitializedRef.current = true;
+    
+    console.log('✅ Canvas initialized successfully:', canvas.width, 'x', canvas.height);
+    return true;
+  }, [videoRef, currentColor]);
 
-      // Configure context for smooth drawing
-      context.lineCap = 'round';
-      context.lineJoin = 'round';
-      context.strokeStyle = currentColor;
-      context.lineWidth = 3;
-
-      contextRef.current = context;
-      isInitializedRef.current = true;
-      
-      console.log('✅ Canvas initialized ONCE:', canvas.width, 'x', canvas.height);
-      resolve(true);
-    });
-
-    const result = await initializationPromiseRef.current;
-    initializationPromiseRef.current = null;
-    return result;
-  }, [currentColor, videoRef]);
-
-  // Draw a single path on canvas
+  // Draw a single path on canvas - STABLE
   const drawPath = useCallback((path: DrawingPath, context: CanvasRenderingContext2D, isPreview = false) => {
     context.save();
     context.strokeStyle = path.color;
@@ -119,7 +95,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     }
 
     if (path.type === 'pen') {
-      // Draw freehand path
       if (path.points.length >= 4) {
         context.beginPath();
         context.moveTo(path.points[0], path.points[1]);
@@ -129,7 +104,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
         context.stroke();
       }
     } else if (path.type === 'line') {
-      // Draw line
       if (path.points.length >= 4) {
         context.beginPath();
         context.moveTo(path.points[0], path.points[1]);
@@ -137,24 +111,20 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
         context.stroke();
       }
     } else if (path.type === 'rectangle') {
-      // Draw rectangle
       if (path.points.length >= 4) {
         context.beginPath();
         context.rect(path.points[0], path.points[1], path.points[2], path.points[3]);
         context.stroke();
       }
     } else if (path.type === 'arrow') {
-      // Draw arrow
       if (path.points.length >= 4) {
         const [x1, y1, x2, y2] = path.points;
         
-        // Main line
         context.beginPath();
         context.moveTo(x1, y1);
         context.lineTo(x2, y2);
         context.stroke();
         
-        // Arrow head
         const angle = Math.atan2(y2 - y1, x2 - x1);
         const headLength = 15;
         const headAngle = Math.PI / 6;
@@ -177,40 +147,47 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     context.restore();
   }, []);
 
-  // Redraw all paths for current frame - STABLE VERSION
+  // Redraw canvas - DEBOUNCED AND STABLE
   const redrawCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    const context = contextRef.current;
-    
-    if (!canvas || !context || !isInitializedRef.current) {
-      return;
+    // Clear any pending redraw
+    if (redrawTimeoutRef.current) {
+      clearTimeout(redrawTimeoutRef.current);
     }
 
-    // Clear canvas completely
-    context.clearRect(0, 0, canvas.width, canvas.height);
+    redrawTimeoutRef.current = setTimeout(() => {
+      const canvas = canvasRef.current;
+      const context = contextRef.current;
+      
+      if (!canvas || !context || !isInitializedRef.current) {
+        return;
+      }
 
-    // Only draw if annotations are enabled
-    if (!annotations) {
-      return;
-    }
+      // Clear canvas completely
+      context.clearRect(0, 0, canvas.width, canvas.height);
 
-    const currentFrame = getCurrentFrame();
-    const frameData = frameDrawings.find(f => f.frame === currentFrame);
-    
-    if (frameData && frameData.paths.length > 0) {
-      console.log(`🎨 Drawing ${frameData.paths.length} paths for frame ${currentFrame}`);
-      frameData.paths.forEach(path => {
-        drawPath(path, context);
-      });
-    }
+      // Only draw if annotations are enabled
+      if (!annotations) {
+        return;
+      }
 
-    // Draw pending path if exists (for preview during drawing)
-    if (pendingPathRef.current && isDrawingMode) {
-      drawPath(pendingPathRef.current, context, true);
-    }
+      const currentFrame = getCurrentFrame();
+      const frameData = frameDrawings.find(f => f.frame === currentFrame);
+      
+      if (frameData && frameData.paths.length > 0) {
+        console.log(`🎨 Redrawing ${frameData.paths.length} paths for frame ${currentFrame}`);
+        frameData.paths.forEach(path => {
+          drawPath(path, context);
+        });
+      }
+
+      // Draw pending path if exists (for preview during drawing)
+      if (pendingPathRef.current && isDrawingMode) {
+        drawPath(pendingPathRef.current, context, true);
+      }
+    }, 16); // Debounce to ~60fps
   }, [getCurrentFrame, frameDrawings, drawPath, annotations, isDrawingMode]);
 
-  // Add path to current frame
+  // Add path to current frame - STABLE
   const addPathToFrame = useCallback((path: DrawingPath) => {
     const currentFrame = getCurrentFrame();
     
@@ -218,17 +195,15 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
       const existingFrameIndex = prev.findIndex(f => f.frame === currentFrame);
       
       if (existingFrameIndex >= 0) {
-        // Update existing frame
         const newFrameDrawings = [...prev];
         newFrameDrawings[existingFrameIndex] = {
           ...newFrameDrawings[existingFrameIndex],
           paths: [...newFrameDrawings[existingFrameIndex].paths, path],
           timestamp: Date.now()
         };
-        console.log(`✅ Added ${path.type} to existing frame ${currentFrame}, total paths: ${newFrameDrawings[existingFrameIndex].paths.length}`);
+        console.log(`✅ Added ${path.type} to frame ${currentFrame}, total paths: ${newFrameDrawings[existingFrameIndex].paths.length}`);
         return newFrameDrawings;
       } else {
-        // Create new frame
         const newFrameDrawing = {
           frame: currentFrame,
           paths: [path],
@@ -240,29 +215,21 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     });
   }, [getCurrentFrame]);
 
-  // Initialize canvas when video is ready - ONLY ONCE
+  // Initialize canvas when video is ready - ONCE ONLY
   useEffect(() => {
     const video = videoRef?.current;
-    if (!video) return;
+    if (!video || isInitializedRef.current) return;
 
-    let isSetup = false;
-
-    const handleVideoReady = async () => {
-      if (isSetup) return; // Prevent multiple setups
-      isSetup = true;
-      
-      console.log('🎬 Video ready, initializing canvas...');
-      const success = await initializeCanvas();
-      if (success) {
-        redrawCanvas();
+    const handleVideoReady = () => {
+      if (initializeCanvas()) {
+        // Only redraw after successful initialization
+        setTimeout(() => redrawCanvas(), 50);
       }
     };
 
-    // Try to initialize immediately if video is already loaded
     if (video.readyState >= 2 && video.videoWidth > 0) {
       handleVideoReady();
     } else {
-      // Only listen for the first successful load
       const handleLoad = () => {
         if (video.videoWidth > 0 && video.videoHeight > 0) {
           handleVideoReady();
@@ -279,35 +246,40 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
         video.removeEventListener('canplay', handleLoad);
       };
     }
-  }, [videoRef]); // Only depend on videoRef, not changing functions
+  }, []); // No dependencies to prevent re-runs
 
-  // Handle frame changes - STABLE
+  // Handle frame changes - ONLY when frame actually changes
   useEffect(() => {
     const currentFrame = getCurrentFrame();
     
-    // Only update if frame actually changed AND canvas is initialized
     if (currentFrame !== lastFrameRef.current && isInitializedRef.current) {
       console.log(`🎬 Frame change: ${lastFrameRef.current} → ${currentFrame}`);
       lastFrameRef.current = currentFrame;
       
-      // Only clear pending path if not actively drawing
+      // Clear pending path only if not actively drawing
       if (!isDrawing) {
         pendingPathRef.current = null;
       }
       
-      // Redraw immediately for new frame
       redrawCanvas();
     }
-  }, [currentTime]); // Only depend on currentTime
+  }, [currentTime]); // ONLY currentTime dependency
 
-  // Redraw when frameDrawings change OR annotations toggle
+  // Redraw when annotations toggle or frameDrawings change
   useEffect(() => {
     if (isInitializedRef.current) {
       redrawCanvas();
     }
-  }, [frameDrawings.length, annotations]); // Stable dependencies
+  }, [annotations]);
 
-  // Mouse event handlers
+  // Redraw when frameDrawings change - but with specific length check to avoid over-triggering
+  useEffect(() => {
+    if (isInitializedRef.current) {
+      redrawCanvas();
+    }
+  }, [frameDrawings.length]);
+
+  // Mouse event handlers - STABLE
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isDrawingMode || !isInitializedRef.current) return;
     
@@ -339,7 +311,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     const y = e.clientY - rect.top;
 
     if (currentTool === 'pen') {
-      // For pen, add to current path and update preview
       const newPath = [...currentPath, x, y];
       setCurrentPath(newPath);
       
@@ -350,7 +321,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
         strokeWidth: 3
       };
     } else {
-      // For shapes, create preview path
       let previewPath: DrawingPath | null = null;
 
       if (currentTool === 'line') {
@@ -381,7 +351,6 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
       pendingPathRef.current = previewPath;
     }
 
-    // Redraw with preview
     redrawCanvas();
   };
 
@@ -452,7 +421,7 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
     setStartPoint(null);
   };
 
-  // Global API for drawing tools
+  // Global API for drawing tools - STABLE
   useEffect(() => {
     const api = {
       setTool: (tool: string) => {
@@ -516,6 +485,9 @@ export const DrawingCanvas = ({ currentTime = 0, videoRef, isDrawingMode = false
 
     return () => {
       delete (window as any).drawingCanvas;
+      if (redrawTimeoutRef.current) {
+        clearTimeout(redrawTimeoutRef.current);
+      }
     };
   }, [currentTool, currentColor, getCurrentFrame, frameDrawings, addPathToFrame, redrawCanvas]);
 
