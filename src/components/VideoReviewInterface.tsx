@@ -559,6 +559,10 @@ export const VideoReviewInterface = ({
       comment.author.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+  // Debug log to check comment data
+  console.log('Comments data:', comments);
+  console.log('Sorted comments:', sortedComments);
+
   return (
     <TooltipProvider>
       <div className="h-screen w-screen bg-black flex fixed inset-0 z-50">
@@ -925,27 +929,32 @@ export const VideoReviewInterface = ({
                   <div key={comment.id} className="bg-gray-700 rounded-lg p-3 group hover:bg-gray-650 transition-colors">
                     {/* Comment Header */}
                     <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 flex-wrap">
                         <span className="text-gray-400 text-sm font-medium">
                           #{sortedComments.length - index}
                         </span>
-                        {comment.timestamp > 0 && (
+                        
+                        {/* Force timestamp display for debugging */}
+                        <div className="flex items-center space-x-2">
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => onCommentClick(comment.timestamp)}
+                            onClick={() => {
+                              console.log('Timestamp clicked:', comment.timestamp);
+                              onCommentClick(comment.timestamp);
+                            }}
                             className="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 h-auto bg-blue-400/10 hover:bg-blue-400/20 rounded flex items-center space-x-1"
                           >
                             <Clock className="h-3 w-3" />
-                            <span>{formatTimestamp(comment.timestamp, timestampFormat)}</span>
+                            <span>{formatTimestamp(comment.timestamp || 0, timestampFormat)}</span>
                           </Button>
-                        )}
-                        {comment.hasDrawing && (
+                          
+                          {/* Force drawing indicator display for testing */}
                           <Badge className="bg-pink-500 text-white text-xs px-2 py-1 rounded flex items-center space-x-1">
                             <PenTool className="w-3 h-3" />
                             <span>Drawing</span>
                           </Badge>
-                        )}
+                        </div>
                       </div>
                       <Button
                         variant="ghost"
