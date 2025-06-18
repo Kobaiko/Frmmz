@@ -40,19 +40,22 @@ export const VideoPreview = ({
 
   useEffect(() => {
     if (isHovering && previewVideoRef.current && hoverTime >= 0 && hoverTime <= duration) {
-      // Small delay to ensure video has seeked to the correct time
-      const generatePreview = () => {
+      const video = previewVideoRef.current;
+      
+      // Wait for the video to seek to the correct time
+      const handleSeeked = () => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        const video = previewVideoRef.current;
         
-        if (ctx && video && video.videoWidth && video.videoHeight) {
+        if (ctx && video.videoWidth && video.videoHeight) {
           canvas.width = 160;
           canvas.height = 90;
           
           try {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            setPreviewImageUrl(canvas.toDataURL());
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            setPreviewImageUrl(dataUrl);
+            console.log('Generated preview thumbnail for time:', hoverTime);
           } catch (error) {
             console.warn('Could not generate preview thumbnail:', error);
             setPreviewImageUrl('');
@@ -60,9 +63,14 @@ export const VideoPreview = ({
         }
       };
 
-      // Wait a bit for the video to seek
-      const timeoutId = setTimeout(generatePreview, 100);
-      return () => clearTimeout(timeoutId);
+      // Set the time and wait for seek completion
+      video.currentTime = hoverTime;
+      video.addEventListener('seeked', handleSeeked, { once: true });
+      
+      // Cleanup function
+      return () => {
+        video.removeEventListener('seeked', handleSeeked);
+      };
     }
   }, [isHovering, hoverTime, duration, previewVideoRef]);
 
@@ -71,7 +79,7 @@ export const VideoPreview = ({
   }
 
   return (
-    <div className="bg-gray-900 border border-gray-600 rounded-lg p-3 shadow-xl pointer-events-none">
+    <div className="bg-gray-900/95 border border-gray-600 rounded-lg p-3 shadow-xl backdrop-blur-sm">
       <div className="w-40 h-24 bg-gray-800 rounded mb-2 overflow-hidden">
         {previewImageUrl ? (
           <img 
@@ -81,7 +89,7 @@ export const VideoPreview = ({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
-            Preview
+            Loading...
           </div>
         )}
       </div>

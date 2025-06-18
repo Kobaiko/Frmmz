@@ -3,13 +3,28 @@ import { useState } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { VideoPreview } from "./VideoPreview";
-import type { Comment } from "@/pages/Index";
 import { Clock, Edit } from "lucide-react";
+
+// Define the comment interface to match what we receive
+interface TimelineComment {
+  id: string;
+  timestamp: number;
+  content: string;
+  author: string;
+  authorColor?: string;
+  createdAt: Date;
+  resolved?: boolean;
+  replies?: TimelineComment[];
+  attachments?: any[];
+  hasDrawing?: boolean;
+  hasTimestamp?: boolean;
+  parentId?: string;
+}
 
 interface VideoTimelineProps {
   currentTime: number;
   duration: number;
-  comments: Comment[];
+  comments: TimelineComment[];
   onTimeClick: (time: number) => void;
   previewVideoRef: React.RefObject<HTMLVideoElement>;
   timeFormat: 'timecode' | 'frames' | 'seconds';
@@ -33,7 +48,7 @@ export const VideoTimeline = ({
     commentsCount: comments.length, 
     duration, 
     currentTime,
-    comments: comments.map(c => ({ id: c.id, timestamp: c.timestamp, text: c.text }))
+    comments: comments.map(c => ({ id: c.id, timestamp: c.timestamp, content: c.content }))
   });
 
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -101,8 +116,12 @@ export const VideoTimeline = ({
         {/* Timeline hover preview - positioned absolutely to follow mouse */}
         {isHovering && (
           <div 
-            className="absolute bottom-full mb-2 z-50 pointer-events-none"
-            style={{ left: `${hoverPosition}px`, transform: 'translateX(-50%)' }}
+            className="absolute z-[60] pointer-events-none"
+            style={{ 
+              left: `${hoverPosition}px`, 
+              transform: 'translateX(-50%)',
+              bottom: '60px' // Position above the timeline and comment markers
+            }}
           >
             <VideoPreview
               assetId={assetId}
@@ -116,7 +135,7 @@ export const VideoTimeline = ({
         )}
         
         {/* Timeline container with extra bottom padding for comment avatars */}
-        <div className="relative pb-10">
+        <div className="relative pb-12">
           {/* Main timeline bar */}
           <div
             className="relative h-2 bg-gray-600 rounded cursor-pointer"
@@ -137,31 +156,33 @@ export const VideoTimeline = ({
             <Tooltip key={comment.id}>
               <TooltipTrigger asChild>
                 <div
-                  className="absolute transform -translate-x-1/2 cursor-pointer z-10"
+                  className="absolute transform -translate-x-1/2 cursor-pointer z-20"
                   style={{ 
                     left: `${comment.position}%`,
-                    top: '12px' // Position below the timeline bar
+                    top: '16px' // Position below the timeline bar with some spacing
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
                     onTimeClick(comment.timestamp);
                   }}
                 >
-                  <Avatar className="w-8 h-8 border-2 border-white shadow-lg hover:scale-110 transition-transform bg-blue-600">
-                    <AvatarImage src="" />
-                    <AvatarFallback className="bg-blue-600 text-white text-xs font-medium">
-                      {comment.author.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  {/* Comment number badge */}
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center font-medium">
-                    {comment.commentNumber}
+                  <div className="relative">
+                    <Avatar className="w-8 h-8 border-2 border-white shadow-lg hover:scale-110 transition-transform bg-blue-600">
+                      <AvatarImage src="" />
+                      <AvatarFallback className="bg-blue-600 text-white text-xs font-medium">
+                        {comment.author.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    {/* Comment number badge */}
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                      {comment.commentNumber}
+                    </div>
                   </div>
                 </div>
               </TooltipTrigger>
               <TooltipContent 
                 side="top" 
-                className="min-w-80 max-w-md bg-gray-900 text-white border border-gray-700 p-4 shadow-xl z-50"
+                className="min-w-80 max-w-md bg-gray-900 text-white border border-gray-700 p-4 shadow-xl z-[70]"
               >
                 <div className="space-y-3">
                   {/* Header with profile and metadata */}
@@ -190,20 +211,14 @@ export const VideoTimeline = ({
                   </div>
                   
                   {/* Comment text */}
-                  <p className="text-sm text-gray-200 leading-relaxed">{comment.text}</p>
+                  <p className="text-sm text-gray-200 leading-relaxed">{comment.content}</p>
                   
                   {/* Footer with status indicators */}
                   <div className="flex items-center justify-between pt-2 border-t border-gray-700">
                     <div className="flex items-center space-x-2">
-                      {comment.isInternal ? (
-                        <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded-full">
-                          Internal
-                        </span>
-                      ) : (
-                        <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
-                          Public
-                        </span>
-                      )}
+                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
+                        Public
+                      </span>
                       {comment.hasDrawing && (
                         <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full flex items-center space-x-1">
                           <Edit className="w-2.5 h-2.5" />
