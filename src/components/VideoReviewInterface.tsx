@@ -38,7 +38,8 @@ import {
   Image as ImageIcon,
   Video,
   File,
-  Eye
+  Eye,
+  Trash2
 } from "lucide-react";
 
 interface VideoComment {
@@ -550,10 +551,13 @@ export const VideoReviewInterface = ({
     return <File className="h-3 w-3" />;
   };
 
-  const filteredComments = comments.filter(comment =>
-    comment.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    comment.author.toLowerCase().includes(searchQuery.toLowerCase())
-  ).sort((a, b) => a.timestamp - b.timestamp);
+  // Sort comments by creation date (latest first) and add numbering
+  const sortedComments = [...comments]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .filter(comment =>
+      comment.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      comment.author.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
   return (
     <TooltipProvider>
@@ -853,8 +857,7 @@ export const VideoReviewInterface = ({
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
                   <MessageCircle className="h-5 w-5 text-gray-400" />
-                  <span className="text-white font-medium">Comments</span>
-                  <Badge className="bg-gray-700 text-gray-300">{comments.length}</Badge>
+                  <span className="text-white font-medium">All comments</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
@@ -867,7 +870,7 @@ export const VideoReviewInterface = ({
               </div>
 
               {/* Search */}
-              <div className="relative">
+              <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   value={searchQuery}
@@ -876,104 +879,138 @@ export const VideoReviewInterface = ({
                   className="pl-10 bg-gray-700 border-gray-600 text-white placeholder:text-gray-400"
                 />
               </div>
+
+              {/* Sort dropdown */}
+              <div className="flex items-center justify-between text-sm">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white text-sm">
+                      Sort thread by... <ChevronDown className="h-4 w-4 ml-1" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="bg-gray-800 border-gray-700">
+                    <DropdownMenuItem className="text-white hover:bg-gray-700">
+                      Newest first
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-white hover:bg-gray-700">
+                      Oldest first
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-white hover:bg-gray-700">
+                      By timestamp
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                
+                <div className="flex items-center space-x-2 text-gray-400">
+                  <Clock className="h-4 w-4" />
+                  <span>{formatTimestamp(currentTime, timestampFormat)}</span>
+                </div>
+              </div>
             </div>
 
             {/* Comments List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {filteredComments.length === 0 ? (
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {sortedComments.length === 0 ? (
                 <div className="text-center py-12">
                   <MessageCircle className="h-12 w-12 text-gray-600 mx-auto mb-3" />
                   <p className="text-gray-400">No comments found</p>
                   {searchQuery && (
                     <p className="text-gray-500 text-sm mt-1">
-                      Try adjusting your filters or search terms
+                      Try adjusting your search terms
                     </p>
                   )}
                 </div>
               ) : (
-                filteredComments.map((comment) => (
-                  <div key={comment.id} className="group">
-                    <div className="flex items-start space-x-3">
-                      <Avatar className="h-8 w-8 flex-shrink-0">
-                        <AvatarFallback 
-                          className="text-white text-sm"
-                          style={{ backgroundColor: comment.authorColor }}
-                        >
-                          {comment.author.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="text-white font-medium text-sm">{comment.author}</span>
-                          {comment.hasTimestamp !== false && comment.timestamp > 0 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => onCommentClick(comment.timestamp)}
-                              className="text-gray-400 hover:text-white text-xs px-2 py-1 h-auto"
-                            >
-                              <Clock className="h-3 w-3 mr-1" />
-                              {formatTimestamp(comment.timestamp, timestampFormat)}
-                            </Button>
-                          )}
-                        </div>
-                        
-                        <p className="text-gray-300 text-sm leading-relaxed mb-2">
-                          {comment.content}
-                        </p>
-
-                        {/* Comment Attachments */}
-                        {comment.attachments && comment.attachments.length > 0 && (
-                          <div className="mb-2 space-y-1">
-                            {comment.attachments.map((file, index) => (
-                              <div key={index} className="flex items-center space-x-2 bg-gray-700 rounded p-2 text-xs">
-                                {getFileIcon(file)}
-                                <span className="text-gray-300 truncate flex-1">{file.name}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => window.open(file.url || URL.createObjectURL(file), '_blank')}
-                                  className="text-blue-400 hover:text-blue-300 p-1 h-auto"
-                                >
-                                  <Eye className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Drawing indicator */}
-                        {comment.hasDrawing && (
-                          <div className="mb-2">
-                            <Badge className="bg-pink-500 text-white text-xs px-2 py-1">
-                              <PenTool className="w-3 h-3 mr-1" />
-                              Has drawing
-                            </Badge>
-                          </div>
-                        )}
-                        
-                        <div className="flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-                          <span className="text-gray-500 text-xs">
-                            {comment.createdAt.toLocaleDateString()}
-                          </span>
+                sortedComments.map((comment, index) => (
+                  <div key={comment.id} className="bg-gray-700 rounded-lg p-3 group hover:bg-gray-650 transition-colors">
+                    {/* Comment Header */}
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-gray-400 text-sm font-medium">
+                          #{sortedComments.length - index}
+                        </span>
+                        {comment.hasTimestamp !== false && comment.timestamp > 0 && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => onDeleteComment(comment.id)}
-                            className="text-gray-400 hover:text-red-400 text-xs px-2 py-1 h-auto"
+                            onClick={() => onCommentClick(comment.timestamp)}
+                            className="text-orange-400 hover:text-orange-300 text-xs px-2 py-1 h-auto bg-orange-400/10 hover:bg-orange-400/20 rounded"
                           >
-                            Delete
+                            <Clock className="h-3 w-3 mr-1" />
+                            {formatTimestamp(comment.timestamp, timestampFormat)}
                           </Button>
-                        </div>
+                        )}
+                        {comment.hasDrawing && (
+                          <Badge className="bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                            <PenTool className="w-3 h-3 mr-1" />
+                            Drawing
+                          </Badge>
+                        )}
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onDeleteComment(comment.id)}
+                        className="text-gray-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+
+                    {/* Comment Content */}
+                    <div className="mb-2">
+                      <p className="text-gray-200 text-sm leading-relaxed">
+                        {comment.content}
+                      </p>
+                    </div>
+
+                    {/* Comment Attachments */}
+                    {comment.attachments && comment.attachments.length > 0 && (
+                      <div className="mb-2 space-y-1">
+                        {comment.attachments.map((file, fileIndex) => (
+                          <div key={fileIndex} className="flex items-center space-x-2 bg-gray-600 rounded p-2 text-xs">
+                            {getFileIcon(file)}
+                            <span className="text-gray-300 truncate flex-1">{file.name}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => window.open(file.url || URL.createObjectURL(file), '_blank')}
+                              className="text-blue-400 hover:text-blue-300 p-1 h-auto"
+                            >
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Comment Footer */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Avatar className="h-6 w-6 flex-shrink-0">
+                          <AvatarFallback 
+                            className="text-white text-xs"
+                            style={{ backgroundColor: comment.authorColor }}
+                          >
+                            {comment.author.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-gray-300 text-sm font-medium">{comment.author}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-400 hover:text-gray-300 text-xs px-2 py-1 h-auto"
+                      >
+                        Reply
+                      </Button>
                     </div>
                   </div>
                 ))
               )}
             </div>
 
-            {/* Add Comment - Using CommentInput component */}
+            {/* Add Comment */}
             <div className="p-4 border-t border-gray-700">
               <CommentInput
                 onAddComment={handleAddComment}
