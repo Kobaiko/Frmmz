@@ -40,7 +40,8 @@ import {
   Video,
   File,
   Eye,
-  Trash2
+  Trash2,
+  Reply
 } from "lucide-react";
 
 interface VideoComment {
@@ -110,6 +111,7 @@ export const VideoReviewInterface = ({
   const [isSpeedHoverOpen, setIsSpeedHoverOpen] = useState(false);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [highlightedCommentId, setHighlightedCommentId] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<{ commentId: string; authorName: string } | null>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
@@ -404,6 +406,32 @@ export const VideoReviewInterface = ({
         setIsDrawingMode(false);
       }
     }
+  };
+
+  const handleReply = (commentId: string, authorName: string) => {
+    console.log('Reply button clicked:', { commentId, authorName });
+    setReplyingTo({ commentId, authorName });
+  };
+
+  const handleSubmitReply = (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
+    console.log('Submitting reply:', { replyingTo, text });
+    if (replyingTo && text.trim()) {
+      // For now, we'll add it as a regular comment. In a real app, you'd handle replies differently
+      onAddComment(
+        attachTime ? currentTime : -1,
+        `@${replyingTo.authorName} ${text.trim()}`,
+        attachments,
+        isInternal,
+        attachTime,
+        hasDrawing
+      );
+      setReplyingTo(null);
+    }
+  };
+
+  const handleCancelReply = () => {
+    console.log('Reply cancelled');
+    setReplyingTo(null);
   };
 
   const handleStartDrawing = () => {
@@ -967,103 +995,122 @@ export const VideoReviewInterface = ({
                     timestamp: comment.timestamp
                   });
                   
+                  const isCurrentlyReplying = replyingTo?.commentId === comment.id;
+                  
                   return (
-                    <div 
-                      key={comment.id} 
-                      className={`bg-gray-700 rounded-lg p-3 group hover:bg-gray-650 transition-colors ${
+                    <div key={comment.id}>
+                      <div className={`bg-gray-700 rounded-lg p-3 group hover:bg-gray-650 transition-colors ${
                         highlightedCommentId === comment.id ? 'ring-2 ring-pink-500 bg-gray-650' : ''
-                      }`}
-                    >
-                      {/* Comment Header */}
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center space-x-2 flex-wrap">
-                          <span className="text-gray-400 text-sm font-medium">
-                            #{sortedComments.length - index}
-                          </span>
-                          
-                          {/* Show timestamp badge if comment has timestamp */}
-                          {comment.hasTimestamp && comment.timestamp >= 0 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                console.log('Timestamp clicked:', comment.timestamp);
-                                onCommentClick(comment.timestamp);
-                              }}
-                              className="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 h-auto bg-blue-400/10 hover:bg-blue-400/20 rounded flex items-center space-x-1"
-                            >
-                              <Clock className="h-3 w-3" />
-                              <span>{formatTimestamp(comment.timestamp, timestampFormat)}</span>
-                            </Button>
-                          )}
-                          
-                          {/* Show drawing icon if comment has drawing */}
-                          {comment.hasDrawing && (
-                            <div className="flex items-center text-pink-400 bg-pink-400/10 px-2 py-1 rounded text-xs">
-                              <PenTool className="w-3 h-3 mr-1" />
-                              <span className="text-xs">Drawing</span>
-                            </div>
-                          )}
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onDeleteComment(comment.id)}
-                          className="text-gray-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-
-                      {/* Comment Content */}
-                      <div className="mb-2">
-                        <p className="text-gray-200 text-sm leading-relaxed">
-                          {comment.content}
-                        </p>
-                      </div>
-
-                      {/* Comment Attachments */}
-                      {comment.attachments && comment.attachments.length > 0 && (
-                        <div className="mb-2 space-y-1">
-                          {comment.attachments.map((file, fileIndex) => (
-                            <div key={fileIndex} className="flex items-center space-x-2 bg-gray-600 rounded p-2 text-xs">
-                              {getFileIcon(file)}
-                              <span className="text-gray-300 truncate flex-1">{file.name}</span>
+                      }`}>
+                        {/* Comment Header */}
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center space-x-2 flex-wrap">
+                            <span className="text-gray-400 text-sm font-medium">
+                              #{sortedComments.length - index}
+                            </span>
+                            
+                            {/* Show timestamp badge if comment has timestamp */}
+                            {comment.hasTimestamp && comment.timestamp >= 0 && (
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => window.open(file.url || URL.createObjectURL(file), '_blank')}
-                                className="text-blue-400 hover:text-blue-300 p-1 h-auto"
+                                onClick={() => {
+                                  console.log('Timestamp clicked:', comment.timestamp);
+                                  onCommentClick(comment.timestamp);
+                                }}
+                                className="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 h-auto bg-blue-400/10 hover:bg-blue-400/20 rounded flex items-center space-x-1"
                               >
-                                <Eye className="h-3 w-3" />
+                                <Clock className="h-3 w-3" />
+                                <span>{formatTimestamp(comment.timestamp, timestampFormat)}</span>
                               </Button>
-                            </div>
-                          ))}
+                            )}
+                            
+                            {/* Show drawing icon if comment has drawing */}
+                            {comment.hasDrawing && (
+                              <div className="flex items-center text-pink-400 bg-pink-400/10 px-2 py-1 rounded text-xs">
+                                <PenTool className="w-3 h-3 mr-1" />
+                                <span className="text-xs">Drawing</span>
+                              </div>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onDeleteComment(comment.id)}
+                            className="text-gray-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+
+                        {/* Comment Content */}
+                        <div className="mb-2">
+                          <p className="text-gray-200 text-sm leading-relaxed text-left">
+                            {comment.content}
+                          </p>
+                        </div>
+
+                        {/* Comment Attachments */}
+                        {comment.attachments && comment.attachments.length > 0 && (
+                          <div className="mb-2 space-y-1">
+                            {comment.attachments.map((file, fileIndex) => (
+                              <div key={fileIndex} className="flex items-center space-x-2 bg-gray-600 rounded p-2 text-xs">
+                                {getFileIcon(file)}
+                                <span className="text-gray-300 truncate flex-1">{file.name}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => window.open(file.url || URL.createObjectURL(file), '_blank')}
+                                  className="text-blue-400 hover:text-blue-300 p-1 h-auto"
+                                >
+                                  <Eye className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Comment Footer */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Avatar className="h-6 w-6 flex-shrink-0">
+                              <AvatarFallback 
+                                className="text-white text-xs"
+                                style={{ backgroundColor: comment.authorColor }}
+                              >
+                                {comment.author.split(' ').map(n => n[0]).join('')}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-gray-300 text-sm font-medium">{comment.author}</span>
+                            <span className="text-gray-500 text-xs">{formatTimeAgo(comment.createdAt)}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleReply(comment.id, comment.author)}
+                            className="text-gray-400 hover:text-gray-300 text-xs px-2 py-1 h-auto flex items-center space-x-1"
+                          >
+                            <Reply className="h-3 w-3" />
+                            <span>Reply</span>
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Reply Input - Show when replying to this comment */}
+                      {isCurrentlyReplying && (
+                        <div className="ml-4 mt-3">
+                          <CommentInput
+                            onAddComment={handleSubmitReply}
+                            onCancel={handleCancelReply}
+                            placeholder={`Reply to ${comment.author}...`}
+                            currentTime={currentTime}
+                            onStartDrawing={handleStartDrawing}
+                            isDrawingMode={isDrawingMode}
+                            onPauseVideo={handlePauseVideo}
+                            replyingTo={comment.author}
+                          />
                         </div>
                       )}
-
-                      {/* Comment Footer */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Avatar className="h-6 w-6 flex-shrink-0">
-                            <AvatarFallback 
-                              className="text-white text-xs"
-                              style={{ backgroundColor: comment.authorColor }}
-                            >
-                              {comment.author.split(' ').map(n => n[0]).join('')}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-gray-300 text-sm font-medium">{comment.author}</span>
-                          <span className="text-gray-500 text-xs">{formatTimeAgo(comment.createdAt)}</span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-gray-400 hover:text-gray-300 text-xs px-2 py-1 h-auto"
-                        >
-                          Reply
-                        </Button>
-                      </div>
                     </div>
                   );
                 })
@@ -1071,16 +1118,18 @@ export const VideoReviewInterface = ({
             </div>
 
             {/* Add Comment */}
-            <div className="p-4 border-t border-gray-700">
-              <CommentInput
-                onAddComment={handleAddComment}
-                placeholder="Leave your comment..."
-                currentTime={currentTime}
-                onStartDrawing={handleStartDrawing}
-                isDrawingMode={isDrawingMode}
-                onPauseVideo={handlePauseVideo}
-              />
-            </div>
+            {!replyingTo && (
+              <div className="p-4 border-t border-gray-700">
+                <CommentInput
+                  onAddComment={handleAddComment}
+                  placeholder="Leave your comment..."
+                  currentTime={currentTime}
+                  onStartDrawing={handleStartDrawing}
+                  isDrawingMode={isDrawingMode}
+                  onPauseVideo={handlePauseVideo}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
