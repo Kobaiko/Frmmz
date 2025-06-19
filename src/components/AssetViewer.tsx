@@ -89,7 +89,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   };
 
   const handleAddComment = (timestamp: number, content: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
-    console.log('Adding comment with hasDrawing:', hasDrawing);
+    console.log('AssetViewer: Adding comment with hasDrawing:', hasDrawing);
     
     const newComment: VideoComment = {
       id: Date.now().toString(),
@@ -101,13 +101,13 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
       resolved: false,
       hasTimestamp: attachTime === true,
       attachments: attachments || [],
-      hasDrawing: hasDrawing === true
+      hasDrawing: hasDrawing === true // Ensure boolean conversion
     };
     
-    console.log('Created comment with hasDrawing:', newComment.hasDrawing);
+    console.log('AssetViewer: Created comment with hasDrawing:', newComment.hasDrawing);
     setComments(prev => {
       const updated = [...prev, newComment];
-      console.log('Updated comments array:', updated);
+      console.log('AssetViewer: Updated comments array:', updated);
       return updated;
     });
   };
