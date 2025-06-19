@@ -5,6 +5,7 @@ interface DrawingCanvasProps {
   videoRef?: React.RefObject<HTMLVideoElement>;
   isDrawingMode?: boolean;
   annotations?: boolean;
+  onDrawingStateChange?: (hasDrawing: boolean) => void;
 }
 
 interface DrawingPath {
@@ -23,7 +24,8 @@ export const DrawingCanvas = ({
   currentTime = 0, 
   videoRef, 
   isDrawingMode = false, 
-  annotations = true 
+  annotations = true,
+  onDrawingStateChange
 }: DrawingCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
@@ -38,6 +40,24 @@ export const DrawingCanvas = ({
   const [redoHistory, setRedoHistory] = useState<FrameDrawing[][]>([]);
 
   const getCurrentFrame = useCallback(() => Math.floor(currentTime * 30), [currentTime]);
+
+  // Check if current frame has drawings and notify parent
+  const checkCurrentFrameDrawings = useCallback(() => {
+    const currentFrame = getCurrentFrame();
+    const frameData = frameDrawings.find(f => f.frame === currentFrame);
+    const hasDrawings = frameData ? frameData.paths.length > 0 : false;
+    
+    if (onDrawingStateChange) {
+      onDrawingStateChange(hasDrawings);
+    }
+    
+    return hasDrawings;
+  }, [getCurrentFrame, frameDrawings, onDrawingStateChange]);
+
+  // Update drawing state whenever frameDrawings or currentTime changes
+  useEffect(() => {
+    checkCurrentFrameDrawings();
+  }, [checkCurrentFrameDrawings]);
 
   // Initialize canvas to match video dimensions exactly
   const initializeCanvas = useCallback(() => {
@@ -385,7 +405,10 @@ export const DrawingCanvas = ({
       clear: () => {
         saveToHistory();
         const currentFrame = getCurrentFrame();
-        setFrameDrawings(prev => prev.filter(f => f.frame !== currentFrame));
+        setFrameDrawings(prev => {
+          const updated = prev.filter(f => f.frame !== currentFrame);
+          return updated;
+        });
       },
       undo: () => {
         if (undoHistory.length > 0) {
@@ -404,9 +427,7 @@ export const DrawingCanvas = ({
         }
       },
       hasDrawingsForCurrentFrame: () => {
-        const currentFrame = getCurrentFrame();
-        const frameData = frameDrawings.find(f => f.frame === currentFrame);
-        return frameData ? frameData.paths.length > 0 : false;
+        return checkCurrentFrameDrawings();
       }
     };
 
@@ -415,7 +436,7 @@ export const DrawingCanvas = ({
     return () => {
       delete (window as any).drawingCanvas;
     };
-  }, [getCurrentFrame, frameDrawings, undoHistory, redoHistory, saveToHistory]);
+  }, [getCurrentFrame, frameDrawings, undoHistory, redoHistory, saveToHistory, checkCurrentFrameDrawings]);
 
   if (!videoRef?.current) return null;
 

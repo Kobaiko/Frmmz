@@ -27,6 +27,7 @@ interface CommentInputProps {
   onStartDrawing: () => void;
   isDrawingMode: boolean;
   onPauseVideo?: () => void;
+  hasDrawingOnCurrentFrame?: boolean;
 }
 
 export const CommentInput = ({
@@ -36,7 +37,8 @@ export const CommentInput = ({
   currentTime,
   onStartDrawing,
   isDrawingMode,
-  onPauseVideo
+  onPauseVideo,
+  hasDrawingOnCurrentFrame = false
 }: CommentInputProps) => {
   const [comment, setComment] = useState("");
   const [isPublic, setIsPublic] = useState(true);
@@ -44,7 +46,6 @@ export const CommentInput = ({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [showDrawingTools, setShowDrawingTools] = useState(false);
-  const [hasDrawing, setHasDrawing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const formatTime = (seconds: number) => {
@@ -54,11 +55,10 @@ export const CommentInput = ({
   };
 
   const handleSubmit = () => {
-    if (comment.trim() || attachments.length > 0 || hasDrawing) {
-      onAddComment(comment.trim(), attachments, !isPublic, attachTime, hasDrawing);
+    if (comment.trim() || attachments.length > 0 || hasDrawingOnCurrentFrame) {
+      onAddComment(comment.trim(), attachments, !isPublic, attachTime, hasDrawingOnCurrentFrame);
       setComment("");
       setAttachments([]);
-      setHasDrawing(false);
       
       // Reset drawing mode after submitting
       if (isDrawingMode) {
@@ -103,12 +103,6 @@ export const CommentInput = ({
       onStartDrawing();
       setShowDrawingTools(true);
     }
-    
-    // Check if there are any drawings for current frame
-    if ((window as any).drawingCanvas) {
-      const hasDrawingsForFrame = (window as any).drawingCanvas.hasDrawingsForCurrentFrame();
-      setHasDrawing(hasDrawingsForFrame);
-    }
   };
 
   const getFileIcon = (file: File) => {
@@ -139,7 +133,7 @@ export const CommentInput = ({
       )}
 
       {/* Drawing indicator */}
-      {hasDrawing && (
+      {hasDrawingOnCurrentFrame && (
         <div className="flex items-center space-x-2">
           <Badge className="bg-pink-500 text-white text-sm font-medium px-2 py-1">
             <PenTool className="w-3 h-3 mr-1" />
@@ -275,7 +269,7 @@ export const CommentInput = ({
         {/* Submit Button */}
         <Button
           onClick={handleSubmit}
-          disabled={!comment.trim() && attachments.length === 0 && !hasDrawing}
+          disabled={!comment.trim() && attachments.length === 0 && !hasDrawingOnCurrentFrame}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 h-8"
         >
           <Send className="h-4 w-4" />
