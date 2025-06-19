@@ -1334,7 +1334,7 @@ export const VideoReviewInterface = ({
               </div>
             )}
           </div>
-        </div>
+        )}
       </div>
       <div className="fixed bottom-4 right-4 z-[60]">
         <Toaster />
