@@ -389,7 +389,7 @@ export const VideoReviewInterface = ({
 
   const handleAddComment = (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
     if (text.trim() || attachments?.length || hasDrawing) {
-      console.log('Adding comment with attachTime:', attachTime, 'hasDrawing:', hasDrawing);
+      console.log('VideoReviewInterface: Adding comment with hasDrawing:', hasDrawing);
       onAddComment(
         attachTime ? currentTime : -1,
         text.trim(),
@@ -586,7 +586,7 @@ export const VideoReviewInterface = ({
   };
 
   console.log('Comments passed to VideoReviewInterface:', comments);
-  console.log('Comments with timestamps:', comments.filter(c => c.hasTimestamp && c.timestamp > 0));
+  console.log('Comments with drawings:', comments.filter(c => c.hasDrawing));
 
   return (
     <TooltipProvider>
@@ -960,104 +960,107 @@ export const VideoReviewInterface = ({
                   )}
                 </div>
               ) : (
-                sortedComments.map((comment, index) => (
-                  <div 
-                    key={comment.id} 
-                    className={`bg-gray-700 rounded-lg p-3 group hover:bg-gray-650 transition-colors ${
-                      highlightedCommentId === comment.id ? 'ring-2 ring-pink-500 bg-gray-650' : ''
-                    }`}
-                  >
-                    {/* Comment Header */}
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center space-x-2 flex-wrap">
-                        <span className="text-gray-400 text-sm font-medium">
-                          #{sortedComments.length - index}
-                        </span>
-                        
-                        {/* Show timestamp badge if comment has timestamp */}
-                        {comment.hasTimestamp && comment.timestamp >= 0 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              console.log('Timestamp clicked:', comment.timestamp);
-                              onCommentClick(comment.timestamp);
-                            }}
-                            className="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 h-auto bg-blue-400/10 hover:bg-blue-400/20 rounded flex items-center space-x-1"
-                          >
-                            <Clock className="h-3 w-3" />
-                            <span>{formatTimestamp(comment.timestamp, timestampFormat)}</span>
-                          </Button>
-                        )}
-                        
-                        {/* Show drawing icon if comment has drawing */}
-                        {comment.hasDrawing && (
-                          <div className="flex items-center text-pink-400">
-                            <PenTool className="w-3 h-3" />
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onDeleteComment(comment.id)}
-                        className="text-gray-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-
-                    {/* Comment Content */}
-                    <div className="mb-2">
-                      <p className="text-gray-200 text-sm leading-relaxed">
-                        {comment.content}
-                      </p>
-                    </div>
-
-                    {/* Comment Attachments */}
-                    {comment.attachments && comment.attachments.length > 0 && (
-                      <div className="mb-2 space-y-1">
-                        {comment.attachments.map((file, fileIndex) => (
-                          <div key={fileIndex} className="flex items-center space-x-2 bg-gray-600 rounded p-2 text-xs">
-                            {getFileIcon(file)}
-                            <span className="text-gray-300 truncate flex-1">{file.name}</span>
+                sortedComments.map((comment, index) => {
+                  console.log(`Comment ${comment.id} hasDrawing:`, comment.hasDrawing);
+                  return (
+                    <div 
+                      key={comment.id} 
+                      className={`bg-gray-700 rounded-lg p-3 group hover:bg-gray-650 transition-colors ${
+                        highlightedCommentId === comment.id ? 'ring-2 ring-pink-500 bg-gray-650' : ''
+                      }`}
+                    >
+                      {/* Comment Header */}
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center space-x-2 flex-wrap">
+                          <span className="text-gray-400 text-sm font-medium">
+                            #{sortedComments.length - index}
+                          </span>
+                          
+                          {/* Show timestamp badge if comment has timestamp */}
+                          {comment.hasTimestamp && comment.timestamp >= 0 && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => window.open(file.url || URL.createObjectURL(file), '_blank')}
-                              className="text-blue-400 hover:text-blue-300 p-1 h-auto"
+                              onClick={() => {
+                                console.log('Timestamp clicked:', comment.timestamp);
+                                onCommentClick(comment.timestamp);
+                              }}
+                              className="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 h-auto bg-blue-400/10 hover:bg-blue-400/20 rounded flex items-center space-x-1"
                             >
-                              <Eye className="h-3 w-3" />
+                              <Clock className="h-3 w-3" />
+                              <span>{formatTimestamp(comment.timestamp, timestampFormat)}</span>
                             </Button>
-                          </div>
-                        ))}
+                          )}
+                          
+                          {/* Show drawing icon if comment has drawing */}
+                          {comment.hasDrawing && (
+                            <div className="flex items-center text-pink-400 bg-pink-400/10 px-2 py-1 rounded">
+                              <PenTool className="w-3 h-3" />
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onDeleteComment(comment.id)}
+                          className="text-gray-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
                       </div>
-                    )}
 
-                    {/* Comment Footer */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Avatar className="h-6 w-6 flex-shrink-0">
-                          <AvatarFallback 
-                            className="text-white text-xs"
-                            style={{ backgroundColor: comment.authorColor }}
-                          >
-                            {comment.author.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-gray-300 text-sm font-medium">{comment.author}</span>
-                        <span className="text-gray-500 text-xs">{formatTimeAgo(comment.createdAt)}</span>
+                      {/* Comment Content */}
+                      <div className="mb-2">
+                        <p className="text-gray-200 text-sm leading-relaxed">
+                          {comment.content}
+                        </p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-gray-400 hover:text-gray-300 text-xs px-2 py-1 h-auto"
-                      >
-                        Reply
-                      </Button>
+
+                      {/* Comment Attachments */}
+                      {comment.attachments && comment.attachments.length > 0 && (
+                        <div className="mb-2 space-y-1">
+                          {comment.attachments.map((file, fileIndex) => (
+                            <div key={fileIndex} className="flex items-center space-x-2 bg-gray-600 rounded p-2 text-xs">
+                              {getFileIcon(file)}
+                              <span className="text-gray-300 truncate flex-1">{file.name}</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => window.open(file.url || URL.createObjectURL(file), '_blank')}
+                                className="text-blue-400 hover:text-blue-300 p-1 h-auto"
+                              >
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Comment Footer */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Avatar className="h-6 w-6 flex-shrink-0">
+                            <AvatarFallback 
+                              className="text-white text-xs"
+                              style={{ backgroundColor: comment.authorColor }}
+                            >
+                              {comment.author.split(' ').map(n => n[0]).join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-gray-300 text-sm font-medium">{comment.author}</span>
+                          <span className="text-gray-500 text-xs">{formatTimeAgo(comment.createdAt)}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-gray-400 hover:text-gray-300 text-xs px-2 py-1 h-auto"
+                        >
+                          Reply
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
