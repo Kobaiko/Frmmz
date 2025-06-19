@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -117,18 +118,24 @@ export const CommentPanel = ({
   const handleReply = (commentId: string, authorName: string, event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    console.log('Reply clicked for comment:', commentId, 'author:', authorName);
+    console.log('handleReply called:', { commentId, authorName });
+    console.log('Setting replyingTo to:', { commentId, authorName });
     setReplyingTo({ commentId, authorName });
+    
+    // Scroll to comment after a short delay
     setTimeout(() => {
-      commentItemRefs.current[commentId]?.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-      });
+      const commentElement = commentItemRefs.current[commentId];
+      if (commentElement) {
+        commentElement.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      }
     }, 100);
   };
 
   const handleSubmitReply = (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
-    console.log('Submitting reply:', { replyingTo, text });
+    console.log('handleSubmitReply called:', { replyingTo, text });
     if (replyingTo) {
       onReplyComment(replyingTo.commentId, text, attachments, isInternal, attachTime, hasDrawing);
       setReplyingTo(null);
@@ -136,7 +143,7 @@ export const CommentPanel = ({
   };
 
   const handleCancelReply = () => {
-    console.log('Canceling reply');
+    console.log('handleCancelReply called');
     setReplyingTo(null);
   };
 
@@ -197,13 +204,18 @@ export const CommentPanel = ({
     const hasReplies = replies.length > 0;
     const isCurrentlyReplying = replyingTo?.commentId === comment.id;
 
-    console.log('Rendering comment:', comment.id, 'isCurrentlyReplying:', isCurrentlyReplying, 'replyingTo:', replyingTo);
+    console.log('renderComment:', {
+      commentId: comment.id,
+      isCurrentlyReplying,
+      replyingTo,
+      authorName: comment.author
+    });
 
     return (
       <div 
         key={comment.id}
         ref={(el) => (commentItemRefs.current[comment.id] = el)}
-        className={`${isReply ? 'ml-8 border-l-2 border-gray-700 pl-4' : ''}`}
+        className={`${isReply ? 'ml-8 border-l-2 border-gray-700 pl-4' : ''} space-y-3`}
       >
         <div className="flex space-x-3 p-3 hover:bg-gray-800/50 rounded-lg transition-colors group">
           <Avatar className={`w-8 h-8 ${getAvatarColor(comment.author)} flex-shrink-0`}>
@@ -284,9 +296,9 @@ export const CommentPanel = ({
           </div>
         </div>
         
-        {/* Reply Input */}
+        {/* Reply Input - Show when replying to this comment */}
         {isCurrentlyReplying && (
-          <div className="ml-11 mt-3">
+          <div className="ml-11">
             <CommentInput
               onAddComment={handleSubmitReply}
               onCancel={handleCancelReply}
@@ -294,14 +306,14 @@ export const CommentPanel = ({
               currentTime={currentTime}
               onStartDrawing={onStartDrawing}
               isDrawingMode={isDrawingMode}
-              replyingTo={replyingTo.authorName}
+              replyingTo={comment.author}
             />
           </div>
         )}
         
         {/* Replies */}
         {hasReplies && isExpanded && (
-          <div className="mt-2 space-y-2">
+          <div className="space-y-2">
             {replies.map(reply => renderComment(reply, true))}
           </div>
         )}
