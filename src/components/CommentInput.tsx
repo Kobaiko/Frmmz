@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +9,7 @@ import { Label } from "@/components/ui/label";
 
 interface CommentInputProps {
   onAddComment: (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
+  onCancel?: () => void;
   placeholder?: string;
   currentTime: number;
   onStartDrawing?: () => void;
@@ -17,7 +19,8 @@ interface CommentInputProps {
 }
 
 export const CommentInput = ({ 
-  onAddComment, 
+  onAddComment,
+  onCancel,
   placeholder = "Add a comment...", 
   currentTime,
   onStartDrawing,
@@ -42,7 +45,7 @@ export const CommentInput = ({
         attachments, 
         isInternal, 
         attachTime,
-        hasActiveDrawing // Pass through the drawing state
+        hasActiveDrawing
       );
       
       // Reset form
@@ -50,6 +53,9 @@ export const CommentInput = ({
       setAttachments([]);
       setIsInternal(false);
       setAttachTime(false);
+      
+      // Call onCancel if provided to close reply mode
+      onCancel?.();
     }
   };
 
@@ -102,6 +108,14 @@ export const CommentInput = ({
             <Send className="h-4 w-4" />
           </Button>
         </div>
+        
+        {/* Show drawing indicator when there's an active drawing */}
+        {hasActiveDrawing && (
+          <div className="flex items-center space-x-2 bg-pink-500/20 text-pink-400 px-2 py-1 rounded-md text-xs">
+            <PenTool className="h-3 w-3" />
+            <span>Drawing attached</span>
+          </div>
+        )}
         
         {/* Attachment previews */}
         {attachments.length > 0 && (
@@ -218,6 +232,21 @@ export const CommentInput = ({
                 Internal only
               </Label>
             </div>
+          </div>
+        )}
+        
+        {/* Cancel button for reply mode */}
+        {onCancel && (
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onCancel}
+              className="text-gray-400 hover:text-white"
+            >
+              Cancel
+            </Button>
           </div>
         )}
       </form>

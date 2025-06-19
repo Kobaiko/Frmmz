@@ -1,6 +1,6 @@
 
 import { useRef, useEffect, useState } from 'react';
-import { fabric } from 'fabric';
+import { Canvas as FabricCanvas } from 'fabric';
 
 interface DrawingCanvasProps {
   currentTime: number;
@@ -18,7 +18,7 @@ export const DrawingCanvas = ({
   onDrawingComplete 
 }: DrawingCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
+  const fabricCanvasRef = useRef<FabricCanvas | null>(null);
   const [hasActiveDrawing, setHasActiveDrawing] = useState(false);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export const DrawingCanvas = ({
     const canvas = canvasRef.current;
     
     // Initialize Fabric.js canvas
-    const fabricCanvas = new fabric.Canvas(canvas, {
+    const fabricCanvas = new FabricCanvas(canvas, {
       isDrawingMode: isDrawingMode,
       selection: false,
     });
@@ -36,8 +36,10 @@ export const DrawingCanvas = ({
     fabricCanvasRef.current = fabricCanvas;
 
     // Set up drawing brush
-    fabricCanvas.freeDrawingBrush.width = 3;
-    fabricCanvas.freeDrawingBrush.color = '#FF4500'; // Orange color
+    if (fabricCanvas.freeDrawingBrush) {
+      fabricCanvas.freeDrawingBrush.width = 3;
+      fabricCanvas.freeDrawingBrush.color = '#FF4500'; // Orange color
+    }
 
     // Position canvas over video
     const updateCanvasPosition = () => {
@@ -64,14 +66,23 @@ export const DrawingCanvas = ({
     // Listen for drawing events
     fabricCanvas.on('path:created', () => {
       console.log('Drawing path created');
-      setHasActiveDrawing(true);
-      onDrawingComplete?.(true);
+      const hasDrawings = fabricCanvas.getObjects().length > 0;
+      setHasActiveDrawing(hasDrawings);
+      onDrawingComplete?.(hasDrawings);
     });
 
     fabricCanvas.on('object:added', () => {
       console.log('Drawing object added');
-      setHasActiveDrawing(true);
-      onDrawingComplete?.(true);
+      const hasDrawings = fabricCanvas.getObjects().length > 0;
+      setHasActiveDrawing(hasDrawings);
+      onDrawingComplete?.(hasDrawings);
+    });
+
+    fabricCanvas.on('object:removed', () => {
+      console.log('Drawing object removed');
+      const hasDrawings = fabricCanvas.getObjects().length > 0;
+      setHasActiveDrawing(hasDrawings);
+      onDrawingComplete?.(hasDrawings);
     });
 
     updateCanvasPosition();
