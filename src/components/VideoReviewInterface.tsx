@@ -123,7 +123,7 @@ const SimpleReplyInput = ({
   };
 
   return (
-    <div className="bg-gray-700 rounded-lg p-3 space-y-3">
+    <div className="bg-gray-700 rounded-lg p-3 space-y-3 mt-3">
       <div className="text-sm text-gray-400">
         Replying to <span className="text-white font-medium">{replyingTo}</span>
       </div>
@@ -560,7 +560,7 @@ export const VideoReviewInterface = ({
   const handleSubmitReply = (text: string, attachments?: File[]) => {
     console.log('Submitting reply:', { replyingTo, text });
     if (replyingTo && text.trim()) {
-      // For now, we'll add it as a regular comment. In a real app, you'd handle replies differently
+      // Add reply as a comment with parentId
       onAddComment(
         -1, // Replies don't have timestamps
         text,
@@ -735,7 +735,7 @@ export const VideoReviewInterface = ({
     return <File className="h-3 w-3" />;
   };
 
-  // Separate main comments from replies
+  // Organize comments: separate main comments from replies
   const mainComments = comments.filter(comment => !comment.parentId);
   const repliesMap = comments.reduce((acc, comment) => {
     if (comment.parentId) {
@@ -1252,6 +1252,15 @@ export const VideoReviewInterface = ({
                         </div>
                       </div>
                       
+                      {/* Reply Input - Show when replying to this comment */}
+                      {replyingTo === comment.id && (
+                        <SimpleReplyInput
+                          onSubmit={handleSubmitReply}
+                          onCancel={handleCancelReply}
+                          replyingTo={comment.author}
+                        />
+                      )}
+                      
                       {/* Replies under this comment */}
                       {commentReplies.length > 0 && (
                         <div className="ml-6 space-y-2 border-l-2 border-gray-600 pl-4">
@@ -1305,24 +1314,13 @@ export const VideoReviewInterface = ({
                           ))}
                         </div>
                       )}
-                      
-                      {/* Reply Input - Show when replying to this comment */}
-                      {replyingTo === comment.id && (
-                        <div className="ml-6">
-                          <SimpleReplyInput
-                            onSubmit={handleSubmitReply}
-                            onCancel={handleCancelReply}
-                            replyingTo={comment.author}
-                          />
-                        </div>
-                      )}
                     </div>
                   );
                 })
               )}
             </div>
 
-            {/* Add Comment */}
+            {/* Add Comment - Hidden when replying */}
             {!replyingTo && (
               <div className="p-4 border-t border-gray-700">
                 <CommentInput
@@ -1336,7 +1334,7 @@ export const VideoReviewInterface = ({
               </div>
             )}
           </div>
-        )}
+        </div>
       </div>
       <div className="fixed bottom-4 right-4 z-[60]">
         <Toaster />
