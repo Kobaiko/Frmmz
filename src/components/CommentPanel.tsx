@@ -47,7 +47,7 @@ export const CommentPanel = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<'all' | 'general' | 'internal' | 'resolved'>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'timestamp'>('newest');
-  const [replyingTo, setReplyingTo] = useState<{ commentId: string; authorName: string } | null>(null);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState({
     annotations: false,
@@ -60,9 +60,27 @@ export const CommentPanel = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const commentItemRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
-  // Sort and filter comments
+  // Process comments to separate top-level comments from replies
+  const { topLevelComments, repliesMap } = React.useMemo(() => {
+    const topLevel = comments.filter(comment => !comment.parentId);
+    const replies = comments.filter(comment => comment.parentId);
+    
+    const repliesMap: { [key: string]: Comment[] } = {};
+    replies.forEach(reply => {
+      if (reply.parentId) {
+        if (!repliesMap[reply.parentId]) {
+          repliesMap[reply.parentId] = [];
+        }
+        repliesMap[reply.parentId].push(reply);
+      }
+    });
+    
+    return { topLevelComments: topLevel, repliesMap };
+  }, [comments]);
+
+  // Sort and filter top-level comments
   const processedComments = React.useMemo(() => {
-    let filtered = comments.filter(comment => {
+    let filtered = topLevelComments.filter(comment => {
       const matchesSearch = comment.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            comment.author.toLowerCase().includes(searchQuery.toLowerCase());
       
@@ -92,7 +110,7 @@ export const CommentPanel = ({
     });
 
     return filtered;
-  }, [comments, searchQuery, filterType, sortBy]);
+  }, [topLevelComments, searchQuery, filterType, sortBy]);
 
   const formatTime = (seconds: number) => {
     if (seconds === -1) return 'General';
@@ -114,15 +132,28 @@ export const CommentPanel = ({
     return `${days}d ago`;
   };
 
-  const handleReply = (commentId: string, authorName: string) => {
-    console.log('handleReply triggered:', { commentId, authorName });
-    setReplyingTo({ commentId, authorName });
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const getAvatarColor = (name: string) => {
+    const colors = [
+      'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500', 
+      'bg-indigo-500', 'bg-red-500', 'bg-yellow-500', 'bg-teal-500'
+    ];
+    const index = name.length % colors.length;
+    return colors[index];
+  };
+
+  const handleReply = (commentId: string) => {
+    console.log('handleReply triggered:', { commentId });
+    setReplyingTo(commentId);
   };
 
   const handleSubmitReply = (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
     console.log('handleSubmitReply called:', { replyingTo, text });
     if (replyingTo) {
-      onReplyComment(replyingTo.commentId, text, attachments, isInternal, attachTime, hasDrawing);
+      onReplyComment(replyingTo, text, attachments, isInternal, attachTime, hasDrawing);
       setReplyingTo(null);
     }
   };
@@ -140,19 +171,6 @@ export const CommentPanel = ({
       newExpanded.add(commentId);
     }
     setExpandedComments(newExpanded);
-  };
-
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  };
-
-  const getAvatarColor = (name: string) => {
-    const colors = [
-      'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500', 
-      'bg-indigo-500', 'bg-red-500', 'bg-yellow-500', 'bg-teal-500'
-    ];
-    const index = name.length % colors.length;
-    return colors[index];
   };
 
   const handleSortChange = (sort: 'timecode' | 'oldest' | 'newest' | 'commenter' | 'completed') => {
@@ -185,14 +203,16 @@ export const CommentPanel = ({
 
   const renderComment = (comment: Comment, isReply = false) => {
     const isExpanded = expandedComments.has(comment.id);
-    const replies = comments.filter(c => c.parentId === comment.id);
+    const replies = repliesMap[comment.id] || [];
     const hasReplies = replies.length > 0;
-    const isCurrentlyReplying = replyingTo?.commentId === comment.id;
+    const isCurrentlyReplying = replyingTo === comment.id;
 
     console.log('renderComment:', {
       commentId: comment.id,
       isCurrentlyReplying,
-      replyingTo
+      replyingTo,
+      hasReplies,
+      repliesCount: replies.length
     });
 
     return (
@@ -239,7 +259,7 @@ export const CommentPanel = ({
                   variant="ghost"
                   size="sm"
                   className="h-6 w-6 p-0 text-gray-400 hover:text-white"
-                  onClick={() => handleReply(comment.id, comment.author)}
+                  onClick={() => handleReply(comment.id)}
                 >
                   <Reply className="h-3 w-3" />
                 </Button>
@@ -295,10 +315,12 @@ export const CommentPanel = ({
           </div>
         )}
         
-        {/* Replies */}
+        {/* Replies - Show expanded replies */}
         {hasReplies && isExpanded && (
           <div className="space-y-2">
-            {replies.map(reply => renderComment(reply, true))}
+            {replies
+              .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+              .map(reply => renderComment(reply, true))}
           </div>
         )}
       </div>
