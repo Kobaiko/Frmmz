@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -998,18 +997,13 @@ export const VideoReviewInterface = ({
                             </Button>
                           )}
                           
-                          {/* Show drawing icon if comment has drawing - ALWAYS VISIBLE FOR DEBUGGING */}
-                          {(comment.hasDrawing || comment.hasDrawing === true) && (
+                          {/* Show drawing icon if comment has drawing */}
+                          {comment.hasDrawing && (
                             <div className="flex items-center text-pink-400 bg-pink-400/10 px-2 py-1 rounded text-xs">
                               <PenTool className="w-3 h-3 mr-1" />
                               <span className="text-xs">Drawing</span>
                             </div>
                           )}
-                          
-                          {/* Debug indicator - remove this later */}
-                          <div className="text-xs text-yellow-400 bg-yellow-400/10 px-1 py-0.5 rounded">
-                            hasDrawing: {String(comment.hasDrawing)}
-                          </div>
                         </div>
                         <Button
                           variant="ghost"
