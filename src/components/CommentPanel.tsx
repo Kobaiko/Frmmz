@@ -1,361 +1,263 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { CommentInput } from "./CommentInput";
-import { CommentFilterMenu } from "./CommentFilterMenu";
-import { CommentSortMenu } from "./CommentSortMenu";
-import { CommentActionsMenu } from "./CommentActionsMenu";
-import type { Comment } from "@/pages/Index";
 import { 
-  MessageSquare, 
-  Filter, 
-  SortAsc, 
-  Search, 
-  Clock,
-  Reply,
-  Heart,
-  MoreVertical,
-  Pencil,
-  Pen,
-  X
+  Clock, 
+  MoreHorizontal, 
+  Trash2, 
+  Reply, 
+  Edit, 
+  Check, 
+  X,
+  Paperclip,
+  PenTool,
+  Globe
 } from "lucide-react";
+import { CommentInput } from "./CommentInput";
+
+interface VideoComment {
+  id: string;
+  timestamp: number;
+  content: string;
+  author: string;
+  authorColor?: string;
+  createdAt: Date;
+  resolved?: boolean;
+  replies?: VideoComment[];
+  attachments?: any[];
+  hasDrawing?: boolean;
+  hasTimestamp?: boolean;
+  parentId?: string;
+}
 
 interface CommentPanelProps {
-  comments: Comment[];
-  currentTime: number;
-  onCommentClick: (timestamp: number) => void;
+  comments: VideoComment[];
   onDeleteComment: (commentId: string) => void;
-  onReplyComment: (parentId: string, text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
+  onReplyComment: (commentId: string, reply: string) => void;
   onAddComment: (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
   onStartDrawing: () => void;
   isDrawingMode: boolean;
+  currentTime: number;
+  onCommentClick: (timestamp: number) => void;
+  highlightedCommentId?: string | null;
 }
 
-export const CommentPanel = ({
-  comments,
-  currentTime,
-  onCommentClick,
-  onDeleteComment,
+export const CommentPanel = ({ 
+  comments, 
+  onDeleteComment, 
   onReplyComment,
   onAddComment,
   onStartDrawing,
-  isDrawingMode
+  isDrawingMode,
+  currentTime,
+  onCommentClick,
+  highlightedCommentId
 }: CommentPanelProps) => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterType, setFilterType] = useState<'all' | 'general' | 'internal' | 'resolved'>('all');
-  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'timestamp'>('newest');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
-  const [filters, setFilters] = useState({
-    annotations: false,
-    attachments: false,
-    completed: false,
-    incomplete: false,
-    unread: false,
-    mentionsAndReactions: false,
-  });
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const commentItemRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const [showActionsFor, setShowActionsFor] = useState<string | null>(null);
+  const highlightedRef = useRef<HTMLDivElement>(null);
 
-  // Sort and filter comments
-  const processedComments = React.useMemo(() => {
-    let filtered = comments.filter(comment => {
-      const matchesSearch = comment.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           comment.author.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      if (filterType === 'all') return matchesSearch;
-      if (filterType === 'general') return matchesSearch && !comment.isInternal;
-      if (filterType === 'internal') return matchesSearch && comment.isInternal;
-      if (filterType === 'resolved') return matchesSearch && false; // No resolved property in Comment type
-      
-      return matchesSearch;
-    });
-
-    // Sort comments
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'newest':
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        case 'oldest':
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        case 'timestamp':
-          if (a.timestamp === -1 && b.timestamp === -1) return 0;
-          if (a.timestamp === -1) return 1;
-          if (b.timestamp === -1) return -1;
-          return a.timestamp - b.timestamp;
-        default:
-          return 0;
-      }
-    });
-
-    return filtered;
-  }, [comments, searchQuery, filterType, sortBy]);
+  // Scroll to highlighted comment
+  useEffect(() => {
+    if (highlightedCommentId && highlightedRef.current) {
+      highlightedRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+    }
+  }, [highlightedCommentId]);
 
   const formatTime = (seconds: number) => {
-    if (seconds === -1) return 'General';
-    const minutes = Math.floor(seconds / 60);
+    const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const formatRelativeTime = (date: Date) => {
+  const formatTimeAgo = (date: Date) => {
     const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    if (minutes < 1) return 'just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    return `${days}d ago`;
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}h`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays}d`;
   };
 
-  const handleReply = (commentId: string) => {
-    setReplyingTo(commentId);
-    setTimeout(() => {
-      commentItemRefs.current[commentId]?.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-      });
-    }, 100);
-  };
-
-  const handleSubmitReply = (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
+  const handleReply = (text: string) => {
     if (replyingTo) {
-      onReplyComment(replyingTo, text, attachments, isInternal, attachTime, hasDrawing);
+      onReplyComment(replyingTo, text);
       setReplyingTo(null);
     }
   };
 
-  const toggleExpanded = (commentId: string) => {
-    const newExpanded = new Set(expandedComments);
-    if (newExpanded.has(commentId)) {
-      newExpanded.delete(commentId);
-    } else {
-      newExpanded.add(commentId);
-    }
-    setExpandedComments(newExpanded);
-  };
-
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  };
-
-  const getAvatarColor = (name: string) => {
-    const colors = [
-      'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500', 
-      'bg-indigo-500', 'bg-red-500', 'bg-yellow-500', 'bg-teal-500'
-    ];
-    const index = name.length % colors.length;
-    return colors[index];
-  };
-
-  const handleSortChange = (sort: 'timecode' | 'oldest' | 'newest' | 'commenter' | 'completed') => {
-    // Map the sort options to our internal state
-    switch (sort) {
-      case 'timecode':
-        setSortBy('timestamp');
-        break;
-      case 'oldest':
-        setSortBy('oldest');
-        break;
-      case 'newest':
-        setSortBy('newest');
-        break;
-      default:
-        setSortBy('newest');
-    }
-  };
-
-  const clearFilters = () => {
-    setFilters({
-      annotations: false,
-      attachments: false,
-      completed: false,
-      incomplete: false,
-      unread: false,
-      mentionsAndReactions: false,
+  const sortedComments = [...comments]
+    .filter(comment => !comment.parentId)
+    .sort((a, b) => {
+      // Sort by timestamp first (earliest first), then by creation date
+      if (a.timestamp >= 0 && b.timestamp >= 0) {
+        return a.timestamp - b.timestamp;
+      }
+      if (a.timestamp >= 0 && b.timestamp < 0) return -1;
+      if (a.timestamp < 0 && b.timestamp >= 0) return 1;
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
-  };
 
-  const renderComment = (comment: Comment, isReply = false) => {
-    const isExpanded = expandedComments.has(comment.id);
-    const replies = comments.filter(c => c.parentId === comment.id);
-    const hasReplies = replies.length > 0;
-
-    return (
-      <div 
-        key={comment.id}
-        ref={(el) => (commentItemRefs.current[comment.id] = el)}
-        className={`${isReply ? 'ml-8 border-l-2 border-gray-700 pl-4' : ''}`}
-      >
-        <div className="flex space-x-3 p-3 hover:bg-gray-800/50 rounded-lg transition-colors group">
-          <Avatar className={`w-8 h-8 ${getAvatarColor(comment.author)} flex-shrink-0`}>
-            <AvatarFallback className="text-white text-xs font-medium">
-              {getInitials(comment.author)}
-            </AvatarFallback>
-          </Avatar>
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-white">{comment.author}</span>
-                {comment.timestamp !== -1 && (
-                  <Badge 
-                    variant="outline" 
-                    className="text-xs border-pink-600 text-pink-400 cursor-pointer hover:bg-pink-600/10"
-                    onClick={() => onCommentClick(comment.timestamp)}
-                  >
-                    <Clock className="w-3 h-3 mr-1" />
-                    {formatTime(comment.timestamp)}
-                  </Badge>
-                )}
-                {comment.isInternal && (
-                  <Badge variant="secondary" className="text-xs bg-orange-600/20 text-orange-400 border-0">
-                    Internal
-                  </Badge>
-                )}
+  return (
+    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {sortedComments.map((comment) => {
+        const isHighlighted = comment.id === highlightedCommentId;
+        
+        return (
+          <div 
+            key={comment.id} 
+            ref={isHighlighted ? highlightedRef : undefined}
+            className={`bg-gray-800 rounded-lg p-4 border transition-all duration-300 ${
+              isHighlighted 
+                ? 'border-blue-500 bg-blue-900/20 shadow-lg ring-2 ring-blue-500/50' 
+                : 'border-gray-700'
+            }`}
+          >
+            {/* Comment Header */}
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center space-x-3">
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src="" />
+                  <AvatarFallback className="bg-blue-600 text-white text-sm font-medium">
+                    {comment.author.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium text-white">{comment.author}</span>
+                    <span className="text-xs text-gray-400">{formatTimeAgo(comment.createdAt)}</span>
+                  </div>
+                  <div className="flex items-center space-x-2 mt-1">
+                    {comment.timestamp >= 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onCommentClick(comment.timestamp)}
+                        className="text-blue-400 hover:text-blue-300 p-0 h-auto text-xs"
+                      >
+                        <Clock className="w-3 h-3 mr-1" />
+                        {formatTime(comment.timestamp)}
+                      </Button>
+                    )}
+                    <Badge className="bg-green-500/20 text-green-400 text-xs px-2 py-0.5">
+                      <Globe className="w-2.5 h-2.5 mr-1" />
+                      Public
+                    </Badge>
+                    {comment.hasDrawing && (
+                      <Badge className="bg-blue-500/20 text-blue-400 text-xs px-2 py-0.5">
+                        <PenTool className="w-2.5 h-2.5 mr-1" />
+                        Drawing
+                      </Badge>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="relative">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 text-gray-400 hover:text-white"
-                  onClick={() => handleReply(comment.id)}
+                  onClick={() => setShowActionsFor(showActionsFor === comment.id ? null : comment.id)}
+                  className="text-gray-400 hover:text-white w-8 h-8 p-0"
                 >
-                  <Reply className="h-3 w-3" />
+                  <MoreHorizontal className="h-4 w-4" />
                 </Button>
-                <CommentActionsMenu
-                  onCopyComments={() => {}}
-                  onPasteComments={() => {}}
-                  onPrintComments={() => {}}
-                  onExportComments={() => {}}
-                />
-              </div>
-            </div>
-            
-            <div className="text-sm text-gray-300 leading-relaxed text-left">
-              {comment.text}
-            </div>
-            
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-xs text-gray-500">
-                {formatRelativeTime(comment.createdAt)}
-              </span>
-              
-              <div className="flex items-center space-x-3">
-                <button className="flex items-center space-x-1 text-xs text-gray-500 hover:text-gray-300 transition-colors">
-                  <Heart className="w-3 h-3" />
-                  <span>0</span>
-                </button>
-                
-                {hasReplies && (
-                  <button 
-                    onClick={() => toggleExpanded(comment.id)}
-                    className="text-xs text-pink-400 hover:text-pink-300 transition-colors"
-                  >
-                    {isExpanded ? 'Hide' : 'Show'} {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
-                  </button>
+                {showActionsFor === comment.id && (
+                  <div className="absolute right-0 top-8 bg-gray-700 border border-gray-600 rounded-lg shadow-lg z-10 min-w-32">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setReplyingTo(comment.id)}
+                      className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-600"
+                    >
+                      <Reply className="h-4 w-4 mr-2" />
+                      Reply
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDeleteComment(comment.id)}
+                      className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-gray-600"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
-          </div>
-        </div>
-        
-        {/* Replies */}
-        {hasReplies && isExpanded && (
-          <div className="mt-2 space-y-2">
-            {replies.map(reply => renderComment(reply, true))}
-          </div>
-        )}
-        
-        {/* Reply Input */}
-        {replyingTo === comment.id && (
-          <div className="ml-11 mt-3">
-            <CommentInput
-              onAddComment={handleSubmitReply}
-              onCancel={() => setReplyingTo(null)}
-              placeholder={`Reply to ${comment.author}...`}
-              currentTime={currentTime}
-              onStartDrawing={onStartDrawing}
-              isDrawingMode={isDrawingMode}
-            />
-          </div>
-        )}
-      </div>
-    );
-  };
 
-  return (
-    <div className="h-full bg-gray-900 border-l border-gray-700 flex flex-col">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-700">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <MessageSquare className="h-5 w-5 text-pink-500" />
-            <h2 className="text-lg font-semibold text-white">Comments</h2>
-            <Badge variant="outline" className="border-gray-600 text-gray-400">
-              {comments.length}
-            </Badge>
+            {/* Comment Content */}
+            <p className="text-gray-300 mb-3 leading-relaxed">{comment.content}</p>
+
+            {/* Attachments */}
+            {comment.attachments && comment.attachments.length > 0 && (
+              <div className="mb-3">
+                <div className="flex items-center space-x-2 text-gray-400 text-sm">
+                  <Paperclip className="w-3 h-3" />
+                  <span>{comment.attachments.length} attachment{comment.attachments.length > 1 ? 's' : ''}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Reply Input */}
+            {replyingTo === comment.id && (
+              <div className="mt-4 pt-4 border-t border-gray-700">
+                <CommentInput
+                  onAddComment={(text) => handleReply(text)}
+                  onCancel={() => setReplyingTo(null)}
+                  placeholder="Write a reply..."
+                  currentTime={currentTime}
+                  onStartDrawing={onStartDrawing}
+                  isDrawingMode={isDrawingMode}
+                />
+              </div>
+            )}
+
+            {/* Replies */}
+            {comment.replies && comment.replies.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-gray-700 space-y-3">
+                {comment.replies.map((reply) => (
+                  <div key={reply.id} className="flex items-start space-x-3 pl-4 border-l-2 border-gray-600">
+                    <Avatar className="w-6 h-6">
+                      <AvatarImage src="" />
+                      <AvatarFallback className="bg-purple-600 text-white text-xs">
+                        {reply.author.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className="text-sm font-medium text-white">{reply.author}</span>
+                        <span className="text-xs text-gray-400">{formatTimeAgo(reply.createdAt)}</span>
+                      </div>
+                      <p className="text-sm text-gray-300">{reply.content}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
+        );
+      })}
+
+      {comments.length === 0 && (
+        <div className="text-center py-12">
+          <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Clock className="h-8 w-8 text-gray-500" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-400 mb-2">No comments yet</h3>
+          <p className="text-gray-500">Be the first to share your feedback</p>
         </div>
-        
-        {/* Search */}
-        <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search comments..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-          />
-        </div>
-        
-        {/* Filters and Sort */}
-        <div className="flex items-center space-x-2">
-          <CommentFilterMenu 
-            filters={filters}
-            onFiltersChange={setFilters}
-            onClearFilters={clearFilters}
-          />
-          <CommentSortMenu 
-            sortBy="timecode"
-            onSortChange={handleSortChange}
-          />
-        </div>
-      </div>
-      
-      {/* Comments List */}
-      <div className="flex-1 overflow-y-auto" ref={scrollRef}>
-        <div className="space-y-1">
-          {processedComments.length > 0 ? (
-            processedComments.map(comment => renderComment(comment))
-          ) : (
-            <div className="p-8 text-center">
-              <MessageSquare className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400 mb-2">No comments yet</p>
-              <p className="text-sm text-gray-500">Be the first to add a comment</p>
-            </div>
-          )}
-        </div>
-      </div>
-      
-      {/* Add Comment */}
-      <div className="p-4 border-t border-gray-700">
-        <CommentInput
-          onAddComment={onAddComment}
-          placeholder="Add a comment..."
-          currentTime={currentTime}
-          onStartDrawing={onStartDrawing}
-          isDrawingMode={isDrawingMode}
-        />
-      </div>
+      )}
     </div>
   );
 };
