@@ -109,7 +109,7 @@ export const VideoReviewInterface = ({
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isSpeedHoverOpen, setIsSpeedHoverOpen] = useState(false);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
-  const [currentDrawingHasContent, setCurrentDrawingHasContent] = useState(false);
+  const [hasActiveDrawing, setHasActiveDrawing] = useState(false);
   const [highlightedCommentId, setHighlightedCommentId] = useState<string | null>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
@@ -389,8 +389,17 @@ export const VideoReviewInterface = ({
   });
 
   const handleAddComment = (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
-    // If we're in drawing mode and there's actual drawing content, set hasDrawing to true
-    const actualHasDrawing = isDrawingMode && currentDrawingHasContent ? true : (hasDrawing || false);
+    console.log('VideoReviewInterface handleAddComment called with:', {
+      text,
+      attachments,
+      isInternal,
+      attachTime,
+      hasDrawing,
+      hasActiveDrawing
+    });
+    
+    // Use the actual drawing state from the canvas
+    const actualHasDrawing = hasActiveDrawing || hasDrawing;
     
     if (text.trim() || attachments?.length || actualHasDrawing) {
       console.log('VideoReviewInterface: Adding comment with hasDrawing:', actualHasDrawing);
@@ -406,7 +415,7 @@ export const VideoReviewInterface = ({
       // Reset drawing mode and drawing state after comment
       if (isDrawingMode) {
         setIsDrawingMode(false);
-        setCurrentDrawingHasContent(false);
+        setHasActiveDrawing(false);
       }
     }
   };
@@ -414,7 +423,7 @@ export const VideoReviewInterface = ({
   const handleStartDrawing = () => {
     console.log('Drawing mode activated');
     setIsDrawingMode(true);
-    setCurrentDrawingHasContent(false); // Reset drawing state
+    setHasActiveDrawing(false); // Reset drawing state
     
     // Pause video when entering drawing mode
     if (isPlaying && videoRef.current) {
@@ -424,7 +433,7 @@ export const VideoReviewInterface = ({
 
   const handleDrawingComplete = (hasDrawing: boolean) => {
     console.log('Drawing completed, hasDrawing:', hasDrawing);
-    setCurrentDrawingHasContent(hasDrawing);
+    setHasActiveDrawing(hasDrawing);
   };
 
   const handlePauseVideo = () => {
@@ -1096,6 +1105,7 @@ export const VideoReviewInterface = ({
                 onStartDrawing={handleStartDrawing}
                 isDrawingMode={isDrawingMode}
                 onPauseVideo={handlePauseVideo}
+                hasActiveDrawing={hasActiveDrawing}
               />
             </div>
           </div>
