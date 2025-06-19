@@ -5,6 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { VideoPreview } from "./VideoPreview";
 import { Clock, Edit } from "lucide-react";
 
+// Update the interface to match what we actually receive
 interface VideoComment {
   id: string;
   timestamp: number;
@@ -24,8 +25,7 @@ interface VideoTimelineProps {
   currentTime: number;
   duration: number;
   comments: VideoComment[];
-  onTimeClick: (time: number) => void;
-  onCommentClick: (timestamp: number, commentId: string) => void;
+  onTimeClick: (time: number, commentId?: string) => void;
   previewVideoRef: React.RefObject<HTMLVideoElement>;
   timeFormat: 'timecode' | 'frames' | 'seconds';
   assetId: string;
@@ -36,7 +36,6 @@ export const VideoTimeline = ({
   duration, 
   comments, 
   onTimeClick, 
-  onCommentClick,
   previewVideoRef, 
   timeFormat,
   assetId
@@ -44,6 +43,13 @@ export const VideoTimeline = ({
   const [isHovering, setIsHovering] = useState(false);
   const [hoverTime, setHoverTime] = useState(0);
   const [hoverPosition, setHoverPosition] = useState(0);
+
+  console.log('VideoTimeline rendered with:', { 
+    commentsCount: comments.length, 
+    duration, 
+    currentTime,
+    comments: comments.map(c => ({ id: c.id, timestamp: c.timestamp, content: c.content }))
+  });
 
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -68,6 +74,8 @@ export const VideoTimeline = ({
       comment.timestamp >= 0 && 
       comment.timestamp <= duration
     );
+    
+    console.log('Valid comments for markers:', validComments);
     
     return validComments.map((comment, index) => ({
       ...comment,
@@ -101,7 +109,7 @@ export const VideoTimeline = ({
   return (
     <TooltipProvider>
       <div className="mb-4 relative">
-        {/* Timeline hover preview */}
+        {/* Timeline hover preview - positioned absolutely to follow mouse */}
         {isHovering && (
           <div 
             className="absolute z-[60] pointer-events-none"
@@ -122,7 +130,7 @@ export const VideoTimeline = ({
           </div>
         )}
         
-        {/* Timeline container */}
+        {/* Timeline container with extra bottom padding for comment avatars */}
         <div className="relative pb-12">
           {/* Main timeline bar */}
           <div
@@ -139,7 +147,7 @@ export const VideoTimeline = ({
             />
           </div>
           
-          {/* Comment markers */}
+          {/* Comment markers positioned below the timeline */}
           {commentMarkers.map((comment) => (
             <Tooltip key={comment.id}>
               <TooltipTrigger asChild>
@@ -151,7 +159,7 @@ export const VideoTimeline = ({
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onCommentClick(comment.timestamp, comment.id);
+                    onTimeClick(comment.timestamp, comment.id);
                   }}
                 >
                   <div className="relative">
