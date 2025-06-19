@@ -20,7 +20,7 @@ import {
   Heart,
   MoreVertical,
   Pencil,
-  Pen,
+  PenTool,
   X
 } from "lucide-react";
 
@@ -213,6 +213,12 @@ export const CommentPanel = ({
                   >
                     <Clock className="w-3 h-3 mr-1" />
                     {formatTime(comment.timestamp)}
+                  </Badge>
+                )}
+                {comment.hasDrawing && (
+                  <Badge variant="secondary" className="text-xs bg-pink-600/20 text-pink-400 border-0">
+                    <PenTool className="w-3 h-3 mr-1" />
+                    Drawing
                   </Badge>
                 )}
                 {comment.isInternal && (
