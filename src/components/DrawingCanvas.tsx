@@ -1,6 +1,6 @@
 
 import { useRef, useEffect, useState } from 'react';
-import { Canvas as FabricCanvas } from 'fabric';
+import { fabric } from 'fabric';
 
 interface DrawingCanvasProps {
   currentTime: number;
@@ -18,7 +18,7 @@ export const DrawingCanvas = ({
   onDrawingComplete 
 }: DrawingCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fabricCanvasRef = useRef<FabricCanvas | null>(null);
+  const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
   const [hasActiveDrawing, setHasActiveDrawing] = useState(false);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export const DrawingCanvas = ({
     const canvas = canvasRef.current;
     
     // Initialize Fabric.js canvas
-    const fabricCanvas = new FabricCanvas(canvas, {
+    const fabricCanvas = new fabric.Canvas(canvas, {
       isDrawingMode: isDrawingMode,
       selection: false,
     });
@@ -36,10 +36,8 @@ export const DrawingCanvas = ({
     fabricCanvasRef.current = fabricCanvas;
 
     // Set up drawing brush
-    if (fabricCanvas.freeDrawingBrush) {
-      fabricCanvas.freeDrawingBrush.width = 3;
-      fabricCanvas.freeDrawingBrush.color = '#FF4500'; // Orange color
-    }
+    fabricCanvas.freeDrawingBrush.width = 3;
+    fabricCanvas.freeDrawingBrush.color = '#FF4500'; // Orange color
 
     // Position canvas over video
     const updateCanvasPosition = () => {
