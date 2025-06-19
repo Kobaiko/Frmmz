@@ -116,6 +116,7 @@ export const CommentPanel = ({
   };
 
   const handleReply = (commentId: string, authorName: string) => {
+    console.log('Reply clicked for comment:', commentId, 'author:', authorName);
     setReplyingTo({ commentId, authorName });
     setTimeout(() => {
       commentItemRefs.current[commentId]?.scrollIntoView({
@@ -126,10 +127,16 @@ export const CommentPanel = ({
   };
 
   const handleSubmitReply = (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
+    console.log('Submitting reply:', { replyingTo, text });
     if (replyingTo) {
       onReplyComment(replyingTo.commentId, text, attachments, isInternal, attachTime, hasDrawing);
       setReplyingTo(null);
     }
+  };
+
+  const handleCancelReply = () => {
+    console.log('Canceling reply');
+    setReplyingTo(null);
   };
 
   const toggleExpanded = (commentId: string) => {
@@ -187,6 +194,9 @@ export const CommentPanel = ({
     const isExpanded = expandedComments.has(comment.id);
     const replies = comments.filter(c => c.parentId === comment.id);
     const hasReplies = replies.length > 0;
+    const isCurrentlyReplying = replyingTo?.commentId === comment.id;
+
+    console.log('Rendering comment:', comment.id, 'isCurrentlyReplying:', isCurrentlyReplying, 'replyingTo:', replyingTo);
 
     return (
       <div 
@@ -273,19 +283,12 @@ export const CommentPanel = ({
           </div>
         </div>
         
-        {/* Replies */}
-        {hasReplies && isExpanded && (
-          <div className="mt-2 space-y-2">
-            {replies.map(reply => renderComment(reply, true))}
-          </div>
-        )}
-        
         {/* Reply Input */}
-        {replyingTo?.commentId === comment.id && (
+        {isCurrentlyReplying && (
           <div className="ml-11 mt-3">
             <CommentInput
               onAddComment={handleSubmitReply}
-              onCancel={() => setReplyingTo(null)}
+              onCancel={handleCancelReply}
               placeholder={`Reply to ${comment.author}...`}
               currentTime={currentTime}
               onStartDrawing={onStartDrawing}
@@ -294,9 +297,18 @@ export const CommentPanel = ({
             />
           </div>
         )}
+        
+        {/* Replies */}
+        {hasReplies && isExpanded && (
+          <div className="mt-2 space-y-2">
+            {replies.map(reply => renderComment(reply, true))}
+          </div>
+        )}
       </div>
     );
   };
+
+  console.log('CommentPanel render - replyingTo:', replyingTo);
 
   return (
     <div className="h-full bg-gray-900 border-l border-gray-700 flex flex-col">
