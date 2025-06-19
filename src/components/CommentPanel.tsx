@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -115,7 +114,9 @@ export const CommentPanel = ({
     return `${days}d ago`;
   };
 
-  const handleReply = (commentId: string, authorName: string) => {
+  const handleReply = (commentId: string, authorName: string, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
     console.log('Reply clicked for comment:', commentId, 'author:', authorName);
     setReplyingTo({ commentId, authorName });
     setTimeout(() => {
@@ -242,7 +243,7 @@ export const CommentPanel = ({
                   variant="ghost"
                   size="sm"
                   className="h-6 w-6 p-0 text-gray-400 hover:text-white"
-                  onClick={() => handleReply(comment.id, comment.author)}
+                  onClick={(e) => handleReply(comment.id, comment.author, e)}
                 >
                   <Reply className="h-3 w-3" />
                 </Button>
