@@ -83,6 +83,19 @@ export const VideoReviewInterface = ({
   const previewVideoRef = useRef<HTMLVideoElement>(null);
   const drawingCanvasRef = useRef<any>(null);
 
+  // Video settings state for VideoSettingsMenu
+  const [quality, setQuality] = useState('1080p');
+  const [guides, setGuides] = useState({
+    enabled: false,
+    ratio: '16:9',
+    mask: false
+  });
+  const [zoom, setZoom] = useState('Fit');
+  const [encodeComments, setEncodeComments] = useState(false);
+  const [annotations, setAnnotations] = useState(true);
+
+  const availableQualities = ['2160p', '1080p', '720p', '540p', '360p'];
+
   useEffect(() => {
     if (videoRef.current) {
       if (isPlaying) {
@@ -135,6 +148,26 @@ export const VideoReviewInterface = ({
     setTimeFormat(format);
   };
 
+  const handleGuidesToggle = () => {
+    setGuides(prev => ({ ...prev, enabled: !prev.enabled }));
+  };
+
+  const handleGuidesRatioChange = (ratio: string) => {
+    setGuides(prev => ({ ...prev, ratio, enabled: true }));
+  };
+
+  const handleGuidesMaskToggle = () => {
+    setGuides(prev => ({ ...prev, mask: !prev.mask }));
+  };
+
+  const handleSetFrameAsThumb = () => {
+    console.log('Set frame as thumbnail at', formatTime(currentTime));
+  };
+
+  const handleDownloadStill = () => {
+    console.log('Download still at', formatTime(currentTime));
+  };
+
   return (
     <div className="h-screen w-screen bg-black flex">
       {/* Main Video Area */}
@@ -165,23 +198,35 @@ export const VideoReviewInterface = ({
             <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
               <Share2 className="h-4 w-4" />
             </Button>
-            <div className="relative">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-gray-400 hover:text-white"
-                onClick={() => setShowSettings(!showSettings)}
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-              {showSettings && (
-                <VideoSettingsMenu 
-                  onClose={() => setShowSettings(false)}
-                  timeFormat={timeFormat}
-                  onTimeFormatChange={setTimeFormat}
-                />
-              )}
-            </div>
+            {showSettings && (
+              <VideoSettingsMenu 
+                quality={quality}
+                availableQualities={availableQualities}
+                onQualityChange={setQuality}
+                guides={guides}
+                onGuidesToggle={handleGuidesToggle}
+                onGuidesRatioChange={handleGuidesRatioChange}
+                onGuidesMaskToggle={handleGuidesMaskToggle}
+                zoom={zoom}
+                onZoomChange={setZoom}
+                encodeComments={encodeComments}
+                setEncodeComments={setEncodeComments}
+                annotations={annotations}
+                setAnnotations={setAnnotations}
+                onSetFrameAsThumb={handleSetFrameAsThumb}
+                onDownloadStill={handleDownloadStill}
+                currentTime={currentTime}
+                formatTime={formatTime}
+              />
+            )}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-gray-400 hover:text-white"
+              onClick={() => setShowSettings(!showSettings)}
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 
@@ -197,7 +242,6 @@ export const VideoReviewInterface = ({
 
           {/* Drawing Canvas Overlay */}
           <DrawingCanvas
-            ref={drawingCanvasRef}
             isActive={isDrawingMode}
             videoRef={videoRef}
             currentTime={currentTime}
