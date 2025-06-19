@@ -41,12 +41,6 @@ export const VideoCollaborationPanel = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleReplyComment = (parentId: string, text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
-    // For now, we'll treat replies the same as regular comments
-    // This could be enhanced to handle parent-child relationships
-    onAddComment(text, attachments, isInternal, attachTime, hasDrawing);
-  };
-
   return (
     <div className="flex flex-col h-full">
       {/* Header with tabs */}
@@ -99,10 +93,6 @@ export const VideoCollaborationPanel = ({
             onDeleteComment={onDeleteComment}
             currentTime={currentTime}
             onCommentClick={onCommentClick}
-            onReplyComment={handleReplyComment}
-            onAddComment={onAddComment}
-            onStartDrawing={onStartDrawing}
-            isDrawingMode={isDrawingMode}
           />
         ) : (
           <div className="flex-1 p-4">
