@@ -25,7 +25,7 @@ interface VideoTimelineProps {
   currentTime: number;
   duration: number;
   comments: VideoComment[];
-  onTimeClick: (time: number, commentId?: string) => void;
+  onTimeClick: (time: number) => void;
   previewVideoRef: React.RefObject<HTMLVideoElement>;
   timeFormat: 'timecode' | 'frames' | 'seconds';
   assetId: string;
@@ -159,7 +159,7 @@ export const VideoTimeline = ({
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onTimeClick(comment.timestamp, comment.id);
+                    onTimeClick(comment.timestamp);
                   }}
                 >
                   <div className="relative">

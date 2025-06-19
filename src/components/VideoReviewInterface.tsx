@@ -78,7 +78,7 @@ interface VideoReviewInterfaceProps {
   progress: number;
 }
 
-type TimestampFormat = 'seconds' | 'timecode' | 'frames';
+type TimestampFormat = 'standard' | 'timecode' | 'frames';
 
 export const VideoReviewInterface = ({ 
   asset,
@@ -104,13 +104,11 @@ export const VideoReviewInterface = ({
   const [newComment, setNewComment] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLooping, setIsLooping] = useState(false);
-  const [timestampFormat, setTimestampFormat] = useState<TimestampFormat>('seconds');
+  const [timestampFormat, setTimestampFormat] = useState<TimestampFormat>('standard');
   const [internalVolume, setInternalVolume] = useState(volume);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isSpeedHoverOpen, setIsSpeedHoverOpen] = useState(false);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
-  const [currentDrawingHasContent, setCurrentDrawingHasContent] = useState(false);
-  const [highlightedCommentId, setHighlightedCommentId] = useState<string | null>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
@@ -389,24 +387,21 @@ export const VideoReviewInterface = ({
   });
 
   const handleAddComment = (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
-    // If we're in drawing mode and there's actual drawing content, set hasDrawing to true
-    const actualHasDrawing = isDrawingMode && currentDrawingHasContent ? true : (hasDrawing || false);
-    
-    if (text.trim() || attachments?.length || actualHasDrawing) {
-      console.log('VideoReviewInterface: Adding comment with hasDrawing:', actualHasDrawing);
-      onAddComment(
-        attachTime ? currentTime : -1,
-        text.trim(),
-        attachments,
-        isInternal,
-        attachTime,
-        actualHasDrawing
-      );
+    if (text.trim() || attachments?.length || hasDrawing) {
+      // Enhanced comment object with new properties
+      const enhancedComment = {
+        timestamp: attachTime ? currentTime : 0,
+        content: text.trim(),
+        attachments: attachments || [],
+        hasDrawing: hasDrawing || false,
+        hasTimestamp: attachTime || false
+      };
       
-      // Reset drawing mode and drawing state after comment
+      onAddComment(enhancedComment.timestamp, enhancedComment.content);
+      
+      // Reset drawing mode after comment
       if (isDrawingMode) {
         setIsDrawingMode(false);
-        setCurrentDrawingHasContent(false);
       }
     }
   };
@@ -414,7 +409,6 @@ export const VideoReviewInterface = ({
   const handleStartDrawing = () => {
     console.log('Drawing mode activated');
     setIsDrawingMode(true);
-    setCurrentDrawingHasContent(false); // Reset drawing state
     
     // Pause video when entering drawing mode
     if (isPlaying && videoRef.current) {
@@ -422,25 +416,9 @@ export const VideoReviewInterface = ({
     }
   };
 
-  const handleDrawingComplete = (hasDrawing: boolean) => {
-    console.log('Drawing completed, hasDrawing:', hasDrawing);
-    setCurrentDrawingHasContent(hasDrawing);
-  };
-
   const handlePauseVideo = () => {
     if (isPlaying && videoRef.current) {
       videoRef.current.pause();
-    }
-  };
-
-  const handleCommentClickFromTimeline = (timestamp: number, commentId?: string) => {
-    onCommentClick(timestamp);
-    if (commentId) {
-      setHighlightedCommentId(commentId);
-      // Clear highlight after 3 seconds
-      setTimeout(() => {
-        setHighlightedCommentId(null);
-      }, 3000);
     }
   };
 
@@ -506,12 +484,13 @@ export const VideoReviewInterface = ({
         const tcFrames = Math.floor((seconds % 1) * 30); // Using 30fps for timecode
         return `${tcHours.toString().padStart(2, '0')}:${tcMinutes.toString().padStart(2, '0')}:${tcSecs.toString().padStart(2, '0')}:${tcFrames.toString().padStart(2, '0')}`;
       
-      case 'seconds':
+      case 'standard':
       default:
         return formatTime(seconds);
     }
   };
 
+  // Video settings handlers
   const handleQualityChange = (newQuality: string) => {
     const video = videoRef.current;
     if (!video) return;
@@ -582,22 +561,9 @@ export const VideoReviewInterface = ({
       comment.author.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes}m`;
-    
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) return `${diffInHours}h`;
-    
-    const diffInDays = Math.floor(diffInHours / 24);
-    return `${diffInDays}d`;
-  };
-
-  console.log('Comments passed to VideoReviewInterface:', comments);
-  console.log('Comments with drawings:', comments.filter(c => c.hasDrawing));
+  // Debug log to check comment data
+  console.log('Comments data:', comments);
+  console.log('Sorted comments:', sortedComments);
 
   return (
     <TooltipProvider>
@@ -673,7 +639,6 @@ export const VideoReviewInterface = ({
                   videoRef={videoRef}
                   isDrawingMode={isDrawingMode}
                   annotations={true}
-                  onDrawingComplete={handleDrawingComplete}
                 />
                 
                 {/* Video Guides Overlay */}
@@ -693,7 +658,7 @@ export const VideoReviewInterface = ({
                       currentTime={currentTime}
                       duration={duration}
                       comments={comments}
-                      onTimeClick={handleCommentClickFromTimeline}
+                      onTimeClick={onCommentClick}
                       previewVideoRef={previewVideoRef}
                       timeFormat={timestampFormat}
                       assetId={asset.id}
@@ -833,7 +798,7 @@ export const VideoReviewInterface = ({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent className="bg-gray-800 border-gray-700">
                             <DropdownMenuItem 
-                              onClick={() => setTimestampFormat('seconds')}
+                              onClick={() => setTimestampFormat('standard')}
                               className="text-white hover:bg-gray-700"
                             >
                               Standard (MM:SS)
@@ -972,29 +937,18 @@ export const VideoReviewInterface = ({
                   )}
                 </div>
               ) : (
-                sortedComments.map((comment, index) => {
-                  console.log(`Rendering comment ${comment.id}:`, {
-                    hasDrawing: comment.hasDrawing,
-                    hasTimestamp: comment.hasTimestamp,
-                    timestamp: comment.timestamp
-                  });
-                  
-                  return (
-                    <div 
-                      key={comment.id} 
-                      className={`bg-gray-700 rounded-lg p-3 group hover:bg-gray-650 transition-colors ${
-                        highlightedCommentId === comment.id ? 'ring-2 ring-pink-500 bg-gray-650' : ''
-                      }`}
-                    >
-                      {/* Comment Header */}
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center space-x-2 flex-wrap">
-                          <span className="text-gray-400 text-sm font-medium">
-                            #{sortedComments.length - index}
-                          </span>
-                          
-                          {/* Show timestamp badge if comment has timestamp */}
-                          {comment.hasTimestamp && comment.timestamp >= 0 && (
+                sortedComments.map((comment, index) => (
+                  <div key={comment.id} className="bg-gray-700 rounded-lg p-3 group hover:bg-gray-650 transition-colors">
+                    {/* Comment Header */}
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center space-x-2 flex-wrap">
+                        <span className="text-gray-400 text-sm font-medium">
+                          #{sortedComments.length - index}
+                        </span>
+                        
+                        {/* Only show timestamp and drawing badge if they actually exist */}
+                        <div className="flex items-center space-x-2">
+                          {comment.hasTimestamp && comment.timestamp > 0 && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1009,81 +963,75 @@ export const VideoReviewInterface = ({
                             </Button>
                           )}
                           
-                          {/* Show drawing icon if comment has drawing */}
+                          {/* Only show drawing badge if comment actually has drawing */}
                           {comment.hasDrawing && (
-                            <div className="flex items-center text-pink-400 bg-pink-400/10 px-2 py-1 rounded text-xs">
-                              <PenTool className="w-3 h-3 mr-1" />
-                              <span className="text-xs">Drawing</span>
-                            </div>
+                            <Badge className="bg-pink-500 text-white text-xs px-2 py-1 rounded flex items-center space-x-1">
+                              <PenTool className="w-3 h-3" />
+                              <span>Drawing</span>
+                            </Badge>
                           )}
-                          
-                          {/* Debug indicator - remove this later */}
-                          <div className="text-xs text-yellow-400 bg-yellow-400/10 px-1 py-0.5 rounded">
-                            hasDrawing: {String(comment.hasDrawing)}
-                          </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onDeleteComment(comment.id)}
-                          className="text-gray-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
                       </div>
-
-                      {/* Comment Content */}
-                      <div className="mb-2">
-                        <p className="text-gray-200 text-sm leading-relaxed">
-                          {comment.content}
-                        </p>
-                      </div>
-
-                      {/* Comment Attachments */}
-                      {comment.attachments && comment.attachments.length > 0 && (
-                        <div className="mb-2 space-y-1">
-                          {comment.attachments.map((file, fileIndex) => (
-                            <div key={fileIndex} className="flex items-center space-x-2 bg-gray-600 rounded p-2 text-xs">
-                              {getFileIcon(file)}
-                              <span className="text-gray-300 truncate flex-1">{file.name}</span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => window.open(file.url || URL.createObjectURL(file), '_blank')}
-                                className="text-blue-400 hover:text-blue-300 p-1 h-auto"
-                              >
-                                <Eye className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Comment Footer */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Avatar className="h-6 w-6 flex-shrink-0">
-                            <AvatarFallback 
-                              className="text-white text-xs"
-                              style={{ backgroundColor: comment.authorColor }}
-                            >
-                              {comment.author.split(' ').map(n => n[0]).join('')}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-gray-300 text-sm font-medium">{comment.author}</span>
-                          <span className="text-gray-500 text-xs">{formatTimeAgo(comment.createdAt)}</span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-gray-400 hover:text-gray-300 text-xs px-2 py-1 h-auto"
-                        >
-                          Reply
-                        </Button>
-                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onDeleteComment(comment.id)}
+                        className="text-gray-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
-                  );
-                })
+
+                    {/* Comment Content */}
+                    <div className="mb-2">
+                      <p className="text-gray-200 text-sm leading-relaxed">
+                        {comment.content}
+                      </p>
+                    </div>
+
+                    {/* Comment Attachments */}
+                    {comment.attachments && comment.attachments.length > 0 && (
+                      <div className="mb-2 space-y-1">
+                        {comment.attachments.map((file, fileIndex) => (
+                          <div key={fileIndex} className="flex items-center space-x-2 bg-gray-600 rounded p-2 text-xs">
+                            {getFileIcon(file)}
+                            <span className="text-gray-300 truncate flex-1">{file.name}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => window.open(file.url || URL.createObjectURL(file), '_blank')}
+                              className="text-blue-400 hover:text-blue-300 p-1 h-auto"
+                            >
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Comment Footer */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Avatar className="h-6 w-6 flex-shrink-0">
+                          <AvatarFallback 
+                            className="text-white text-xs"
+                            style={{ backgroundColor: comment.authorColor }}
+                          >
+                            {comment.author.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-gray-300 text-sm font-medium">{comment.author}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-400 hover:text-gray-300 text-xs px-2 py-1 h-auto"
+                      >
+                        Reply
+                      </Button>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
 
