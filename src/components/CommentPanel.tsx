@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,7 +48,7 @@ export const CommentPanel = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<'all' | 'general' | 'internal' | 'resolved'>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'timestamp'>('newest');
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<{ commentId: string; authorName: string } | null>(null);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState({
     annotations: false,
@@ -114,8 +115,8 @@ export const CommentPanel = ({
     return `${days}d ago`;
   };
 
-  const handleReply = (commentId: string) => {
-    setReplyingTo(commentId);
+  const handleReply = (commentId: string, authorName: string) => {
+    setReplyingTo({ commentId, authorName });
     setTimeout(() => {
       commentItemRefs.current[commentId]?.scrollIntoView({
         behavior: "smooth",
@@ -126,7 +127,7 @@ export const CommentPanel = ({
 
   const handleSubmitReply = (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
     if (replyingTo) {
-      onReplyComment(replyingTo, text, attachments, isInternal, attachTime, hasDrawing);
+      onReplyComment(replyingTo.commentId, text, attachments, isInternal, attachTime, hasDrawing);
       setReplyingTo(null);
     }
   };
@@ -231,7 +232,7 @@ export const CommentPanel = ({
                   variant="ghost"
                   size="sm"
                   className="h-6 w-6 p-0 text-gray-400 hover:text-white"
-                  onClick={() => handleReply(comment.id)}
+                  onClick={() => handleReply(comment.id, comment.author)}
                 >
                   <Reply className="h-3 w-3" />
                 </Button>
@@ -280,7 +281,7 @@ export const CommentPanel = ({
         )}
         
         {/* Reply Input */}
-        {replyingTo === comment.id && (
+        {replyingTo?.commentId === comment.id && (
           <div className="ml-11 mt-3">
             <CommentInput
               onAddComment={handleSubmitReply}
@@ -289,6 +290,7 @@ export const CommentPanel = ({
               currentTime={currentTime}
               onStartDrawing={onStartDrawing}
               isDrawingMode={isDrawingMode}
+              replyingTo={replyingTo.authorName}
             />
           </div>
         )}

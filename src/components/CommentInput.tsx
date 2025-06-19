@@ -16,7 +16,8 @@ import {
   FileText,
   Image as ImageIcon,
   Video,
-  File
+  File,
+  Reply
 } from "lucide-react";
 
 interface CommentInputProps {
@@ -27,6 +28,7 @@ interface CommentInputProps {
   onStartDrawing: () => void;
   isDrawingMode: boolean;
   onPauseVideo?: () => void;
+  replyingTo?: string; // The name of the person being replied to
 }
 
 export const CommentInput = ({
@@ -36,7 +38,8 @@ export const CommentInput = ({
   currentTime,
   onStartDrawing,
   isDrawingMode,
-  onPauseVideo
+  onPauseVideo,
+  replyingTo
 }: CommentInputProps) => {
   const [comment, setComment] = useState("");
   const [isPublic, setIsPublic] = useState(true);
@@ -145,6 +148,14 @@ export const CommentInput = ({
 
   return (
     <div className="bg-gray-800 border border-gray-600 rounded-lg p-4 space-y-3">
+      {/* Reply indicator */}
+      {replyingTo && (
+        <div className="flex items-center space-x-2 text-sm text-gray-400 bg-gray-700/50 rounded-lg p-3">
+          <Reply className="w-4 h-4" />
+          <span>Replying to <span className="text-white font-medium">{replyingTo}</span></span>
+        </div>
+      )}
+
       {/* Timestamp Badge */}
       {attachTime && (
         <div className="flex items-center space-x-2">
