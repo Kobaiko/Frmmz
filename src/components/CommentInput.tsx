@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -54,7 +53,6 @@ export const CommentInput = ({
   };
 
   const checkForDrawings = () => {
-    // Check if there are any drawings for current frame
     if ((window as any).drawingCanvas) {
       const hasDrawingsForFrame = (window as any).drawingCanvas.hasDrawingsForCurrentFrame();
       setHasDrawing(hasDrawingsForFrame);
@@ -64,7 +62,6 @@ export const CommentInput = ({
   };
 
   const handleSubmit = () => {
-    // Always check for drawings right before submitting
     const currentHasDrawing = checkForDrawings();
     
     if (comment.trim() || attachments.length > 0 || currentHasDrawing) {
@@ -73,7 +70,6 @@ export const CommentInput = ({
       setAttachments([]);
       setHasDrawing(false);
       
-      // Reset drawing mode after submitting
       if (isDrawingMode) {
         setShowDrawingTools(false);
       }
@@ -105,7 +101,6 @@ export const CommentInput = ({
   };
 
   const handleDrawingClick = () => {
-    // Always pause video when entering drawing mode
     if (onPauseVideo) {
       onPauseVideo();
     }
@@ -117,13 +112,11 @@ export const CommentInput = ({
       setShowDrawingTools(true);
     }
     
-    // Check for drawings after a short delay to allow drawing mode to activate
     setTimeout(() => {
       checkForDrawings();
     }, 100);
   };
 
-  // Periodically check for drawings when in drawing mode
   React.useEffect(() => {
     if (isDrawingMode) {
       const interval = setInterval(() => {
