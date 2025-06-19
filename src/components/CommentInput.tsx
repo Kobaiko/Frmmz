@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +8,6 @@ import { Label } from "@/components/ui/label";
 
 interface CommentInputProps {
   onAddComment: (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
-  onCancel?: () => void;
   placeholder?: string;
   currentTime: number;
   onStartDrawing?: () => void;
@@ -20,7 +18,6 @@ interface CommentInputProps {
 
 export const CommentInput = ({ 
   onAddComment, 
-  onCancel,
   placeholder = "Add a comment...", 
   currentTime,
   onStartDrawing,
@@ -53,9 +50,6 @@ export const CommentInput = ({
       setAttachments([]);
       setIsInternal(false);
       setAttachTime(false);
-      
-      // Call onCancel if provided (for reply mode)
-      onCancel?.();
     }
   };
 
@@ -126,14 +120,6 @@ export const CommentInput = ({
                 </Button>
               </div>
             ))}
-          </div>
-        )}
-        
-        {/* Drawing indicator */}
-        {hasActiveDrawing && (
-          <div className="flex items-center space-x-2 bg-pink-500/20 text-pink-400 px-2 py-1 rounded-md text-xs">
-            <PenTool className="h-3 w-3" />
-            <span>Drawing attached</span>
           </div>
         )}
         
