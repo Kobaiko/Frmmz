@@ -41,7 +41,8 @@ import {
   File,
   Eye,
   Trash2,
-  Reply
+  Reply,
+  Smile
 } from "lucide-react";
 
 interface VideoComment {
@@ -55,6 +56,7 @@ interface VideoComment {
   attachments?: any[];
   hasDrawing?: boolean;
   hasTimestamp?: boolean;
+  parentId?: string; // For replies
 }
 
 interface VideoReviewInterfaceProps {
@@ -80,6 +82,148 @@ interface VideoReviewInterfaceProps {
 }
 
 type TimestampFormat = 'seconds' | 'timecode' | 'frames';
+
+// Simple Reply Input Component
+const SimpleReplyInput = ({ 
+  onSubmit, 
+  onCancel, 
+  replyingTo 
+}: { 
+  onSubmit: (text: string, attachments?: File[]) => void;
+  onCancel: () => void;
+  replyingTo: string;
+}) => {
+  const [text, setText] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const emojis = ['😀', '😂', '😍', '👍', '👎', '❤️', '🔥', '💯', '🎉', '👏'];
+
+  const handleSubmit = () => {
+    if (text.trim() || attachments.length > 0) {
+      onSubmit(text.trim(), attachments);
+      setText("");
+      setAttachments([]);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setAttachments(prev => [...prev, ...files]);
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const addEmoji = (emoji: string) => {
+    setText(prev => prev + emoji);
+    setShowEmojiPicker(false);
+  };
+
+  return (
+    <div className="bg-gray-700 rounded-lg p-3 space-y-3">
+      <div className="text-sm text-gray-400">
+        Replying to <span className="text-white font-medium">{replyingTo}</span>
+      </div>
+      
+      {/* Attachments Display */}
+      {attachments.length > 0 && (
+        <div className="space-y-2">
+          {attachments.map((file, index) => (
+            <div key={index} className="flex items-center justify-between bg-gray-600 rounded p-2">
+              <div className="flex items-center space-x-2">
+                <File className="h-4 w-4" />
+                <span className="text-sm text-white truncate flex-1">{file.name}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => removeAttachment(index)}
+                className="text-gray-400 hover:text-white w-6 h-6 p-0"
+              >
+                ×
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Write your reply..."
+        className="bg-gray-600 border-gray-500 text-white placeholder:text-gray-400 min-h-[60px] resize-none"
+      />
+      
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            className="text-gray-400 hover:text-white w-8 h-8 p-0"
+          >
+            <Paperclip className="h-4 w-4" />
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="text-gray-400 hover:text-white w-8 h-8 p-0"
+            >
+              <Smile className="h-4 w-4" />
+            </Button>
+            {showEmojiPicker && (
+              <div className="absolute bottom-full left-0 mb-2 bg-gray-800 border border-gray-600 rounded-lg p-2 grid grid-cols-5 gap-1 shadow-lg z-10">
+                {emojis.map((emoji) => (
+                  <Button
+                    key={emoji}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => addEmoji(emoji)}
+                    className="w-8 h-8 p-0 text-lg hover:bg-gray-700"
+                  >
+                    {emoji}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onCancel}
+            className="text-gray-400 hover:text-white"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!text.trim() && attachments.length === 0}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+            size="sm"
+          >
+            Reply
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const VideoReviewInterface = ({ 
   asset,
@@ -111,7 +255,7 @@ export const VideoReviewInterface = ({
   const [isSpeedHoverOpen, setIsSpeedHoverOpen] = useState(false);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [highlightedCommentId, setHighlightedCommentId] = useState<string | null>(null);
-  const [replyingTo, setReplyingTo] = useState<{ commentId: string; authorName: string } | null>(null);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
@@ -408,22 +552,22 @@ export const VideoReviewInterface = ({
     }
   };
 
-  const handleReply = (commentId: string, authorName: string) => {
-    console.log('Reply button clicked:', { commentId, authorName });
-    setReplyingTo({ commentId, authorName });
+  const handleReply = (commentId: string) => {
+    console.log('Reply button clicked:', { commentId });
+    setReplyingTo(commentId);
   };
 
-  const handleSubmitReply = (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
+  const handleSubmitReply = (text: string, attachments?: File[]) => {
     console.log('Submitting reply:', { replyingTo, text });
     if (replyingTo && text.trim()) {
       // For now, we'll add it as a regular comment. In a real app, you'd handle replies differently
       onAddComment(
-        attachTime ? currentTime : -1,
-        `@${replyingTo.authorName} ${text.trim()}`,
+        -1, // Replies don't have timestamps
+        text,
         attachments,
-        isInternal,
-        attachTime,
-        hasDrawing
+        false, // Not internal
+        false, // No timestamp
+        false  // No drawing
       );
       setReplyingTo(null);
     }
@@ -591,8 +735,19 @@ export const VideoReviewInterface = ({
     return <File className="h-3 w-3" />;
   };
 
-  // Sort comments by creation date (latest first) and add numbering
-  const sortedComments = [...comments]
+  // Separate main comments from replies
+  const mainComments = comments.filter(comment => !comment.parentId);
+  const repliesMap = comments.reduce((acc, comment) => {
+    if (comment.parentId) {
+      if (!acc[comment.parentId]) {
+        acc[comment.parentId] = [];
+      }
+      acc[comment.parentId].push(comment);
+    }
+    return acc;
+  }, {} as Record<string, VideoComment[]>);
+
+  const sortedComments = [...mainComments]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .filter(comment =>
       comment.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -995,10 +1150,11 @@ export const VideoReviewInterface = ({
                     timestamp: comment.timestamp
                   });
                   
-                  const isCurrentlyReplying = replyingTo?.commentId === comment.id;
+                  const commentReplies = repliesMap[comment.id] || [];
                   
                   return (
-                    <div key={comment.id}>
+                    <div key={comment.id} className="space-y-3">
+                      {/* Main Comment */}
                       <div className={`bg-gray-700 rounded-lg p-3 group hover:bg-gray-650 transition-colors ${
                         highlightedCommentId === comment.id ? 'ring-2 ring-pink-500 bg-gray-650' : ''
                       }`}>
@@ -1087,7 +1243,7 @@ export const VideoReviewInterface = ({
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleReply(comment.id, comment.author)}
+                            onClick={() => handleReply(comment.id)}
                             className="text-gray-400 hover:text-gray-300 text-xs px-2 py-1 h-auto flex items-center space-x-1"
                           >
                             <Reply className="h-3 w-3" />
@@ -1096,17 +1252,66 @@ export const VideoReviewInterface = ({
                         </div>
                       </div>
                       
+                      {/* Replies under this comment */}
+                      {commentReplies.length > 0 && (
+                        <div className="ml-6 space-y-2 border-l-2 border-gray-600 pl-4">
+                          {commentReplies.map((reply) => (
+                            <div key={reply.id} className="bg-gray-700/50 rounded-lg p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center space-x-2">
+                                  <Avatar className="h-5 w-5 flex-shrink-0">
+                                    <AvatarFallback 
+                                      className="text-white text-xs"
+                                      style={{ backgroundColor: reply.authorColor }}
+                                    >
+                                      {reply.author.split(' ').map(n => n[0]).join('')}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span className="text-gray-300 text-sm font-medium">{reply.author}</span>
+                                  <span className="text-gray-500 text-xs">{formatTimeAgo(reply.createdAt)}</span>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => onDeleteComment(reply.id)}
+                                  className="text-gray-400 hover:text-red-400 p-1"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              <p className="text-gray-200 text-sm leading-relaxed text-left">
+                                {reply.content}
+                              </p>
+                              {/* Show attachments for replies */}
+                              {reply.attachments && reply.attachments.length > 0 && (
+                                <div className="mt-2 space-y-1">
+                                  {reply.attachments.map((file, fileIndex) => (
+                                    <div key={fileIndex} className="flex items-center space-x-2 bg-gray-600 rounded p-2 text-xs">
+                                      {getFileIcon(file)}
+                                      <span className="text-gray-300 truncate flex-1">{file.name}</span>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => window.open(file.url || URL.createObjectURL(file), '_blank')}
+                                        className="text-blue-400 hover:text-blue-300 p-1 h-auto"
+                                      >
+                                        <Eye className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
                       {/* Reply Input - Show when replying to this comment */}
-                      {isCurrentlyReplying && (
-                        <div className="ml-4 mt-3">
-                          <CommentInput
-                            onAddComment={handleSubmitReply}
+                      {replyingTo === comment.id && (
+                        <div className="ml-6">
+                          <SimpleReplyInput
+                            onSubmit={handleSubmitReply}
                             onCancel={handleCancelReply}
-                            placeholder={`Reply to ${comment.author}...`}
-                            currentTime={currentTime}
-                            onStartDrawing={handleStartDrawing}
-                            isDrawingMode={isDrawingMode}
-                            onPauseVideo={handlePauseVideo}
                             replyingTo={comment.author}
                           />
                         </div>
