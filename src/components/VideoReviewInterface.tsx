@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,7 +110,6 @@ export const VideoReviewInterface = ({
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isSpeedHoverOpen, setIsSpeedHoverOpen] = useState(false);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
-  const [currentDrawingHasContent, setCurrentDrawingHasContent] = useState(false);
   const [highlightedCommentId, setHighlightedCommentId] = useState<string | null>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
@@ -389,24 +389,20 @@ export const VideoReviewInterface = ({
   });
 
   const handleAddComment = (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
-    // If we're in drawing mode and there's actual drawing content, set hasDrawing to true
-    const actualHasDrawing = isDrawingMode && currentDrawingHasContent ? true : (hasDrawing || false);
-    
-    if (text.trim() || attachments?.length || actualHasDrawing) {
-      console.log('VideoReviewInterface: Adding comment with hasDrawing:', actualHasDrawing);
+    if (text.trim() || attachments?.length || hasDrawing) {
+      console.log('VideoReviewInterface: Adding comment with hasDrawing:', hasDrawing);
       onAddComment(
         attachTime ? currentTime : -1,
         text.trim(),
         attachments,
         isInternal,
         attachTime,
-        actualHasDrawing
+        hasDrawing
       );
       
-      // Reset drawing mode and drawing state after comment
+      // Reset drawing mode after comment
       if (isDrawingMode) {
         setIsDrawingMode(false);
-        setCurrentDrawingHasContent(false);
       }
     }
   };
@@ -414,17 +410,11 @@ export const VideoReviewInterface = ({
   const handleStartDrawing = () => {
     console.log('Drawing mode activated');
     setIsDrawingMode(true);
-    setCurrentDrawingHasContent(false); // Reset drawing state
     
     // Pause video when entering drawing mode
     if (isPlaying && videoRef.current) {
       videoRef.current.pause();
     }
-  };
-
-  const handleDrawingComplete = (hasDrawing: boolean) => {
-    console.log('Drawing completed, hasDrawing:', hasDrawing);
-    setCurrentDrawingHasContent(hasDrawing);
   };
 
   const handlePauseVideo = () => {
@@ -673,7 +663,6 @@ export const VideoReviewInterface = ({
                   videoRef={videoRef}
                   isDrawingMode={isDrawingMode}
                   annotations={true}
-                  onDrawingComplete={handleDrawingComplete}
                 />
                 
                 {/* Video Guides Overlay */}
@@ -1009,8 +998,8 @@ export const VideoReviewInterface = ({
                             </Button>
                           )}
                           
-                          {/* Show drawing icon if comment has drawing */}
-                          {comment.hasDrawing && (
+                          {/* Show drawing icon if comment has drawing - ALWAYS VISIBLE FOR DEBUGGING */}
+                          {(comment.hasDrawing || comment.hasDrawing === true) && (
                             <div className="flex items-center text-pink-400 bg-pink-400/10 px-2 py-1 rounded text-xs">
                               <PenTool className="w-3 h-3 mr-1" />
                               <span className="text-xs">Drawing</span>
