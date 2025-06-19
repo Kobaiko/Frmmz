@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 
 interface CommentInputProps {
   onAddComment: (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
+  onCancel?: () => void;
   placeholder?: string;
   currentTime: number;
   onStartDrawing?: () => void;
@@ -17,7 +18,8 @@ interface CommentInputProps {
 }
 
 export const CommentInput = ({ 
-  onAddComment, 
+  onAddComment,
+  onCancel,
   placeholder = "Add a comment...", 
   currentTime,
   onStartDrawing,
@@ -218,6 +220,21 @@ export const CommentInput = ({
                 Internal only
               </Label>
             </div>
+          </div>
+        )}
+
+        {/* Cancel button for reply mode */}
+        {onCancel && (
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onCancel}
+              className="text-gray-400 hover:text-white"
+            >
+              Cancel
+            </Button>
           </div>
         )}
       </form>
