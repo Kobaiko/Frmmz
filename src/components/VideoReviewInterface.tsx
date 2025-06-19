@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -243,10 +242,9 @@ export const VideoReviewInterface = ({
 
           {/* Drawing Canvas Overlay */}
           <DrawingCanvas
-            isDrawingMode={isDrawingMode}
+            isActive={isDrawingMode}
             videoRef={videoRef}
             currentTime={currentTime}
-            annotations={annotations}
           />
 
           {/* Video Controls Overlay */}
