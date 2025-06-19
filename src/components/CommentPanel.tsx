@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -115,23 +114,9 @@ export const CommentPanel = ({
     return `${days}d ago`;
   };
 
-  const handleReply = (commentId: string, authorName: string, event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    console.log('handleReply called:', { commentId, authorName });
-    console.log('Setting replyingTo to:', { commentId, authorName });
+  const handleReply = (commentId: string, authorName: string) => {
+    console.log('handleReply triggered:', { commentId, authorName });
     setReplyingTo({ commentId, authorName });
-    
-    // Scroll to comment after a short delay
-    setTimeout(() => {
-      const commentElement = commentItemRefs.current[commentId];
-      if (commentElement) {
-        commentElement.scrollIntoView({
-          behavior: "smooth",
-          block: "nearest",
-        });
-      }
-    }, 100);
   };
 
   const handleSubmitReply = (text: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
@@ -207,8 +192,7 @@ export const CommentPanel = ({
     console.log('renderComment:', {
       commentId: comment.id,
       isCurrentlyReplying,
-      replyingTo,
-      authorName: comment.author
+      replyingTo
     });
 
     return (
@@ -255,7 +239,7 @@ export const CommentPanel = ({
                   variant="ghost"
                   size="sm"
                   className="h-6 w-6 p-0 text-gray-400 hover:text-white"
-                  onClick={(e) => handleReply(comment.id, comment.author, e)}
+                  onClick={() => handleReply(comment.id, comment.author)}
                 >
                   <Reply className="h-3 w-3" />
                 </Button>
