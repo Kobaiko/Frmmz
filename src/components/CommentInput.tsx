@@ -53,9 +53,22 @@ export const CommentInput = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const checkForDrawings = () => {
+    // Check if there are any drawings for current frame
+    if ((window as any).drawingCanvas) {
+      const hasDrawingsForFrame = (window as any).drawingCanvas.hasDrawingsForCurrentFrame();
+      setHasDrawing(hasDrawingsForFrame);
+      return hasDrawingsForFrame;
+    }
+    return false;
+  };
+
   const handleSubmit = () => {
-    if (comment.trim() || attachments.length > 0 || hasDrawing) {
-      onAddComment(comment.trim(), attachments, !isPublic, attachTime, hasDrawing);
+    // Always check for drawings right before submitting
+    const currentHasDrawing = checkForDrawings();
+    
+    if (comment.trim() || attachments.length > 0 || currentHasDrawing) {
+      onAddComment(comment.trim(), attachments, !isPublic, attachTime, currentHasDrawing);
       setComment("");
       setAttachments([]);
       setHasDrawing(false);
@@ -104,12 +117,22 @@ export const CommentInput = ({
       setShowDrawingTools(true);
     }
     
-    // Check if there are any drawings for current frame
-    if ((window as any).drawingCanvas) {
-      const hasDrawingsForFrame = (window as any).drawingCanvas.hasDrawingsForCurrentFrame();
-      setHasDrawing(hasDrawingsForFrame);
-    }
+    // Check for drawings after a short delay to allow drawing mode to activate
+    setTimeout(() => {
+      checkForDrawings();
+    }, 100);
   };
+
+  // Periodically check for drawings when in drawing mode
+  React.useEffect(() => {
+    if (isDrawingMode) {
+      const interval = setInterval(() => {
+        checkForDrawings();
+      }, 500);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isDrawingMode]);
 
   const getFileIcon = (file: File) => {
     if (file.type.startsWith('image/')) return <ImageIcon className="h-4 w-4" />;
