@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -150,16 +151,6 @@ export const CommentInput = ({
           <Badge className="bg-yellow-500 text-black text-sm font-medium px-2 py-1">
             <Clock className="w-3 h-3 mr-1" />
             {formatTime(currentTime)}
-          </Badge>
-        </div>
-      )}
-
-      {/* Drawing indicator */}
-      {hasDrawing && (
-        <div className="flex items-center space-x-2">
-          <Badge className="bg-pink-500 text-white text-sm font-medium px-2 py-1">
-            <PenTool className="w-3 h-3 mr-1" />
-            Drawing attached
           </Badge>
         </div>
       )}
