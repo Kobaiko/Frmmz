@@ -40,10 +40,10 @@ export const CommentActionsMenu = ({
 }: CommentActionsMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleCopyComments = () => {
-    console.log('Copying comments:', comments);
+  const handleCopyComments = async () => {
+    console.log('Copy comments triggered with:', comments.length, 'comments');
     
-    if (comments.length === 0) {
+    if (!comments || comments.length === 0) {
       toast({
         title: "No comments to copy",
         description: "There are no comments visible to copy",
@@ -53,32 +53,39 @@ export const CommentActionsMenu = ({
       return;
     }
 
-    const commentsText = comments.map(comment => {
-      const content = comment.content || comment.text || '';
-      const timestamp = comment.timestamp !== -1 ? `[${Math.floor(comment.timestamp / 60)}:${Math.floor(comment.timestamp % 60).toString().padStart(2, '0')}] ` : '';
-      const replyIndicator = comment.parentId ? '↳ ' : '';
-      return `${replyIndicator}${timestamp}${comment.author}: ${content}`;
-    }).join('\n\n');
-    
-    navigator.clipboard.writeText(commentsText).then(() => {
+    try {
+      const commentsText = comments.map(comment => {
+        const content = comment.content || comment.text || '';
+        const timestamp = comment.timestamp !== -1 ? `[${Math.floor(comment.timestamp / 60)}:${Math.floor(comment.timestamp % 60).toString().padStart(2, '0')}] ` : '';
+        const replyIndicator = comment.parentId ? '↳ ' : '';
+        return `${replyIndicator}${timestamp}${comment.author}: ${content}`;
+      }).join('\n\n');
+      
+      await navigator.clipboard.writeText(commentsText);
+      
       toast({
         title: "Comments copied",
         description: `${comments.length} comments copied to clipboard`,
       });
-    }).catch(() => {
+      
+      onCopyComments?.();
+    } catch (error) {
+      console.error('Copy failed:', error);
       toast({
         title: "Copy failed",
         description: "Unable to copy comments to clipboard",
         variant: "destructive",
       });
-    });
+    }
     
     setIsOpen(false);
-    onCopyComments?.();
   };
 
-  const handlePasteComments = () => {
-    navigator.clipboard.readText().then((text) => {
+  const handlePasteComments = async () => {
+    console.log('Paste comments triggered');
+    
+    try {
+      const text = await navigator.clipboard.readText();
       if (text.trim()) {
         toast({
           title: "Paste comments",
@@ -91,21 +98,22 @@ export const CommentActionsMenu = ({
           variant: "destructive",
         });
       }
-    }).catch(() => {
+      onPasteComments?.();
+    } catch (error) {
+      console.error('Paste failed:', error);
       toast({
         title: "Paste failed",
         description: "Unable to read clipboard content",
         variant: "destructive",
       });
-    });
+    }
     setIsOpen(false);
-    onPasteComments?.();
   };
 
   const handlePrintComments = () => {
-    console.log('Printing comments:', comments);
+    console.log('Print comments triggered with:', comments.length, 'comments');
     
-    if (comments.length === 0) {
+    if (!comments || comments.length === 0) {
       toast({
         title: "No comments to print",
         description: "There are no comments visible to print",
@@ -115,65 +123,75 @@ export const CommentActionsMenu = ({
       return;
     }
 
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      const commentsHtml = comments.map(comment => {
-        const content = comment.content || comment.text || '';
-        const timestamp = comment.timestamp !== -1 ? `[${Math.floor(comment.timestamp / 60)}:${Math.floor(comment.timestamp % 60).toString().padStart(2, '0')}] ` : '';
-        const replyIndicator = comment.parentId ? '<div style="margin-left: 20px; border-left: 2px solid #ccc; padding-left: 10px;">' : '<div>';
-        const badges = [];
-        if (comment.hasDrawing) badges.push('<span style="background: #f59e0b; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">Drawing</span>');
-        if (comment.isInternal) badges.push('<span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">Internal</span>');
-        if (comment.parentId) badges.push('<span style="background: #3b82f6; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">Reply</span>');
-        
-        return `${replyIndicator}
-          <div style="margin-bottom: 16px; padding: 12px; border: 1px solid #ccc; border-radius: 8px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-              <strong>${comment.author}</strong> 
-              ${timestamp}
-              ${badges.join(' ')}
+    try {
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        const commentsHtml = comments.map(comment => {
+          const content = comment.content || comment.text || '';
+          const timestamp = comment.timestamp !== -1 ? `[${Math.floor(comment.timestamp / 60)}:${Math.floor(comment.timestamp % 60).toString().padStart(2, '0')}] ` : '';
+          const replyIndicator = comment.parentId ? '<div style="margin-left: 20px; border-left: 2px solid #ccc; padding-left: 10px;">' : '<div>';
+          const badges = [];
+          if (comment.hasDrawing) badges.push('<span style="background: #f59e0b; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">Drawing</span>');
+          if (comment.isInternal) badges.push('<span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">Internal</span>');
+          if (comment.parentId) badges.push('<span style="background: #3b82f6; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">Reply</span>');
+          
+          return `${replyIndicator}
+            <div style="margin-bottom: 16px; padding: 12px; border: 1px solid #ccc; border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <strong>${comment.author}</strong> 
+                ${timestamp}
+                ${badges.join(' ')}
+              </div>
+              <div style="margin-top: 8px; line-height: 1.4;">${content}</div>
+              <div style="margin-top: 8px; color: #666; font-size: 12px;">${comment.createdAt.toLocaleString()}</div>
             </div>
-            <div style="margin-top: 8px; line-height: 1.4;">${content}</div>
-            <div style="margin-top: 8px; color: #666; font-size: 12px;">${comment.createdAt.toLocaleString()}</div>
-          </div>
-        </div>`;
-      }).join('');
+          </div>`;
+        }).join('');
+        
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Comments Report</title>
+              <style>
+                body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+                h1 { color: #333; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
+              </style>
+            </head>
+            <body>
+              <h1>Comments Report</h1>
+              <p><strong>Total Comments:</strong> ${comments.length}</p>
+              <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+              <hr>
+              ${commentsHtml}
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+      }
       
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Comments Report</title>
-            <style>
-              body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
-              h1 { color: #333; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
-            </style>
-          </head>
-          <body>
-            <h1>Comments Report</h1>
-            <p><strong>Total Comments:</strong> ${comments.length}</p>
-            <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
-            <hr>
-            ${commentsHtml}
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
+      toast({
+        title: "Comments printed",
+        description: "Opening print dialog",
+      });
+      
+      onPrintComments?.();
+    } catch (error) {
+      console.error('Print failed:', error);
+      toast({
+        title: "Print failed",
+        description: "Unable to print comments",
+        variant: "destructive",
+      });
     }
     
-    toast({
-      title: "Comments printed",
-      description: "Opening print dialog",
-    });
-    
     setIsOpen(false);
-    onPrintComments?.();
   };
 
   const handleExportComments = () => {
-    console.log('Exporting comments:', comments);
+    console.log('Export comments triggered with:', comments.length, 'comments');
     
-    if (comments.length === 0) {
+    if (!comments || comments.length === 0) {
       toast({
         title: "No comments to export",
         description: "There are no comments visible to export",
@@ -183,46 +201,56 @@ export const CommentActionsMenu = ({
       return;
     }
 
-    const commentsData = comments.map(comment => {
-      const content = comment.content || comment.text || '';
-      return {
-        id: comment.id,
-        author: comment.author,
-        content: content,
-        timestamp: comment.timestamp,
-        createdAt: comment.createdAt.toISOString(),
-        videoTime: comment.timestamp !== -1 ? `${Math.floor(comment.timestamp / 60)}:${Math.floor(comment.timestamp % 60).toString().padStart(2, '0')}` : 'General',
-        isReply: !!comment.parentId,
-        parentId: comment.parentId || '',
-        isInternal: comment.isInternal || false,
-        hasDrawing: comment.hasDrawing || false
-      };
-    });
+    try {
+      const commentsData = comments.map(comment => {
+        const content = comment.content || comment.text || '';
+        return {
+          id: comment.id,
+          author: comment.author,
+          content: content,
+          timestamp: comment.timestamp,
+          createdAt: comment.createdAt.toISOString(),
+          videoTime: comment.timestamp !== -1 ? `${Math.floor(comment.timestamp / 60)}:${Math.floor(comment.timestamp % 60).toString().padStart(2, '0')}` : 'General',
+          isReply: !!comment.parentId,
+          parentId: comment.parentId || '',
+          isInternal: comment.isInternal || false,
+          hasDrawing: comment.hasDrawing || false
+        };
+      });
 
-    const csvContent = [
-      'ID,Author,Content,Video Time,Created At,Is Reply,Parent ID,Is Internal,Has Drawing',
-      ...commentsData.map(comment => 
-        `"${comment.id}","${comment.author}","${comment.content.replace(/"/g, '""')}","${comment.videoTime}","${comment.createdAt}","${comment.isReply}","${comment.parentId}","${comment.isInternal}","${comment.hasDrawing}"`
-      )
-    ].join('\n');
+      const csvContent = [
+        'ID,Author,Content,Video Time,Created At,Is Reply,Parent ID,Is Internal,Has Drawing',
+        ...commentsData.map(comment => 
+          `"${comment.id}","${comment.author}","${comment.content.replace(/"/g, '""')}","${comment.videoTime}","${comment.createdAt}","${comment.isReply}","${comment.parentId}","${comment.isInternal}","${comment.hasDrawing}"`
+        )
+      ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `comments-export-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `comments-export-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
 
-    toast({
-      title: "Comments exported",
-      description: `${comments.length} comments exported as CSV file`,
-    });
+      toast({
+        title: "Comments exported",
+        description: `${comments.length} comments exported as CSV file`,
+      });
+      
+      onExportComments?.();
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast({
+        title: "Export failed",
+        description: "Unable to export comments",
+        variant: "destructive",
+      });
+    }
     
     setIsOpen(false);
-    onExportComments?.();
   };
 
   return (
@@ -232,31 +260,48 @@ export const CommentActionsMenu = ({
           variant="ghost"
           size="sm"
           className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700"
+          onClick={(e) => {
+            console.log('Three dots menu clicked');
+            e.preventDefault();
+            e.stopPropagation();
+          }}
         >
           <MoreHorizontal size={16} />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent 
-        className="w-56 bg-gray-800 border-gray-700 text-white z-50" 
+        className="w-56 bg-gray-800 border-gray-700 text-white z-[9999]" 
         align="end"
         side="bottom"
       >
         <DropdownMenuItem
-          onClick={handleCopyComments}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleCopyComments();
+          }}
           className="hover:bg-gray-700 focus:bg-gray-700 cursor-pointer"
         >
           <Copy size={16} className="mr-2" />
           Copy Comments
         </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={handlePasteComments}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handlePasteComments();
+          }}
           className="hover:bg-gray-700 focus:bg-gray-700 cursor-pointer"
         >
           <FileText size={16} className="mr-2" />
           Paste Comments
         </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={handlePrintComments}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handlePrintComments();
+          }}
           className="hover:bg-gray-700 focus:bg-gray-700 cursor-pointer"
         >
           <Printer size={16} className="mr-2" />
@@ -264,7 +309,11 @@ export const CommentActionsMenu = ({
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-gray-600" />
         <DropdownMenuItem
-          onClick={handleExportComments}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleExportComments();
+          }}
           className="hover:bg-gray-700 focus:bg-gray-700 cursor-pointer"
         >
           <Share size={16} className="mr-2" />

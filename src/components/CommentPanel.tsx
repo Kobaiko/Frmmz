@@ -78,6 +78,7 @@ export const CommentPanel = ({
 
   // Normalize comments to ensure consistent interface
   const normalizedComments = React.useMemo(() => {
+    console.log('Normalizing comments:', comments);
     return comments.map(comment => ({
       ...comment,
       text: comment.content || comment.text || '', // Backward compatibility
@@ -102,26 +103,34 @@ export const CommentPanel = ({
       }
     });
     
+    console.log('Processed comments:', { topLevel, repliesMap });
     return { topLevelComments: topLevel, repliesMap };
   }, [normalizedComments]);
 
   // Sort and filter top-level comments
   const processedComments = React.useMemo(() => {
-    console.log('Processing comments:', { topLevelComments, searchQuery, filterType, sortBy, filters });
+    console.log('Processing comments with filters:', { searchQuery, filterType, sortBy, filters });
     
-    let filtered = topLevelComments.filter(comment => {
-      const searchText = comment.content.toLowerCase();
-      const authorText = comment.author.toLowerCase();
-      const queryText = searchQuery.toLowerCase();
-      
-      const matchesSearch = searchText.includes(queryText) || authorText.includes(queryText);
-      
-      if (filterType === 'general') return matchesSearch && !comment.isInternal;
-      if (filterType === 'internal') return matchesSearch && comment.isInternal;
-      if (filterType === 'resolved') return matchesSearch && comment.resolved;
-      
-      return matchesSearch; // 'all' case
-    });
+    let filtered = [...topLevelComments];
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(comment => {
+        const searchText = comment.content.toLowerCase();
+        const authorText = comment.author.toLowerCase();
+        return searchText.includes(query) || authorText.includes(query);
+      });
+    }
+
+    // Apply type filter
+    if (filterType === 'general') {
+      filtered = filtered.filter(comment => !comment.isInternal);
+    } else if (filterType === 'internal') {
+      filtered = filtered.filter(comment => comment.isInternal);
+    } else if (filterType === 'resolved') {
+      filtered = filtered.filter(comment => comment.resolved);
+    }
 
     // Apply additional filters
     if (filters.annotations) {
@@ -129,6 +138,12 @@ export const CommentPanel = ({
     }
     if (filters.attachments) {
       filtered = filtered.filter(comment => comment.attachments && comment.attachments.length > 0);
+    }
+    if (filters.completed) {
+      filtered = filtered.filter(comment => comment.resolved);
+    }
+    if (filters.incomplete) {
+      filtered = filtered.filter(comment => !comment.resolved);
     }
 
     // Sort comments
@@ -149,7 +164,7 @@ export const CommentPanel = ({
       }
     });
 
-    console.log('Processed comments result:', sorted);
+    console.log('Final processed comments:', sorted);
     return sorted;
   }, [topLevelComments, searchQuery, filterType, sortBy, filters]);
 
@@ -229,18 +244,14 @@ export const CommentPanel = ({
   const handleSortChange = (sort: 'timecode' | 'oldest' | 'newest' | 'commenter' | 'completed') => {
     console.log('Sort changed to:', sort);
     // Map the sort options to our internal state
-    switch (sort) {
-      case 'timecode':
-        setSortBy('timestamp');
-        break;
-      case 'oldest':
-        setSortBy('oldest');
-        break;
-      case 'newest':
-        setSortBy('newest');
-        break;
-      default:
-        setSortBy('newest');
+    if (sort === 'timecode') {
+      setSortBy('timestamp');
+    } else if (sort === 'oldest') {
+      setSortBy('oldest');
+    } else if (sort === 'newest') {
+      setSortBy('newest');
+    } else {
+      setSortBy('newest');
     }
   };
 
@@ -263,6 +274,7 @@ export const CommentPanel = ({
     setFilters(newFilters);
   };
 
+  // Render a comment with optional reply functionality
   const renderComment = (comment: Comment, isReply = false) => {
     const isExpanded = expandedComments.has(comment.id);
     const replies = repliesMap[comment.id] || [];
@@ -388,7 +400,8 @@ export const CommentPanel = ({
     processedCount: processedComments.length,
     sortBy,
     filterType,
-    searchQuery
+    searchQuery,
+    allVisibleCommentsCount: allVisibleComments.length
   });
 
   return (
