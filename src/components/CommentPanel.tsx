@@ -47,7 +47,7 @@ export const CommentPanel = ({
 }: CommentPanelProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<'all' | 'general' | 'internal' | 'resolved'>('all');
-  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'timestamp'>('newest');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'timestamp'>('timestamp');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState({
@@ -93,6 +93,14 @@ export const CommentPanel = ({
       return matchesSearch;
     });
 
+    // Apply additional filters
+    if (filters.annotations) {
+      filtered = filtered.filter(comment => comment.hasDrawing);
+    }
+    if (filters.attachments) {
+      filtered = filtered.filter(comment => comment.attachments && comment.attachments.length > 0);
+    }
+
     // Sort comments
     filtered.sort((a, b) => {
       switch (sortBy) {
@@ -111,7 +119,18 @@ export const CommentPanel = ({
     });
 
     return filtered;
-  }, [topLevelComments, searchQuery, filterType, sortBy]);
+  }, [topLevelComments, searchQuery, filterType, sortBy, filters]);
+
+  // Get all visible comments including replies for export/copy functions
+  const allVisibleComments = React.useMemo(() => {
+    const result: Comment[] = [];
+    processedComments.forEach(comment => {
+      result.push(comment);
+      const replies = repliesMap[comment.id] || [];
+      result.push(...replies.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+    });
+    return result;
+  }, [processedComments, repliesMap]);
 
   const formatTime = (seconds: number) => {
     if (seconds === -1) return 'General';
@@ -200,6 +219,8 @@ export const CommentPanel = ({
       unread: false,
       mentionsAndReactions: false,
     });
+    setSearchQuery("");
+    setFilterType('all');
   };
 
   const renderComment = (comment: Comment, isReply = false) => {
@@ -333,11 +354,11 @@ export const CommentPanel = ({
             <MessageSquare className="h-5 w-5 text-pink-500" />
             <h2 className="text-lg font-semibold text-white">All comments</h2>
             <Badge variant="outline" className="border-gray-600 text-gray-400">
-              {comments.length}
+              {allVisibleComments.length}
             </Badge>
           </div>
           <CommentActionsMenu
-            comments={processedComments}
+            comments={allVisibleComments}
           />
         </div>
         
@@ -356,7 +377,7 @@ export const CommentPanel = ({
         {/* Sort thread by */}
         <div className="flex items-center justify-between">
           <CommentSortMenu 
-            sortBy="timecode"
+            sortBy={sortBy === 'timestamp' ? 'timecode' : sortBy === 'oldest' ? 'oldest' : 'newest'}
             onSortChange={handleSortChange}
           />
           <CommentFilterMenu 

@@ -11,8 +11,19 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Copy, FileText, Printer, Share } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
+interface Comment {
+  id: string;
+  text: string;
+  author: string;
+  timestamp: number;
+  createdAt: Date;
+  parentId?: string;
+  isInternal?: boolean;
+  hasDrawing?: boolean;
+}
+
 interface CommentActionsMenuProps {
-  comments: any[];
+  comments: Comment[];
   onCopyComments?: () => void;
   onPasteComments?: () => void;
   onPrintComments?: () => void;
@@ -31,7 +42,8 @@ export const CommentActionsMenu = ({
   const handleCopyComments = () => {
     const commentsText = comments.map(comment => {
       const timestamp = comment.timestamp !== -1 ? `[${Math.floor(comment.timestamp / 60)}:${Math.floor(comment.timestamp % 60).toString().padStart(2, '0')}] ` : '';
-      return `${timestamp}${comment.author}: ${comment.text}`;
+      const replyIndicator = comment.parentId ? '↳ ' : '';
+      return `${replyIndicator}${timestamp}${comment.author}: ${comment.text}`;
     }).join('\n\n');
     
     navigator.clipboard.writeText(commentsText).then(() => {
@@ -52,9 +64,17 @@ export const CommentActionsMenu = ({
   };
 
   const handlePasteComments = () => {
-    toast({
-      title: "Paste comments",
-      description: "Paste functionality would be implemented here",
+    navigator.clipboard.readText().then((text) => {
+      toast({
+        title: "Paste comments",
+        description: "Paste functionality would process the clipboard content",
+      });
+    }).catch(() => {
+      toast({
+        title: "Paste failed",
+        description: "Unable to read clipboard content",
+        variant: "destructive",
+      });
     });
     setIsOpen(false);
     onPasteComments?.();
@@ -65,17 +85,39 @@ export const CommentActionsMenu = ({
     if (printWindow) {
       const commentsHtml = comments.map(comment => {
         const timestamp = comment.timestamp !== -1 ? `[${Math.floor(comment.timestamp / 60)}:${Math.floor(comment.timestamp % 60).toString().padStart(2, '0')}] ` : '';
-        return `<div style="margin-bottom: 16px; padding: 12px; border: 1px solid #ccc;">
-          <strong>${comment.author}</strong> ${timestamp}<br>
-          <div style="margin-top: 8px;">${comment.text}</div>
+        const replyIndicator = comment.parentId ? '<div style="margin-left: 20px; border-left: 2px solid #ccc; padding-left: 10px;">' : '<div>';
+        const badges = [];
+        if (comment.hasDrawing) badges.push('<span style="background: #f59e0b; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">Drawing</span>');
+        if (comment.isInternal) badges.push('<span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">Internal</span>');
+        if (comment.parentId) badges.push('<span style="background: #3b82f6; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">Reply</span>');
+        
+        return `${replyIndicator}
+          <div style="margin-bottom: 16px; padding: 12px; border: 1px solid #ccc; border-radius: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <strong>${comment.author}</strong> 
+              ${timestamp}
+              ${badges.join(' ')}
+            </div>
+            <div style="margin-top: 8px; line-height: 1.4;">${comment.text}</div>
+            <div style="margin-top: 8px; color: #666; font-size: 12px;">${comment.createdAt.toLocaleString()}</div>
+          </div>
         </div>`;
       }).join('');
       
       printWindow.document.write(`
         <html>
-          <head><title>Comments</title></head>
+          <head>
+            <title>Comments Report</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+              h1 { color: #333; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
+            </style>
+          </head>
           <body>
-            <h1>Comments</h1>
+            <h1>Comments Report</h1>
+            <p><strong>Total Comments:</strong> ${comments.length}</p>
+            <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+            <hr>
             ${commentsHtml}
           </body>
         </html>
@@ -95,17 +137,22 @@ export const CommentActionsMenu = ({
 
   const handleExportComments = () => {
     const commentsData = comments.map(comment => ({
+      id: comment.id,
       author: comment.author,
       content: comment.text,
       timestamp: comment.timestamp,
-      createdAt: comment.createdAt,
-      videoTime: comment.timestamp !== -1 ? `${Math.floor(comment.timestamp / 60)}:${Math.floor(comment.timestamp % 60).toString().padStart(2, '0')}` : 'General'
+      createdAt: comment.createdAt.toISOString(),
+      videoTime: comment.timestamp !== -1 ? `${Math.floor(comment.timestamp / 60)}:${Math.floor(comment.timestamp % 60).toString().padStart(2, '0')}` : 'General',
+      isReply: !!comment.parentId,
+      parentId: comment.parentId || '',
+      isInternal: comment.isInternal || false,
+      hasDrawing: comment.hasDrawing || false
     }));
 
     const csvContent = [
-      'Author,Content,Video Time,Created At',
+      'ID,Author,Content,Video Time,Created At,Is Reply,Parent ID,Is Internal,Has Drawing',
       ...commentsData.map(comment => 
-        `"${comment.author}","${comment.content.replace(/"/g, '""')}","${comment.videoTime}","${comment.createdAt}"`
+        `"${comment.id}","${comment.author}","${comment.content.replace(/"/g, '""')}","${comment.videoTime}","${comment.createdAt}","${comment.isReply}","${comment.parentId}","${comment.isInternal}","${comment.hasDrawing}"`
       )
     ].join('\n');
 
@@ -113,7 +160,7 @@ export const CommentActionsMenu = ({
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'comments.csv';
+    a.download = `comments-export-${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -121,7 +168,7 @@ export const CommentActionsMenu = ({
 
     toast({
       title: "Comments exported",
-      description: "Comments have been exported as CSV file",
+      description: `${comments.length} comments exported as CSV file`,
     });
     
     setIsOpen(false);
@@ -140,7 +187,7 @@ export const CommentActionsMenu = ({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent 
-        className="w-56 bg-gray-800 border-gray-600 text-white z-50" 
+        className="w-56 bg-gray-800 border-gray-700 text-white z-50" 
         align="end"
         side="bottom"
       >
