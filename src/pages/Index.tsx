@@ -33,7 +33,7 @@ const mockProjects: Project[] = [
     progress: 0,
     dueDate: undefined,
     createdAt: new Date(),
-    ownerId: "demo-user"
+    owner_id: "demo-user"
   }
 ];
 
