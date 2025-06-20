@@ -30,7 +30,6 @@ const mockProjects: Project[] = [
     name: "Demo Project",
     description: "Demo project for testing comments",
     createdAt: new Date(),
-    updatedAt: new Date(),
     ownerId: "demo-user"
   }
 ];
