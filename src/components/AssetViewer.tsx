@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Share2, Settings, Play, Pause, Volume2, VolumeX } from "lucide-react";
@@ -21,6 +22,7 @@ interface VideoComment {
   attachments?: any[];
   hasDrawing?: boolean;
   hasTimestamp?: boolean;
+  parentId?: string;
 }
 
 export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
@@ -88,7 +90,7 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     }, 3000);
   };
 
-  const handleAddComment = (timestamp: number, content: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => {
+  const handleAddComment = (timestamp: number, content: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean, parentId?: string) => {
     const newComment: VideoComment = {
       id: Date.now().toString(),
       timestamp: attachTime ? timestamp : -1,
@@ -99,11 +101,13 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
       resolved: false,
       hasTimestamp: attachTime === true,
       attachments: attachments || [],
-      hasDrawing: hasDrawing === true
+      hasDrawing: hasDrawing === true,
+      parentId: parentId // This is the key fix - preserve the parentId
     };
     
     setComments(prev => {
       const updated = [...prev, newComment];
+      console.log('Added comment with parentId:', parentId, 'New comment:', newComment);
       return updated;
     });
   };
