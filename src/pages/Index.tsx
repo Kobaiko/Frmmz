@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { AssetViewer } from "@/components/AssetViewer";
 import { AssetGrid } from "@/components/AssetGrid";
@@ -30,7 +29,7 @@ const mockProjects: Project[] = [
     name: "Demo Project",
     description: "Demo project for testing comments",
     createdAt: new Date(),
-    ownerId: "demo-user"
+    owner: "demo-user"
   }
 ];
 
