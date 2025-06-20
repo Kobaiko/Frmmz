@@ -40,6 +40,18 @@ export const CommentActionsMenu = ({
   const [isOpen, setIsOpen] = useState(false);
 
   const handleCopyComments = () => {
+    console.log('Copying comments:', comments);
+    
+    if (comments.length === 0) {
+      toast({
+        title: "No comments to copy",
+        description: "There are no comments visible to copy",
+        variant: "destructive",
+      });
+      setIsOpen(false);
+      return;
+    }
+
     const commentsText = comments.map(comment => {
       const timestamp = comment.timestamp !== -1 ? `[${Math.floor(comment.timestamp / 60)}:${Math.floor(comment.timestamp % 60).toString().padStart(2, '0')}] ` : '';
       const replyIndicator = comment.parentId ? '↳ ' : '';
@@ -65,10 +77,18 @@ export const CommentActionsMenu = ({
 
   const handlePasteComments = () => {
     navigator.clipboard.readText().then((text) => {
-      toast({
-        title: "Paste comments",
-        description: "Paste functionality would process the clipboard content",
-      });
+      if (text.trim()) {
+        toast({
+          title: "Paste comments",
+          description: "Comments would be pasted from clipboard",
+        });
+      } else {
+        toast({
+          title: "No content to paste",
+          description: "Clipboard is empty",
+          variant: "destructive",
+        });
+      }
     }).catch(() => {
       toast({
         title: "Paste failed",
@@ -81,6 +101,18 @@ export const CommentActionsMenu = ({
   };
 
   const handlePrintComments = () => {
+    console.log('Printing comments:', comments);
+    
+    if (comments.length === 0) {
+      toast({
+        title: "No comments to print",
+        description: "There are no comments visible to print",
+        variant: "destructive",
+      });
+      setIsOpen(false);
+      return;
+    }
+
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       const commentsHtml = comments.map(comment => {
@@ -136,6 +168,18 @@ export const CommentActionsMenu = ({
   };
 
   const handleExportComments = () => {
+    console.log('Exporting comments:', comments);
+    
+    if (comments.length === 0) {
+      toast({
+        title: "No comments to export",
+        description: "There are no comments visible to export",
+        variant: "destructive",
+      });
+      setIsOpen(false);
+      return;
+    }
+
     const commentsData = comments.map(comment => ({
       id: comment.id,
       author: comment.author,

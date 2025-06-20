@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -81,16 +80,17 @@ export const CommentPanel = ({
 
   // Sort and filter top-level comments
   const processedComments = React.useMemo(() => {
+    console.log('Processing comments:', { topLevelComments, searchQuery, filterType, sortBy, filters });
+    
     let filtered = topLevelComments.filter(comment => {
       const matchesSearch = comment.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            comment.author.toLowerCase().includes(searchQuery.toLowerCase());
       
-      if (filterType === 'all') return matchesSearch;
       if (filterType === 'general') return matchesSearch && !comment.isInternal;
       if (filterType === 'internal') return matchesSearch && comment.isInternal;
-      if (filterType === 'resolved') return matchesSearch && false; // No resolved property in Comment type
+      if (filterType === 'resolved') return matchesSearch && false; // No resolved property yet
       
-      return matchesSearch;
+      return matchesSearch; // 'all' case
     });
 
     // Apply additional filters
@@ -102,7 +102,8 @@ export const CommentPanel = ({
     }
 
     // Sort comments
-    filtered.sort((a, b) => {
+    const sorted = [...filtered].sort((a, b) => {
+      console.log('Sorting with:', sortBy);
       switch (sortBy) {
         case 'newest':
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -118,7 +119,8 @@ export const CommentPanel = ({
       }
     });
 
-    return filtered;
+    console.log('Processed comments result:', sorted);
+    return sorted;
   }, [topLevelComments, searchQuery, filterType, sortBy, filters]);
 
   // Get all visible comments including replies for export/copy functions
@@ -129,6 +131,7 @@ export const CommentPanel = ({
       const replies = repliesMap[comment.id] || [];
       result.push(...replies.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
     });
+    console.log('All visible comments for actions:', result);
     return result;
   }, [processedComments, repliesMap]);
 
@@ -194,6 +197,7 @@ export const CommentPanel = ({
   };
 
   const handleSortChange = (sort: 'timecode' | 'oldest' | 'newest' | 'commenter' | 'completed') => {
+    console.log('Sort changed to:', sort);
     // Map the sort options to our internal state
     switch (sort) {
       case 'timecode':
@@ -211,6 +215,7 @@ export const CommentPanel = ({
   };
 
   const clearFilters = () => {
+    console.log('Clearing filters');
     setFilters({
       annotations: false,
       attachments: false,
@@ -221,6 +226,11 @@ export const CommentPanel = ({
     });
     setSearchQuery("");
     setFilterType('all');
+  };
+
+  const handleFiltersChange = (newFilters: typeof filters) => {
+    console.log('Filters changed:', newFilters);
+    setFilters(newFilters);
   };
 
   const renderComment = (comment: Comment, isReply = false) => {
@@ -343,7 +353,14 @@ export const CommentPanel = ({
     );
   };
 
-  console.log('CommentPanel render - replyingTo:', replyingTo);
+  console.log('CommentPanel render - current state:', { 
+    replyingTo, 
+    commentsCount: comments.length, 
+    processedCount: processedComments.length,
+    sortBy,
+    filterType,
+    searchQuery
+  });
 
   return (
     <div className="h-full bg-gray-900 border-l border-gray-700 flex flex-col">
@@ -369,7 +386,10 @@ export const CommentPanel = ({
             type="text"
             placeholder="Search comments..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              console.log('Search query changed:', e.target.value);
+              setSearchQuery(e.target.value);
+            }}
             className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent"
           />
         </div>
@@ -382,7 +402,7 @@ export const CommentPanel = ({
           />
           <CommentFilterMenu 
             filters={filters}
-            onFiltersChange={setFilters}
+            onFiltersChange={handleFiltersChange}
             onClearFilters={clearFilters}
           />
         </div>
