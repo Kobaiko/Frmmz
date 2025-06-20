@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { AssetViewer } from "@/components/AssetViewer";
 import { AssetGrid } from "@/components/AssetGrid";
@@ -32,10 +31,10 @@ const mockProjects: Project[] = [
     status: "active",
     priority: "medium",
     progress: 0,
-    due_date: undefined,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    owner_id: "demo-user"
+    dueDate: undefined,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ownerId: "demo-user"
   }
 ];
 
