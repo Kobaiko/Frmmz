@@ -207,15 +207,6 @@ export const CommentPanel = ({
     const hasReplies = replies.length > 0;
     const isCurrentlyReplying = replyingTo === comment.id;
 
-    console.log('renderComment:', {
-      commentId: comment.id,
-      isCurrentlyReplying,
-      replyingTo,
-      hasReplies,
-      repliesCount: replies.length,
-      isReply
-    });
-
     return (
       <div 
         key={comment.id}

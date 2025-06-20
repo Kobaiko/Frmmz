@@ -560,15 +560,37 @@ export const VideoReviewInterface = ({
   const handleSubmitReply = (text: string, attachments?: File[]) => {
     console.log('Submitting reply:', { replyingTo, text });
     if (replyingTo && text.trim()) {
-      // Add reply as a comment with parentId
+      // Find the parent comment to get its timestamp or use -1 for general replies
+      const parentComment = comments.find(c => c.id === replyingTo);
+      const replyTimestamp = parentComment?.timestamp ?? -1;
+      
+      // Create a new comment with parentId set
+      const newReply: VideoComment = {
+        id: `reply-${Date.now()}-${Math.random()}`,
+        timestamp: replyTimestamp,
+        content: text,
+        author: 'Current User', // This should come from auth context
+        authorColor: '#3B82F6',
+        createdAt: new Date(),
+        parentId: replyingTo, // This is the key fix - setting the parentId
+        attachments: attachments ? Array.from(attachments).map(file => ({
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          url: URL.createObjectURL(file)
+        })) : undefined
+      };
+      
+      // Add the reply comment directly
       onAddComment(
-        -1, // Replies don't have timestamps
+        replyTimestamp,
         text,
         attachments,
         false, // Not internal
-        false, // No timestamp
+        false, // No timestamp attachment
         false  // No drawing
       );
+      
       setReplyingTo(null);
     }
   };
@@ -1254,17 +1276,24 @@ export const VideoReviewInterface = ({
                       
                       {/* Reply Input - Show when replying to this comment */}
                       {replyingTo === comment.id && (
-                        <SimpleReplyInput
-                          onSubmit={handleSubmitReply}
-                          onCancel={handleCancelReply}
-                          replyingTo={comment.author}
-                        />
+                        <div className="ml-6">
+                          <SimpleReplyInput
+                            onSubmit={handleSubmitReply}
+                            onCancel={handleCancelReply}
+                            replyingTo={comment.author}
+                          />
+                        </div>
                       )}
                       
-                      {/* Replies under this comment */}
+                      {/* Replies under this comment - Show as nested */}
                       {commentReplies.length > 0 && (
                         <div className="ml-6 space-y-2 border-l-2 border-gray-600 pl-4">
-                          {commentReplies.map((reply) => (
+                          <div className="text-xs text-gray-400 mb-2">
+                            {commentReplies.length} {commentReplies.length === 1 ? 'reply' : 'replies'}
+                          </div>
+                          {commentReplies
+                            .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                            .map((reply) => (
                             <div key={reply.id} className="bg-gray-700/50 rounded-lg p-3">
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center space-x-2">
@@ -1278,6 +1307,7 @@ export const VideoReviewInterface = ({
                                   </Avatar>
                                   <span className="text-gray-300 text-sm font-medium">{reply.author}</span>
                                   <span className="text-gray-500 text-xs">{formatTimeAgo(reply.createdAt)}</span>
+                                  <div className="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-xs">Reply</div>
                                 </div>
                                 <Button
                                   variant="ghost"
