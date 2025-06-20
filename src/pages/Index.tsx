@@ -32,8 +32,7 @@ const mockProjects: Project[] = [
     priority: "medium",
     progress: 0,
     dueDate: undefined,
-    createdAt: new Date(),
-    owner_id: "demo-user"
+    createdAt: new Date()
   }
 ];
 
