@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -260,12 +261,6 @@ export const CommentPanel = ({
                 >
                   <Reply className="h-3 w-3" />
                 </Button>
-                <CommentActionsMenu
-                  onCopyComments={() => {}}
-                  onPasteComments={() => {}}
-                  onPrintComments={() => {}}
-                  onExportComments={() => {}}
-                />
               </div>
             </div>
             
@@ -336,11 +331,14 @@ export const CommentPanel = ({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
             <MessageSquare className="h-5 w-5 text-pink-500" />
-            <h2 className="text-lg font-semibold text-white">Comments</h2>
+            <h2 className="text-lg font-semibold text-white">All comments</h2>
             <Badge variant="outline" className="border-gray-600 text-gray-400">
               {comments.length}
             </Badge>
           </div>
+          <CommentActionsMenu
+            comments={processedComments}
+          />
         </div>
         
         {/* Search */}
@@ -355,16 +353,16 @@ export const CommentPanel = ({
           />
         </div>
         
-        {/* Filters and Sort */}
-        <div className="flex items-center space-x-2">
+        {/* Sort thread by */}
+        <div className="flex items-center justify-between">
+          <CommentSortMenu 
+            sortBy="timecode"
+            onSortChange={handleSortChange}
+          />
           <CommentFilterMenu 
             filters={filters}
             onFiltersChange={setFilters}
             onClearFilters={clearFilters}
-          />
-          <CommentSortMenu 
-            sortBy="timecode"
-            onSortChange={handleSortChange}
           />
         </div>
       </div>
