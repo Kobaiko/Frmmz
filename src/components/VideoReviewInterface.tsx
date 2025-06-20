@@ -62,7 +62,7 @@ interface VideoComment {
 interface VideoReviewInterfaceProps {
   asset: any;
   comments: VideoComment[];
-  onAddComment: (timestamp: number, content: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean) => void;
+  onAddComment: (timestamp: number, content: string, attachments?: any[], isInternal?: boolean, attachTime?: boolean, hasDrawing?: boolean, parentId?: string) => void;
   onDeleteComment: (commentId: string) => void;
   currentTime: number;
   onCommentClick: (timestamp: number) => void;
@@ -564,31 +564,20 @@ export const VideoReviewInterface = ({
       const parentComment = comments.find(c => c.id === replyingTo);
       const replyTimestamp = parentComment?.timestamp ?? -1;
       
-      // Create a new comment with parentId set
-      const newReply: VideoComment = {
-        id: `reply-${Date.now()}-${Math.random()}`,
-        timestamp: replyTimestamp,
-        content: text,
-        author: 'Current User', // This should come from auth context
-        authorColor: '#3B82F6',
-        createdAt: new Date(),
-        parentId: replyingTo, // This is the key fix - setting the parentId
-        attachments: attachments ? Array.from(attachments).map(file => ({
+      // Add the reply comment with parentId - this is the key fix
+      onAddComment(
+        replyTimestamp,
+        text,
+        attachments ? Array.from(attachments).map(file => ({
           name: file.name,
           type: file.type,
           size: file.size,
           url: URL.createObjectURL(file)
-        })) : undefined
-      };
-      
-      // Add the reply comment directly
-      onAddComment(
-        replyTimestamp,
-        text,
-        attachments,
+        })) : undefined,
         false, // Not internal
         false, // No timestamp attachment
-        false  // No drawing
+        false, // No drawing
+        replyingTo // Pass the parentId here
       );
       
       setReplyingTo(null);
