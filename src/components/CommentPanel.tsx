@@ -8,7 +8,6 @@ import { CommentInput } from "./CommentInput";
 import { CommentFilterMenu } from "./CommentFilterMenu";
 import { CommentSortMenu } from "./CommentSortMenu";
 import { CommentActionsMenu } from "./CommentActionsMenu";
-import type { Comment } from "@/pages/Index";
 import { 
   MessageSquare, 
   Filter, 
@@ -23,7 +22,7 @@ import {
   X
 } from "lucide-react";
 
-// Updated Comment interface to match VideoComment from AssetViewer
+// Comment interface to match VideoComment from AssetViewer
 interface Comment {
   id: string;
   timestamp: number;
