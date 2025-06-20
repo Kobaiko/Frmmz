@@ -5,11 +5,6 @@ import { ArrowLeft, Download, Share2, Settings, Play, Pause, Volume2, VolumeX } 
 import { useAssets } from "@/hooks/useAssets";
 import { VideoReviewInterface } from "./VideoReviewInterface";
 
-interface AssetViewerProps {
-  assetId: string;
-  onBack: () => void;
-}
-
 interface VideoComment {
   id: string;
   timestamp: number;
@@ -38,9 +33,52 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Remove mock comments - start with empty array
+  // Add mock comments for testing
   useEffect(() => {
-    setComments([]);
+    const mockComments: VideoComment[] = [
+      {
+        id: "1",
+        timestamp: 30,
+        content: "This scene looks great! Love the lighting here.",
+        author: "John Doe",
+        authorColor: "#8B5CF6",
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+        hasDrawing: false,
+        hasTimestamp: true
+      },
+      {
+        id: "2",
+        timestamp: 65,
+        content: "Can we adjust the color grading in this part?",
+        author: "Jane Smith", 
+        authorColor: "#EF4444",
+        createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1 hour ago
+        hasDrawing: true,
+        hasTimestamp: true
+      },
+      {
+        id: "3",
+        timestamp: -1,
+        content: "Overall, this is looking fantastic. Great work everyone!",
+        author: "Mike Chen",
+        authorColor: "#10B981",
+        createdAt: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+        hasDrawing: false,
+        hasTimestamp: false
+      },
+      {
+        id: "4",
+        timestamp: 45,
+        content: "I agree with John's feedback about the lighting.",
+        author: "Sarah Wilson",
+        authorColor: "#F59E0B",
+        createdAt: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
+        parentId: "1", // Reply to John's comment
+        hasDrawing: false,
+        hasTimestamp: true
+      }
+    ];
+    setComments(mockComments);
   }, []);
 
   useEffect(() => {
@@ -214,3 +252,8 @@ export const AssetViewer = ({ assetId, onBack }: AssetViewerProps) => {
     </div>
   );
 };
+
+interface AssetViewerProps {
+  assetId: string;
+  onBack: () => void;
+}

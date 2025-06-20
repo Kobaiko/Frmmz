@@ -13,7 +13,8 @@ import { toast } from "@/hooks/use-toast";
 
 interface Comment {
   id: string;
-  text: string;
+  content?: string;
+  text?: string;
   author: string;
   timestamp: number;
   createdAt: Date;
@@ -53,9 +54,10 @@ export const CommentActionsMenu = ({
     }
 
     const commentsText = comments.map(comment => {
+      const content = comment.content || comment.text || '';
       const timestamp = comment.timestamp !== -1 ? `[${Math.floor(comment.timestamp / 60)}:${Math.floor(comment.timestamp % 60).toString().padStart(2, '0')}] ` : '';
       const replyIndicator = comment.parentId ? '↳ ' : '';
-      return `${replyIndicator}${timestamp}${comment.author}: ${comment.text}`;
+      return `${replyIndicator}${timestamp}${comment.author}: ${content}`;
     }).join('\n\n');
     
     navigator.clipboard.writeText(commentsText).then(() => {
@@ -116,6 +118,7 @@ export const CommentActionsMenu = ({
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       const commentsHtml = comments.map(comment => {
+        const content = comment.content || comment.text || '';
         const timestamp = comment.timestamp !== -1 ? `[${Math.floor(comment.timestamp / 60)}:${Math.floor(comment.timestamp % 60).toString().padStart(2, '0')}] ` : '';
         const replyIndicator = comment.parentId ? '<div style="margin-left: 20px; border-left: 2px solid #ccc; padding-left: 10px;">' : '<div>';
         const badges = [];
@@ -130,7 +133,7 @@ export const CommentActionsMenu = ({
               ${timestamp}
               ${badges.join(' ')}
             </div>
-            <div style="margin-top: 8px; line-height: 1.4;">${comment.text}</div>
+            <div style="margin-top: 8px; line-height: 1.4;">${content}</div>
             <div style="margin-top: 8px; color: #666; font-size: 12px;">${comment.createdAt.toLocaleString()}</div>
           </div>
         </div>`;
@@ -180,18 +183,21 @@ export const CommentActionsMenu = ({
       return;
     }
 
-    const commentsData = comments.map(comment => ({
-      id: comment.id,
-      author: comment.author,
-      content: comment.text,
-      timestamp: comment.timestamp,
-      createdAt: comment.createdAt.toISOString(),
-      videoTime: comment.timestamp !== -1 ? `${Math.floor(comment.timestamp / 60)}:${Math.floor(comment.timestamp % 60).toString().padStart(2, '0')}` : 'General',
-      isReply: !!comment.parentId,
-      parentId: comment.parentId || '',
-      isInternal: comment.isInternal || false,
-      hasDrawing: comment.hasDrawing || false
-    }));
+    const commentsData = comments.map(comment => {
+      const content = comment.content || comment.text || '';
+      return {
+        id: comment.id,
+        author: comment.author,
+        content: content,
+        timestamp: comment.timestamp,
+        createdAt: comment.createdAt.toISOString(),
+        videoTime: comment.timestamp !== -1 ? `${Math.floor(comment.timestamp / 60)}:${Math.floor(comment.timestamp % 60).toString().padStart(2, '0')}` : 'General',
+        isReply: !!comment.parentId,
+        parentId: comment.parentId || '',
+        isInternal: comment.isInternal || false,
+        hasDrawing: comment.hasDrawing || false
+      };
+    });
 
     const csvContent = [
       'ID,Author,Content,Video Time,Created At,Is Reply,Parent ID,Is Internal,Has Drawing',

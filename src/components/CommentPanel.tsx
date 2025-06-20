@@ -23,6 +23,25 @@ import {
   X
 } from "lucide-react";
 
+// Updated Comment interface to match VideoComment from AssetViewer
+interface Comment {
+  id: string;
+  timestamp: number;
+  content: string;
+  author: string;
+  authorColor?: string;
+  createdAt: Date;
+  resolved?: boolean;
+  replies?: Comment[];
+  attachments?: any[];
+  hasDrawing?: boolean;
+  hasTimestamp?: boolean;
+  parentId?: string;
+  // Legacy properties for backward compatibility
+  text?: string;
+  isInternal?: boolean;
+}
+
 interface CommentPanelProps {
   comments: Comment[];
   currentTime: number;
@@ -57,13 +76,22 @@ export const CommentPanel = ({
     unread: false,
     mentionsAndReactions: false,
   });
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const commentItemRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  // Normalize comments to ensure consistent interface
+  const normalizedComments = React.useMemo(() => {
+    return comments.map(comment => ({
+      ...comment,
+      text: comment.content || comment.text || '', // Backward compatibility
+      content: comment.content || comment.text || '',
+      isInternal: comment.isInternal ?? false,
+      hasDrawing: comment.hasDrawing ?? false,
+    }));
+  }, [comments]);
 
   // Process comments to separate top-level comments from replies
   const { topLevelComments, repliesMap } = React.useMemo(() => {
-    const topLevel = comments.filter(comment => !comment.parentId);
-    const replies = comments.filter(comment => comment.parentId);
+    const topLevel = normalizedComments.filter(comment => !comment.parentId);
+    const replies = normalizedComments.filter(comment => comment.parentId);
     
     const repliesMap: { [key: string]: Comment[] } = {};
     replies.forEach(reply => {
@@ -76,19 +104,22 @@ export const CommentPanel = ({
     });
     
     return { topLevelComments: topLevel, repliesMap };
-  }, [comments]);
+  }, [normalizedComments]);
 
   // Sort and filter top-level comments
   const processedComments = React.useMemo(() => {
     console.log('Processing comments:', { topLevelComments, searchQuery, filterType, sortBy, filters });
     
     let filtered = topLevelComments.filter(comment => {
-      const matchesSearch = comment.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           comment.author.toLowerCase().includes(searchQuery.toLowerCase());
+      const searchText = comment.content.toLowerCase();
+      const authorText = comment.author.toLowerCase();
+      const queryText = searchQuery.toLowerCase();
+      
+      const matchesSearch = searchText.includes(queryText) || authorText.includes(queryText);
       
       if (filterType === 'general') return matchesSearch && !comment.isInternal;
       if (filterType === 'internal') return matchesSearch && comment.isInternal;
-      if (filterType === 'resolved') return matchesSearch && false; // No resolved property yet
+      if (filterType === 'resolved') return matchesSearch && comment.resolved;
       
       return matchesSearch; // 'all' case
     });
@@ -242,11 +273,10 @@ export const CommentPanel = ({
     return (
       <div 
         key={comment.id}
-        ref={(el) => (commentItemRefs.current[comment.id] = el)}
         className={`${isReply ? 'ml-8 border-l-2 border-gray-600 pl-4 mt-2' : ''} space-y-3`}
       >
         <div className={`flex space-x-3 p-3 hover:bg-gray-800/50 rounded-lg transition-colors group ${isReply ? 'bg-gray-800/20' : ''}`}>
-          <Avatar className={`w-8 h-8 ${getAvatarColor(comment.author)} flex-shrink-0`}>
+          <Avatar className={`w-8 h-8 ${comment.authorColor ? '' : getAvatarColor(comment.author)} flex-shrink-0`} style={comment.authorColor ? {backgroundColor: comment.authorColor} : {}}>
             <AvatarFallback className="text-white text-xs font-medium">
               {getInitials(comment.author)}
             </AvatarFallback>
@@ -296,7 +326,7 @@ export const CommentPanel = ({
             </div>
             
             <div className="text-sm text-gray-300 leading-relaxed text-left">
-              {comment.text}
+              {comment.content}
             </div>
             
             <div className="flex items-center justify-between mt-2">
@@ -409,7 +439,7 @@ export const CommentPanel = ({
       </div>
       
       {/* Comments List */}
-      <div className="flex-1 overflow-y-auto" ref={scrollRef}>
+      <div className="flex-1 overflow-y-auto">
         <div className="space-y-1">
           {processedComments.length > 0 ? (
             processedComments.map(comment => renderComment(comment))
