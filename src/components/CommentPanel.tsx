@@ -212,16 +212,17 @@ export const CommentPanel = ({
       isCurrentlyReplying,
       replyingTo,
       hasReplies,
-      repliesCount: replies.length
+      repliesCount: replies.length,
+      isReply
     });
 
     return (
       <div 
         key={comment.id}
         ref={(el) => (commentItemRefs.current[comment.id] = el)}
-        className={`${isReply ? 'ml-8 border-l-2 border-gray-700 pl-4' : ''} space-y-3`}
+        className={`${isReply ? 'ml-8 border-l-2 border-gray-600 pl-4 mt-2' : ''} space-y-3`}
       >
-        <div className="flex space-x-3 p-3 hover:bg-gray-800/50 rounded-lg transition-colors group">
+        <div className={`flex space-x-3 p-3 hover:bg-gray-800/50 rounded-lg transition-colors group ${isReply ? 'bg-gray-800/20' : ''}`}>
           <Avatar className={`w-8 h-8 ${getAvatarColor(comment.author)} flex-shrink-0`}>
             <AvatarFallback className="text-white text-xs font-medium">
               {getInitials(comment.author)}
@@ -251,6 +252,11 @@ export const CommentPanel = ({
                 {comment.isInternal && (
                   <Badge variant="secondary" className="text-xs bg-orange-600/20 text-orange-400 border-0">
                     Internal
+                  </Badge>
+                )}
+                {isReply && (
+                  <Badge variant="secondary" className="text-xs bg-blue-600/20 text-blue-400 border-0">
+                    Reply
                   </Badge>
                 )}
               </div>
@@ -287,7 +293,7 @@ export const CommentPanel = ({
                   <span>0</span>
                 </button>
                 
-                {hasReplies && (
+                {hasReplies && !isReply && (
                   <button 
                     onClick={() => toggleExpanded(comment.id)}
                     className="text-xs text-pink-400 hover:text-pink-300 transition-colors"
@@ -302,9 +308,12 @@ export const CommentPanel = ({
         
         {/* Reply Input - Show when replying to this comment */}
         {isCurrentlyReplying && (
-          <div className="ml-11">
+          <div className={`${isReply ? 'ml-0' : 'ml-11'}`}>
             <CommentInput
-              onAddComment={handleSubmitReply}
+              onAddComment={(text, attachments, isInternal, attachTime, hasDrawing) => {
+                console.log('Reply submitted with parent:', comment.id);
+                handleSubmitReply(text, attachments, isInternal, attachTime, hasDrawing);
+              }}
               onCancel={handleCancelReply}
               placeholder={`Reply to ${comment.author}...`}
               currentTime={currentTime}
@@ -315,9 +324,9 @@ export const CommentPanel = ({
           </div>
         )}
         
-        {/* Replies - Show expanded replies */}
-        {hasReplies && isExpanded && (
-          <div className="space-y-2">
+        {/* Replies - Show expanded replies for top-level comments only */}
+        {hasReplies && !isReply && (isExpanded || replies.length <= 3) && (
+          <div className="space-y-0">
             {replies
               .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
               .map(reply => renderComment(reply, true))}
