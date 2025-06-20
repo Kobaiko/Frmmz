@@ -81,7 +81,7 @@ export const CommentPanel = ({
     console.log('Normalizing comments:', comments);
     return comments.map(comment => ({
       ...comment,
-      text: comment.content || comment.text || '', // Backward compatibility
+      text: comment.content || comment.text || '',
       content: comment.content || comment.text || '',
       isInternal: comment.isInternal ?? false,
       hasDrawing: comment.hasDrawing ?? false,
@@ -243,7 +243,6 @@ export const CommentPanel = ({
 
   const handleSortChange = (sort: 'timecode' | 'oldest' | 'newest' | 'commenter' | 'completed') => {
     console.log('Sort changed to:', sort);
-    // Map the sort options to our internal state
     if (sort === 'timecode') {
       setSortBy('timestamp');
     } else if (sort === 'oldest') {
@@ -364,7 +363,6 @@ export const CommentPanel = ({
           </div>
         </div>
         
-        {/* Reply Input - Show when replying to this comment */}
         {isCurrentlyReplying && (
           <div className={`${isReply ? 'ml-0' : 'ml-11'}`}>
             <CommentInput
@@ -382,7 +380,6 @@ export const CommentPanel = ({
           </div>
         )}
         
-        {/* Replies - Show expanded replies for top-level comments only */}
         {hasReplies && !isReply && (isExpanded || replies.length <= 3) && (
           <div className="space-y-0">
             {replies
@@ -416,9 +413,11 @@ export const CommentPanel = ({
               {allVisibleComments.length}
             </Badge>
           </div>
-          <CommentActionsMenu
-            comments={allVisibleComments}
-          />
+          <div onClick={(e) => e.stopPropagation()}>
+            <CommentActionsMenu
+              comments={allVisibleComments}
+            />
+          </div>
         </div>
         
         {/* Search */}
@@ -436,7 +435,7 @@ export const CommentPanel = ({
           />
         </div>
         
-        {/* Sort thread by */}
+        {/* Sort and Filter */}
         <div className="flex items-center justify-between">
           <CommentSortMenu 
             sortBy={sortBy === 'timestamp' ? 'timecode' : sortBy === 'oldest' ? 'oldest' : 'newest'}

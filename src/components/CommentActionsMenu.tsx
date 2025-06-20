@@ -40,7 +40,10 @@ export const CommentActionsMenu = ({
 }: CommentActionsMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleCopyComments = async () => {
+  const handleCopyComments = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
     console.log('Copy comments triggered with:', comments.length, 'comments');
     
     if (!comments || comments.length === 0) {
@@ -81,7 +84,10 @@ export const CommentActionsMenu = ({
     setIsOpen(false);
   };
 
-  const handlePasteComments = async () => {
+  const handlePasteComments = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
     console.log('Paste comments triggered');
     
     try {
@@ -110,7 +116,10 @@ export const CommentActionsMenu = ({
     setIsOpen(false);
   };
 
-  const handlePrintComments = () => {
+  const handlePrintComments = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
     console.log('Print comments triggered with:', comments.length, 'comments');
     
     if (!comments || comments.length === 0) {
@@ -188,7 +197,10 @@ export const CommentActionsMenu = ({
     setIsOpen(false);
   };
 
-  const handleExportComments = () => {
+  const handleExportComments = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
     console.log('Export comments triggered with:', comments.length, 'comments');
     
     if (!comments || comments.length === 0) {
@@ -253,6 +265,12 @@ export const CommentActionsMenu = ({
     setIsOpen(false);
   };
 
+  const handleMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    console.log('Three dots menu clicked, current open state:', isOpen);
+  };
+
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
@@ -260,11 +278,7 @@ export const CommentActionsMenu = ({
           variant="ghost"
           size="sm"
           className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700"
-          onClick={(e) => {
-            console.log('Three dots menu clicked');
-            e.preventDefault();
-            e.stopPropagation();
-          }}
+          onClick={handleMenuClick}
         >
           <MoreHorizontal size={16} />
         </Button>
@@ -273,48 +287,37 @@ export const CommentActionsMenu = ({
         className="w-56 bg-gray-800 border-gray-700 text-white z-[9999]" 
         align="end"
         side="bottom"
+        onCloseAutoFocus={(e) => e.preventDefault()}
       >
         <DropdownMenuItem
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleCopyComments();
-          }}
+          onClick={handleCopyComments}
           className="hover:bg-gray-700 focus:bg-gray-700 cursor-pointer"
+          onSelect={(e) => e.preventDefault()}
         >
           <Copy size={16} className="mr-2" />
           Copy Comments
         </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handlePasteComments();
-          }}
+          onClick={handlePasteComments}
           className="hover:bg-gray-700 focus:bg-gray-700 cursor-pointer"
+          onSelect={(e) => e.preventDefault()}
         >
           <FileText size={16} className="mr-2" />
           Paste Comments
         </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handlePrintComments();
-          }}
+          onClick={handlePrintComments}
           className="hover:bg-gray-700 focus:bg-gray-700 cursor-pointer"
+          onSelect={(e) => e.preventDefault()}
         >
           <Printer size={16} className="mr-2" />
           Print Comments
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-gray-600" />
         <DropdownMenuItem
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleExportComments();
-          }}
+          onClick={handleExportComments}
           className="hover:bg-gray-700 focus:bg-gray-700 cursor-pointer"
+          onSelect={(e) => e.preventDefault()}
         >
           <Share size={16} className="mr-2" />
           Export Comments
